@@ -4,11 +4,16 @@ import zlib from "node:zlib";
 
 const outDir = "app/src-tauri/icons";
 await fs.mkdir(outDir, { recursive: true });
-await fs.writeFile(path.join(outDir, "icon.png"), png(512, 512));
-await fs.writeFile(path.join(outDir, "32x32.png"), png(32, 32));
-await fs.writeFile(path.join(outDir, "128x128.png"), png(128, 128));
-await fs.writeFile(path.join(outDir, "128x128@2x.png"), png(256, 256));
-console.log("Wrote Tauri PNG icons");
+const icon32 = png(32, 32);
+const icon128 = png(128, 128);
+const icon256 = png(256, 256);
+const icon512 = png(512, 512);
+await fs.writeFile(path.join(outDir, "icon.png"), icon512);
+await fs.writeFile(path.join(outDir, "32x32.png"), icon32);
+await fs.writeFile(path.join(outDir, "128x128.png"), icon128);
+await fs.writeFile(path.join(outDir, "128x128@2x.png"), icon256);
+await fs.writeFile(path.join(outDir, "icon.ico"), ico([icon32, icon128, icon256]));
+console.log("Wrote Tauri icons");
 
 function png(width, height) {
   const rows = [];
@@ -44,6 +49,39 @@ function u32(value) {
   const buffer = Buffer.alloc(4);
   buffer.writeUInt32BE(value >>> 0);
   return buffer;
+}
+
+function ico(images) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(images.length, 4);
+
+  const entries = [];
+  let offset = header.length + images.length * 16;
+  for (const image of images) {
+    const { width, height } = pngSize(image);
+    const entry = Buffer.alloc(16);
+    entry[0] = width >= 256 ? 0 : width;
+    entry[1] = height >= 256 ? 0 : height;
+    entry[2] = 0;
+    entry[3] = 0;
+    entry.writeUInt16LE(1, 4);
+    entry.writeUInt16LE(32, 6);
+    entry.writeUInt32LE(image.length, 8);
+    entry.writeUInt32LE(offset, 12);
+    entries.push(entry);
+    offset += image.length;
+  }
+
+  return Buffer.concat([header, ...entries, ...images]);
+}
+
+function pngSize(buffer) {
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20)
+  };
 }
 
 function crc32(buffer) {
