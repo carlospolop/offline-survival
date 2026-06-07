@@ -125,7 +125,7 @@ Local AI answers are grounded in indexed local sources. For medical, electrical,
 
 The **Share** tab builds a package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.
 
-![Share package screen](docs/assets/screenshots/share.png)
+![Share package screen](docs/assets/screenshots/share.svg)
 
 Use this for:
 

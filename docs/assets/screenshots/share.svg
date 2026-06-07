@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Offline Survival share package screen</title>
+  <desc id="desc">A screenshot-style illustration of the Share tab showing source selection, primary OS selection, app bundle folder, progress, and generated launchers.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#132018" flood-opacity="0.14"/>
+    </filter>
+    <linearGradient id="primary" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0f7a55"/>
+      <stop offset="1" stop-color="#176b9b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="1000" fill="#eef2ea"/>
+  <rect x="0" y="0" width="290" height="1000" fill="#e1e7dc"/>
+  <line x1="290" y1="0" x2="290" y2="1000" stroke="#c8d2c3"/>
+
+  <text x="22" y="44" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="25" font-weight="800" fill="#07130d">Offline Survival</text>
+  <rect x="22" y="62" width="244" height="48" rx="7" fill="url(#primary)"/>
+  <text x="102" y="93" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800" fill="#ffffff">Easy Install</text>
+  <rect x="170" y="60" width="92" height="18" rx="9" fill="#cfe5dd"/>
+  <text x="184" y="73" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="11" font-weight="800" fill="#164f38">Recommended</text>
+
+  <rect x="22" y="128" width="244" height="40" rx="7" fill="#ffffff" stroke="#c7d2c1"/>
+  <text x="33" y="153" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" fill="#07130d">Downloaded</text>
+  <text x="201" y="153" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" font-weight="800" fill="#07130d">8.4 GB</text>
+  <text x="22" y="201" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#07130d">Library path</text>
+  <rect x="22" y="211" width="244" height="35" rx="6" fill="#ffffff" stroke="#c7d2c1"/>
+  <text x="34" y="233" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#526257">/media/usb/offline-library</text>
+  <rect x="22" y="263" width="244" height="32" rx="5" fill="#1f5138"/>
+  <text x="107" y="285" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#ffffff">Set Library</text>
+
+  <rect x="22" y="313" width="244" height="124" rx="7" fill="#f7faf5" stroke="#c7d2c1"/>
+  <text x="33" y="339" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#07130d">Kiwix</text>
+  <text x="33" y="362" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#0f7a55">ready</text>
+  <text x="33" y="383" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" fill="#526257">http://127.0.0.1:8089</text>
+  <rect x="33" y="393" width="222" height="32" rx="5" fill="#8aa99a"/>
+  <text x="107" y="414" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#ffffff">Start Kiwix</text>
+
+  <g font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800">
+    <rect x="312" y="22" width="106" height="36" rx="6" fill="#ffffff" stroke="#b7c5b1"/>
+    <text x="326" y="46" fill="#164f38">Dashboard</text>
+    <rect x="428" y="22" width="108" height="36" rx="6" fill="#ffffff" stroke="#b7c5b1"/>
+    <text x="443" y="46" fill="#164f38">Downloads</text>
+    <rect x="544" y="22" width="76" height="36" rx="6" fill="#ffffff" stroke="#b7c5b1"/>
+    <text x="560" y="46" fill="#164f38">Search</text>
+    <rect x="628" y="22" width="152" height="36" rx="6" fill="#ffffff" stroke="#b7c5b1"/>
+    <text x="642" y="46" fill="#164f38">Extra Knowledge</text>
+    <rect x="788" y="22" width="84" height="36" rx="6" fill="#ffffff" stroke="#b7c5b1"/>
+    <text x="806" y="46" fill="#164f38">Local AI</text>
+    <rect x="880" y="22" width="70" height="36" rx="6" fill="#1f5138"/>
+    <text x="896" y="46" fill="#ffffff">Share</text>
+    <rect x="958" y="22" width="88" height="36" rx="6" fill="#ffffff" stroke="#b7c5b1"/>
+    <text x="974" y="46" fill="#164f38">Settings</text>
+  </g>
+  <line x1="312" y1="62" x2="1418" y2="62" stroke="#d2dacd"/>
+
+  <text x="312" y="122" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="38" font-weight="850" fill="#07130d">Share</text>
+  <text x="312" y="158" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" fill="#526257">Create one package with selected downloaded sources, search data, and app files for Windows, macOS, and Linux.</text>
+
+  <rect x="312" y="190" width="1084" height="178" rx="10" fill="#ffffff" stroke="#d8ded2" filter="url(#shadow)"/>
+  <text x="338" y="226" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="22" font-weight="850" fill="#07130d">Generate app + sources package</text>
+  <text x="338" y="256" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" fill="#526257">Includes app files, downloaded files, prepared/opened files, and local search indexes. Unrelated local content is left out.</text>
+
+  <text x="338" y="302" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="850" fill="#164f38">SOURCES TO SHARE</text>
+  <rect x="338" y="316" width="330" height="38" rx="6" fill="#f7faf5" stroke="#c7d2c1"/>
+  <text x="352" y="340" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#07130d">Survival Essential · 8.4 GB · 5 sources</text>
+
+  <text x="692" y="302" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="850" fill="#164f38">PRIMARY LAUNCHER</text>
+  <rect x="692" y="316" width="190" height="38" rx="6" fill="#f7faf5" stroke="#c7d2c1"/>
+  <text x="706" y="340" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#07130d">Windows</text>
+
+  <rect x="902" y="316" width="180" height="38" rx="6" fill="#ffffff" stroke="#164f38"/>
+  <text x="929" y="340" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="850" fill="#164f38">App Bundle Folder</text>
+  <rect x="1098" y="316" width="250" height="38" rx="6" fill="url(#primary)"/>
+  <text x="1135" y="340" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="850" fill="#ffffff">Generate Share Package</text>
+
+  <text x="338" y="398" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#526257">App bundle folder: /Downloads/Offline-Survival-all-platforms</text>
+
+  <rect x="312" y="425" width="1084" height="156" rx="10" fill="#ffffff" stroke="#d8ded2"/>
+  <text x="338" y="462" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="850" fill="#07130d">Survival Essential</text>
+  <rect x="1248" y="438" width="112" height="30" rx="15" fill="#e1f1e8" stroke="#9ac7ab"/>
+  <text x="1274" y="458" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="14" font-weight="850" fill="#164f38">complete</text>
+  <rect x="338" y="486" width="1000" height="14" rx="7" fill="#e6ece2"/>
+  <rect x="338" y="486" width="1000" height="14" rx="7" fill="#0f7a55"/>
+  <text x="338" y="528" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#526257">Share package created with selected sources and app launchers.</text>
+  <text x="338" y="556" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" fill="#526257">/media/usb/offline-library/share/OfflineSurvival-survival-essential-Share.tar.gz</text>
+
+  <rect x="312" y="610" width="528" height="246" rx="10" fill="#ffffff" stroke="#d8ded2"/>
+  <text x="338" y="648" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="21" font-weight="850" fill="#07130d">Downloaded sources included</text>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">
+    <circle cx="348" cy="684" r="5" fill="#0f7a55"/><text x="366" y="689" fill="#07130d">SurvivalManual Wiki</text><text x="700" y="689" fill="#526257">indexed</text>
+    <circle cx="348" cy="724" r="5" fill="#0f7a55"/><text x="366" y="729" fill="#07130d">Simple English Wikipedia ZIM</text><text x="700" y="729" fill="#526257">ready</text>
+    <circle cx="348" cy="764" r="5" fill="#0f7a55"/><text x="366" y="769" fill="#07130d">WHO Basic Emergency Care</text><text x="700" y="769" fill="#526257">indexed</text>
+    <circle cx="348" cy="804" r="5" fill="#0f7a55"/><text x="366" y="809" fill="#07130d">WikEM Emergency Medicine</text><text x="700" y="809" fill="#526257">ready</text>
+  </g>
+
+  <rect x="868" y="610" width="528" height="246" rx="10" fill="#ffffff" stroke="#d8ded2"/>
+  <text x="894" y="648" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="21" font-weight="850" fill="#07130d">Package launch files</text>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15">
+    <rect x="894" y="674" width="438" height="32" rx="6" fill="#f7faf5" stroke="#d8ded2"/><text x="910" y="696" fill="#07130d">Run-Offline-Survival-Windows.bat</text>
+    <rect x="894" y="718" width="438" height="32" rx="6" fill="#f7faf5" stroke="#d8ded2"/><text x="910" y="740" fill="#07130d">Run-Offline-Survival-macOS.command</text>
+    <rect x="894" y="762" width="438" height="32" rx="6" fill="#f7faf5" stroke="#d8ded2"/><text x="910" y="784" fill="#07130d">Run-Offline-Survival-Linux.sh</text>
+    <rect x="894" y="806" width="438" height="32" rx="6" fill="#f7faf5" stroke="#d8ded2"/><text x="910" y="828" fill="#07130d">START-HERE.txt + share-manifest.json</text>
+  </g>
+</svg>
