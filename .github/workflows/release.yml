@@ -10,8 +10,26 @@ permissions:
   contents: write
 
 jobs:
+  validate:
+    name: Validate source
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run validation suite
+        run: npm run validate
+
   build:
     name: Build ${{ matrix.label }}
+    needs: validate
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -68,10 +86,10 @@ jobs:
             zip
 
       - name: Install npm dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Validate manifests and tests
-        run: npm run lint:manifests && npm run test
+      - name: Validate manifests
+        run: npm run lint:manifests
 
       - name: Build web UI
         run: npm run build
