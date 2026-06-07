@@ -16,6 +16,7 @@ Offline Survival is a desktop app that downloads useful public knowledge packs, 
 - [Sharing An Offline Library](#sharing-an-offline-library)
 - [What Gets Downloaded](#what-gets-downloaded)
 - [Privacy And Safety](#privacy-and-safety)
+- [Contributing](#contributing)
 - [For Developers](#for-developers)
 - [Releases](#releases)
 
@@ -122,6 +123,12 @@ The repository must not contain downloaded ZIMs, PDFs, archives, model files, lo
 - Local AI runs through a local Ollama runtime when installed.
 - The app binds its internal services to localhost by default.
 - RAM checks prevent Local AI from starting when the selected model is unsafe for the current machine.
+
+## Contributing
+
+Want to add a feature, improve the app, or propose a new source for one of the library profiles? Read [CONTRIBUTING.md](CONTRIBUTING.md).
+
+The short version: add code/docs as normal, add downloadable sources through `manifests/sources/catalog.yaml`, choose profiles carefully, record license and attribution, and never commit downloaded PDFs, ZIMs, archives, local databases, model files, or generated builds.
 
 ## For Developers
 
