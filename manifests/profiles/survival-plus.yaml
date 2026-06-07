@@ -1,0 +1,20 @@
+id: survival-plus
+title: Survival Plus
+description: Laptop or USB-SSD archive that extends Survival Essential with broader Wikipedia reference material, Wikipedia Medicine, iFixit repair knowledge, biology, travel/geography, agriculture, gardening, cooking, food safety, and recommended local AI models for source-grounded questions.
+target_size_gb: [30, 60]
+disk_budget_gb: 60
+includes:
+  - survival-essential
+sources:
+  - wikipedia-top1m-zim
+  - wikipedia-medicine-zim
+  - ifixit-zim
+  - openstax-biology-2e
+  - fao-small-agriculture-pack
+  - wikivoyage-zim
+  - gardening-stackexchange-zim
+  - cooking-stackexchange-zim
+models:
+  recommended:
+    - qwen3-8b
+    - bge-m3

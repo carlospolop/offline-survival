@@ -1,0 +1,14 @@
+id: civilization-max
+title: Civilization Max
+description: Deep preservation profile for large archive drives. Adds image-rich Wikipedia top-million coverage and larger Project Gutenberg coverage on top of Civilization Rebuild, prioritizing breadth, long-term replication, cultural continuity, and large-drive archival use.
+target_size_gb: [1000, 2000]
+disk_budget_gb: 2000
+includes:
+  - civilization-rebuild
+sources:
+  - project-gutenberg-large
+  - wikipedia-top1m-maxi
+models:
+  optional:
+    - llama3_1-8b
+    - mistral-small-24b

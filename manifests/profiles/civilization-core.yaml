@@ -1,0 +1,26 @@
+id: civilization-core
+title: Civilization Core
+description: Community knowledge-station profile for a 512GB-class SSD. Adds Wikibooks, Wiktionary, CDC public health, Appropedia, Open Source Ecology, OpenStreetMap, energy, repair, electronics, microcontrollers, engineering, 3D printing, woodworking, construction, and bicycle maintenance for practical reconstruction.
+target_size_gb: [150, 300]
+disk_budget_gb: 300
+includes:
+  - survival-plus
+sources:
+  - wikibooks-zim
+  - wiktionary-zim
+  - appropedia-snapshot
+  - energypedia-zim
+  - open-source-ecology
+  - cdc-public-health-pack
+  - openstreetmap-wiki-zim
+  - diy-stackexchange-zim
+  - woodworking-stackexchange-zim
+  - electronics-stackexchange-zim
+  - arduino-stackexchange-zim
+  - engineering-stackexchange-zim
+  - 3dprinting-stackexchange-zim
+  - bicycles-stackexchange-zim
+models:
+  recommended:
+    - qwen3-8b
+    - bge-m3

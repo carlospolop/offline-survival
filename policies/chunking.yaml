@@ -1,0 +1,15 @@
+default:
+  prose_chars: 2600
+  overlap_chars: 250
+  preserve_headings: true
+  preserve_ordered_procedures: true
+procedures:
+  prose_chars: 1400
+  overlap_chars: 160
+  keep_steps_together: true
+tables:
+  keep_rows_together: true
+  emit_json_sidecar: true
+medical:
+  preserve_warnings: true
+  citation_required: true

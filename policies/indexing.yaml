@@ -1,0 +1,13 @@
+exact_search:
+  engine: sqlite-fts5
+  scope: normalized_text
+  always_available_without_ai: true
+vector_search:
+  engine: ollama-embeddings-sidecar
+  scope: curated_practical_documents
+  default_model: bge-m3
+  fallback_model: nomic-embed-text
+zim:
+  default_indexing: original_only
+  serve_with: kiwix-serve
+  extract_for_ai: selected_pages_only

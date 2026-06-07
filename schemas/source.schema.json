@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "title", "type", "category", "license", "url", "expected_size_bytes", "runtime", "profiles"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]+$" },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "type": { "enum": ["zim", "pdf", "epub", "repo-archive", "html", "model", "runtime", "index"] },
+    "category": { "type": "string" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "license": { "type": "string" },
+    "attribution": { "type": "string" },
+    "url": { "type": "string" },
+    "source_url": { "type": "string" },
+    "expected_size_bytes": { "type": "number", "minimum": 0 },
+    "sha256": { "type": ["string", "null"] },
+    "runtime": { "type": "array", "items": { "type": "string" } },
+    "profiles": { "type": "array", "items": { "type": "string" } }
+  }
+}

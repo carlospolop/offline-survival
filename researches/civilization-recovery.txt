@@ -1,0 +1,336 @@
+
+Offline Civilization Recovery Repository
+Executive summary
+The strongest approach is not to build one giant Git repository full of binaries, PDFs, ZIM files, and model weights. The best design is a manifest-driven Git repo that stores code, manifests, metadata schemas, chunking rules, checksums, and packaging recipes, while the heavy artifacts live outside Git in reproducible bundles on disk, release archives, or mirrored folders. For offline browsing, use Kiwix/OpenZIM and official publisher downloads; for exact search, use ripgrep over normalized text; for semantic retrieval, use a local vector store; and for question answering, run a small set of quantized local LLMs through Ollama or llama.cpp. That architecture is far more maintainable, legally safer, and easier to replicate onto ordinary Windows/Linux PCs than trying to make Git itself the artifact store. 
+
+For your stated constraints, the best default stack is this: Kiwix/OpenZIM + official PDFs/manuals for acquisition, Markdown/JSONL/Parquet for normalized text, LanceDB as the default local vector layer, ripgrep as the exact-search fallback, Ollama as the easiest runtime, and Nomic Embed Text v1.5 as the default English embedding model. If you want the most portable runtime and fully reproducible GGUF builds, pair or replace Ollama with llama.cpp. For end-user convenience on laptops, GPT4All remains useful because it runs on ordinary desktops/laptops, integrates local document retrieval, and explicitly targets consumer hardware without requiring a GPU. 
+
+The best model mix for a no-GPU PC is tiered by RAM. On a 16 GB RAM machine, start with Gemma 3 4B Q4_K_M or Mistral 7B Q4_K_M. On a 16–24 GB RAM machine, add Llama 3.1 8B Q4_K_M as the main general-purpose model. On a 32 GB RAM machine, add Mistral Small 24B for the highest-quality offline answering that is still plausible on a regular PC. Official Ollama pages list approximate artifact sizes of 3.3 GB for Gemma 3 4B Q4_K_M, 4.4 GB for Mistral 7B Q4_K_M, 4.9 GB for Llama 3.1 8B Q4_K_M, and 14 GB for Mistral Small 24B, which makes these practical planning anchors for disk and RAM budgeting. 
+
+The main complexity is licensing, not software. Several of the highest-value sources for “restart civilization” knowledge are reusable but non-commercial or otherwise condition-laden. WHO and FAO publications are generally under CC BY-NC-SA 3.0 IGO. iFixit content is CC BY-NC-SA 3.0 with separate commercial/LLM licensing available. CDC material created by or for the U.S. government is generally public domain, but CDC itself notes international copyright considerations outside the United States. OpenStax is especially important to verify book by book and version by version, because surfaced official pages were inconsistent: some pages say CC BY 4.0, while other official pages say CC BY-NC-SA and explicitly disallow ingestion into LLMs without permission. That means your repo should treat licensing as first-class metadata and keep questionable or NC content in separately packageable tiers. 
+
+A few important details were unspecified in your brief and materially affect the final build: the exact storage budget, whether commercial redistribution matters, whether you want a single external-drive image or modular bundles, and whether the repo should include only clearly open material or also non-commercial material for personal/private use. Where those details were unspecified, the recommendations below assume personal or non-commercial use, English-first content, Windows/Linux compatibility, and no GPU dependency.
+
+Design principles and recommended architecture
+A “civilization recovery” archive works best when it is built as two layers. The first layer is the authoritative source layer: raw ZIMs, PDFs, EPUBs, HTML exports, CSVs, and model files. The second layer is the retrieval layer: normalized text, chunk metadata, embeddings, full-text indexes, and local-app configuration. This separation preserves provenance, allows re-indexing without re-downloading, and makes it possible to prove what source a generated answer came from. That is especially important when the corpus mixes encyclopedic text, medical guidance, engineering manuals, and practical repair content. 
+
+The right operational principle is browse originals, answer from normalized derivatives, always link back to source records. Kiwix is excellent for offline human browsing of large free-knowledge libraries, while vector retrieval and grep both work better against normalized Markdown/JSONL produced from those originals. Faiss, LanceDB, Qdrant, and sqlite-vec all support this pattern in different ways, but the cleanest implementation for an offline PC is to keep raw content immutable and regenerate indexes as needed. 
+
+The best default deployment is therefore a hybrid offline workstation rather than a single monolith:
+
+Official sources and ZIM/PDF/EPUB downloads
+
+Raw artifact store
+
+Normalization pipeline
+
+Markdown and JSONL corpus
+
+Chunker and metadata enricher
+
+Embeddings
+
+Exact text index
+
+Vector store
+
+Offline search UI and CLI
+
+Local LLM runtime
+
+Kiwix offline browsing
+
+
+
+Show code
+This architecture is aligned with how Kiwix distributes offline libraries, how Tika and Pandoc are used for extraction and conversion, how LanceDB and Faiss separate storage/index logic, and how Ollama/GPT4All/llama.cpp expect local artifacts to be managed. 
+
+Content acquisition and curation
+The most valuable corpus is not “everything,” but a prioritized, legally usable, and operationally searchable subset. For a civilization-recovery use case, the correct priority order is usually: reference knowledge, health and sanitation, food/agriculture, repair and fabrication, science and engineering education, then literature and culture. Kiwix is particularly strong here because its official directory includes offline packages for Wikibooks, Wiktionary, Wikisource, Project Gutenberg, LibreTexts, iFixit, and many Wikimedia properties in a standardized ZIM format. 
+
+Prioritized source matrix
+Priority	Source	Why it matters	Download method	Rights / caution	Best use
+Very high	Kiwix Wikimedia family: Wikibooks, Wiktionary, Wikisource	Structured practical books, dictionary coverage, and historical texts in offline ZIM packages	Kiwix/OpenZIM directory	Verify upstream project terms per source family	Core offline reference
+Very high	iFixit via Kiwix	Repair procedures for electronics, appliances, and tools	Kiwix ZIM	CC BY-NC-SA 3.0; separate commercial/LLM licensing exists	Repair and maintenance
+Very high	CDC Stacks and CDC agency materials	Public-health and emergency guidance, often public domain	Official CDC downloads	Public domain generally, but CDC notes international caveats	Health, emergency, sanitation
+High	WHO publications	Global health guidance and medical/public-health manuals	WHO publication pages / IRIS	CC BY-NC-SA 3.0 IGO	Health, non-commercial only
+High	FAO Knowledge Repository	Agriculture, food systems, fisheries, water, soil, crop guidance	FAO repository	CC BY-NC-SA 3.0 IGO	Agriculture, non-commercial only
+High	LibreTexts via Kiwix	Science, math, engineering, medical and workforce OER packaged offline	Kiwix ZIM	Check title-level licenses	Structured teaching corpus
+High	OpenStax	High-quality textbooks for basic sciences and applied subjects	Official book pages/PDFs	Verify each title/version; surfaced official pages were inconsistent on license and AI-use terms	Formal baseline education
+Medium	Project Gutenberg	Public-domain literature, history, reference works	Kiwix or Gutenberg	Mostly public domain in the U.S.; jurisdiction matters outside the U.S.	Culture, history, general reading
+Medium	Appropedia	Appropriate technology, sustainability, low-resource engineering	Wiki pages / PDFs / ZIM-capable workflows	CC BY-SA 4.0 unless otherwise noted	Appropriate tech and field engineering
+Medium	Open Source Ecology	Open machine designs and fabrication documentation	OSE wiki and GVCS pages	CC BY-SA 4.0 / OSE open-license model	Fabrication and industrial restart knowledge
+
+Source notes: Kiwix officially distributes these content families in ZIM directories, with English examples including wikibooks_en_all_nopic_2026-04 at 3.3 GB, wiktionary_en_all_nopic_2026-05 at 8.5 GB, wikisource_en_all_nopic_2026-05 at 11 GB, ifixit_en_all_2025-12 at 3.3 GB, selected LibreTexts subjects such as math at 792 MB and physics at 534 MB, and Project Gutenberg English full packages as large as 206 GB. WHO/FAO licensing pages state CC BY-NC-SA 3.0 IGO, iFixit states CC BY-NC-SA 3.0 with separate commercial arrangements, Appropedia defaults to CC BY-SA 4.0, and OSE states CC BY-SA 4.0 for its wiki/open-license model. CDC states that information created by or for the U.S. government on CDC Stacks is public domain, while warning that international copyright can differ. OpenStax requires title/version verification due inconsistent surfaced official pages. 
+
+Sample authoritative download commands
+bash
+Copy
+# Kiwix / OpenZIM example pulls
+aria2c -x16 -s16 -c \
+  https://download.kiwix.org/zim/wikibooks/wikibooks_en_all_nopic_2026-04.zim \
+  https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-05.zim \
+  https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-05.zim \
+  https://download.kiwix.org/zim/ifixit/ifixit_en_all_2025-12.zim \
+  https://download.kiwix.org/zim/libretexts/libretexts.org_en_math_2026-01.zim \
+  https://download.kiwix.org/zim/libretexts/libretexts.org_en_phys_2026-01.zim
+Those filenames and paths are directly supported by Kiwix’s official directory listings for the corresponding collections. 
+
+For sources that are not best mirrored through Kiwix, use the official publisher repositories directly: WHO publication pages, the FAO Knowledge Repository, CDC Stacks/agency materials, and the official OpenStax book pages. That keeps provenance clean and licensing auditable. 
+
+Curation criteria and metadata schema
+Your curation policy should reject the instinct to “mirror everything equally.” The best filter is a weighted rubric that favors authoritativeness, practical utility under resource scarcity, reuse rights, format quality, and update stability. A chemistry handbook, a crop disease manual, a field sanitation guide, a machine repair procedure, and a basic electricity text should outrank generic blog content even if that blog is easier to scrape. Where two sources overlap, prefer the one with the clearer provenance and the more permissive license. 
+
+A good record schema is simple enough to keep stable, but rich enough to support search, packaging, safety review, and re-indexing. The minimum useful fields are:
+
+Field	Purpose
+doc_id	Stable canonical ID
+source_family	kiwix, who, fao, cdc, openstax, appropedia, ose, etc.
+title	Human-readable title
+source_url	Canonical source page
+download_url	Exact artifact URL if applicable
+license	Normalized expression plus human-readable note
+version_or_snapshot	Date/version of the artifact
+language	Default en for this build
+domain_tags	medicine, agriculture, repair, energy, governance, etc.
+doc_type	zim, pdf, epub, html, csv, gguf, etc.
+publication_date	Upstream publication date when known
+checksum_sha256	Integrity verification
+normalized_path	Path to derived Markdown/JSONL
+chunk_profile	Which chunking rule was applied
+safety_class	general, medical, electrical, chemical, fabrication, etc.
+attribution_text	Exact required attribution line
+review_status	unreviewed, reviewed, restricted, excluded
+
+Because rights vary so sharply across OpenStax, WHO, FAO, CDC, iFixit, Appropedia, and OSE, the fields that matter most are license, version_or_snapshot, checksum_sha256, and attribution_text. Those are not optional metadata in a project like this; they are the difference between a reproducible archive and a legal mess. 
+
+Storage formats and retrieval architecture
+The right storage pattern is keep the original, then create a normalized derivative optimized for search. For originals, use the native artifact format whenever it is already distribution-friendly: ZIM, PDF, EPUB, HTML, CSV, and GGUF. For derivatives, standardize on Markdown for prose-like documents, JSONL for document records and chunk records, and optionally Parquet for chunk tables or evaluation datasets. Pandoc is the best general converter for markup-rich formats; Apache Tika is the best general extractor/metadata tool across heterogeneous document types; and pdfminer.six is useful when you specifically need text-first PDF extraction from born-digital PDFs. 
+
+Recommended file-format policy
+Layer	Recommended format	Why
+Source artifacts	*.zim, *.pdf, *.epub, *.html, *.csv, *.gguf	Best provenance and easy re-verification
+Normalized documents	*.md	Human-readable, grep-friendly, easy to diff
+Record store	documents.jsonl	One record per source document; simple and portable
+Chunk store	chunks.jsonl or chunks.parquet	Good for embedding and rebuild pipelines
+Full-text metadata	SQLite / Meilisearch / Tantivy index dir	Fast exact and BM25 retrieval
+Vector index	LanceDB dir, Faiss files, Qdrant local path, or sqlite-vec SQLite DB	Depends on desired operational complexity
+
+Source notes: Pandoc is a universal document converter; Tika extracts text and metadata from a very wide range of file types from a single interface; pdfminer.six is specifically oriented toward extracting text directly from PDF source structure. 
+
+The best chunking policy is structure-aware and domain-aware, not a naive fixed-length splitter. Use heading-aware chunks for textbooks/manuals, preserve ordered procedures as intact units, keep tables together or convert them into row-group JSON where table semantics matter, and avoid mixing unrelated sections just to hit a token target. For English RAG on practical documents, a good default is 450–700 tokens with 60–100 tokens overlap for expository prose, 150–300 tokens for procedures/checklists, and one logical section per chunk for formulas/code/specs. That strategy is a recommendation rather than a hard vendor rule, but it fits the way embedding models and local retrieval systems are documented and used in practice. The most important thing is to retain heading path, source offsets, and parent-child relationships so the UI can show the surrounding context after retrieval. 
+
+Vector databases and offline search
+Best overall vector choice: LanceDB for a local, offline, read-mostly archive where you want one storage layer that supports vector search, full-text search, filtering, and hybrid search. LanceDB’s documentation emphasizes a disk-based indexing philosophy, supports IVF and HNSW-family indexes, offers full-text BM25 indexing, and supports hybrid search in the OSS docs. 
+
+Best minimal-performance choice: Faiss if you are comfortable building some glue code yourself. It is extremely mature, explicitly documents index tradeoffs and bytes-per-vector formulas, and supports exact, HNSW, and IVF/PQ-style indexes. It is a library, not a batteries-included app database, so you will need to pair it with separate metadata/full-text infrastructure. 
+
+Best local-service choice: Qdrant if you want a more database-shaped local experience with filtering and a clean API. Qdrant documents local mode, on-disk persistence, security controls, and official benchmark methodology. It is heavier operationally than LanceDB or Faiss for a single-user offline laptop, but easier to expose to multiple tools through a stable local API. 
+
+Best tiny embedded choice: sqlite-vec only when you explicitly want an ultra-portable, no-server, SQLite-native package and can accept immaturity. Its docs say it runs anywhere and is pure SQL with no extra server, but the project also warns that it is still pre-v1 and subject to breaking changes. SQLite’s newer experimental Vec1 extension is also worth watching, but for a serious recovery archive today it is safer to treat SQLite-vector tooling as a specialized option, not the default. 
+
+Option	Best for	Advantages	Tradeoffs	Verdict
+LanceDB	Default offline RAG archive	Hybrid search, disk-based philosophy, vector + FTS + filtering in one stack	Less battle-tested in classic ANN public benchmark culture than Faiss	Best default
+Faiss	Maximum performance and control	Mature, fast, explicit memory/index tradeoffs, excellent for custom pipelines	You must build metadata/full-text glue yourself	Best performance core
+Qdrant local	Multi-tool local API + filtering	On-disk local mode, good filtering, official security and benchmark docs	More operational complexity	Best local service
+sqlite-vec	One-file embedded deployments	No server, very portable, SQL-native	Pre-v1 and more limited for large serious builds	Best tiny option
+
+Benchmark note: public ANN-Benchmarks pages are readily available for at least hnsw(faiss) and qdrant, and Qdrant also publishes its own open benchmark harness and methodology. For LanceDB and sqlite-vec, the safer engineering answer is to run your own acceptance benchmark on your corpus before locking the design. 
+
+For exact and lexical search, the best answer is not a single tool but a stack. Use ripgrep for dead-simple exact search across normalized text on every machine, Meilisearch if you want a friendly local search API/UI layer with filtering and ranking, and Tantivy if you want to embed BM25/full-text search directly into a custom Rust desktop/server binary. ripgrep is explicitly line-oriented and cross-platform; Meilisearch documents full-text, filtering, and semantic/AI-oriented indexing; Tantivy is a Lucene-like Rust library with BM25, fast startup, mmap support, and a CLI/server tutorial. 
+
+Search layer	Best use	Why
+ripgrep	Exact phrase/regex search and ops/debugging	Nearly zero setup, fast, cross-platform, perfect fallback
+Meilisearch	Human-facing local search UI/API	Strong text search, filters, facets, increasingly AI-friendly
+Tantivy	Custom app embedding	Lucene-like library, BM25, tiny startup, very fast Rust integration
+
+Local models, embeddings, and runtimes
+Embedding models and local embedding tools
+For an English-first corpus on ordinary PCs, the best default embedding model is Nomic Embed Text v1.5. Its official model card specifically documents the search_document: and search_query: prefixes for RAG, and the official GGUF repository gives a compact spectrum of local files with Q4_K_M around 84 MB, Q8_0 around 146 MB, and F16 around 274 MB. That makes it unusually practical for offline builds. The main caveat is that the GGUF page notes a 2048-token default context in llama.cpp unless you use context-extension techniques; the original transformer-based implementation is the better choice if you need the full long-context behavior without that caveat. 
+
+A very strong alternative is EmbeddingGemma. Ollama describes it as a 300M-parameter embedding model from Google, and the official Google model card emphasizes query-vs-document prompt templates for retrieval. If you expect multilingual use or want Google’s small embedding family, it is an excellent second option. For a very small fallback, all-MiniLM-L6-v2 remains practical, but its official model card says it is intended for sentences and short paragraphs and truncates input beyond 256 word pieces, which makes it less attractive for long manual-like chunks. 
+
+In terms of tooling, the best build-time choice is SentenceTransformers for reproducible batch indexing; the best local-service choice is Ollama’s /api/embed endpoint; and the easiest desktop-centric route is GPT4All / Nomic local embeddings, which explicitly support local inference and document indexing workflows. 
+
+Embedding model	Best use	Practical notes	Verdict
+Nomic Embed Text v1.5	Default English RAG	Explicit RAG prefixes; small GGUF quantizations down to sub-100 MB	Best default
+EmbeddingGemma	Small Google embedding option	Query/document prompt templates; 300M-scale family	Best alternative
+all-MiniLM-L6-v2	Tiny fallback	Very light, but short-input oriented and truncates at 256 word pieces	Best tiny fallback
+
+LLM runtimes
+For runtime, there is a clear split between ease, portability, and desktop UX.
+
+Ollama is the best overall runtime for most people. Its docs expose a stable local API, official embedding endpoints, model pulling, and a very simple operator experience. It is the easiest path to getting a local HTTP endpoint that other tools can call offline. 
+
+llama.cpp is the best portability/runtime-engineering choice. The project requires GGUF, provides conversion scripts for non-GGUF weights, and is the cleanest route if you want to own the entire artifact pipeline from upstream Hugging Face weights to your own quantized files. It is also the most reproducible option when you want the repo to define how models are built rather than just which models are pulled. 
+
+GPT4All is the best desktop “just run it” option for non-specialist users. Its docs say it runs privately on everyday desktops and laptops, requires no API calls or GPU, supports LocalDocs, and focuses on the 3–13B model range on consumer hardware. This makes it valuable as a packaged fallback even if Ollama or llama.cpp are your main engineering targets. 
+
+Runtime	Best use	Strengths	Tradeoffs	Verdict
+Ollama	Easiest local deployment	Simple pull/run model workflow, local API, embeddings endpoint	Less “DIY build-pipeline” oriented than llama.cpp	Best default
+llama.cpp	Reproducible, portable local inference	GGUF-native, convert/quantize yourself, easiest to fully own	More moving pieces for beginners	Best engineering choice
+GPT4All	Desktop/offline end-user UX	Consumer-hardware focus, LocalDocs, no GPU requirement	Less flexible than Ollama + custom stack	Best end-user fallback
+
+Recommended quantized models
+Model	Typical local package	Officially surfaced properties	Practical fit	Recommended use
+Gemma 3 4B	Q4_K_M about 3.3 GB	4.3B params, 128K context, multimodal family, QAT variants available	Good on 16 GB RAM	Best small all-rounder
+Mistral 7B Instruct	Q4_K_M about 4.4 GB	7.25B params, Apache 2.0, function calling support	Great on 16 GB RAM	Best text-only value
+Llama 3.1 8B Instruct	Q4_K_M about 4.9 GB	8.03B params, 128K context, multilingual family, custom Meta license	Best on 16–24 GB RAM	Best general-purpose default
+Mistral Small 24B	Ollama package about 14 GB	24B class, 32K context, fits comfortably on a 32 GB machine once quantized	32 GB RAM class	Best high-quality local tier
+
+Source notes: official Ollama model pages list the above package sizes and contexts; Meta’s official Llama 3.1 model card documents the 8B family, 128K context, supported languages, and custom license; Mistral’s official model card documents Apache 2.0 licensing and function-calling support. 
+
+A practical rule of thumb for CPU-only use is to budget roughly 1.3× to 2× the on-disk model size in free RAM once you include runtime overhead and larger context windows. That is a planning heuristic, not an official vendor number, but it maps well to the artifact sizes above and keeps builds conservative.
+
+Build pipeline, repo layout, and operations
+The core engineering move is to make the project manifest-first and reproducible. Every upstream item gets a manifest entry; every pipeline step is deterministic; every bundle has checksums; and every chunk ID remains stable across re-indexes unless the source actually changed. That gives you a repo that can be rebuilt, mirrored to a fresh PC, and audited when answers are wrong. Tools like Pandoc, Tika, SentenceTransformers/Ollama embeddings, LanceDB/Faiss, and local model runtimes fit naturally into this pattern. 
+
+Recommended repo layout and git strategy
+text
+Copy
+civilization-recovery/
+  README.md
+  LICENSES/
+  manifests/
+    sources.yaml
+    models.yaml
+    search.yaml
+  policies/
+    curation_rules.yaml
+    chunk_profiles.yaml
+    license_rules.yaml
+  schemas/
+    document.schema.json
+    chunk.schema.json
+  tools/
+    download.py
+    normalize.py
+    chunk.py
+    embed.py
+    index_text.py
+    index_vector.py
+    package.py
+    verify.py
+  app/
+    api/
+    ui/
+    prompts/
+  data/
+    raw/           # gitignored
+    normalized/    # gitignored
+    chunks/        # gitignored
+    indexes/       # gitignored
+    models/        # gitignored
+  checksums/
+    SHA256SUMS
+  releases/
+    manifest-lock.json
+    bundles.md
+The rule should be straightforward: store code, manifests, schemas, prompts, and tiny sample fixtures in Git; store corpora, indexes, and model weights outside Git. For most users, that means Git for orchestration, plus external SSD bundles or release archives for payloads. If you absolutely need Git-hosted binary artifacts, use it only for very small items; do not treat Git as the primary store for 100 GB–500 GB content packs or multiple multi-gigabyte models. That recommendation is architectural judgment, not a vendor rule, but it is the only approach that stays practical at civilization-archive scale.
+
+Step-by-step automation
+A workable build can be expressed as a small number of phases:
+
+makefile
+Copy
+download:
+	python tools/download.py --manifest manifests/sources.yaml --out data/raw
+
+normalize:
+	python tools/normalize.py --in data/raw --out data/normalized
+
+chunk:
+	python tools/chunk.py --in data/normalized --out data/chunks --profiles policies/chunk_profiles.yaml
+
+embed:
+	python tools/embed.py --in data/chunks/chunks.jsonl --out data/chunks/embeddings.parquet
+
+index-text:
+	python tools/index_text.py --in data/chunks/chunks.jsonl --engine meilisearch
+
+index-vector:
+	python tools/index_vector.py --in data/chunks/embeddings.parquet --engine lancedb
+
+verify:
+	python tools/verify.py --checksums checksums/SHA256SUMS
+
+package:
+	python tools/package.py --profile balanced --out releases/
+And the core local setup can be as simple as:
+
+bash
+Copy
+# Runtime and search tools
+winget install Ollama.Ollama
+winget install llama.cpp
+winget install BurntSushi.ripgrep
+
+# Python-side indexing stack
+python -m pip install -U pip
+pip install lancedb sentence-transformers pypdf markdownify pandas pyarrow
+
+# For broad extraction and metadata
+# Download Apache Tika app jar from the official Tika download page
+# Install pandoc from the official installer page
+These commands are consistent with the official runtime documentation for Ollama, llama.cpp usage instructions surfaced from official model pages, ripgrep’s cross-platform distribution, and the official Pandoc/Tika installation and CLI guidance. 
+
+Hardware and storage planning
+A sensible way to package this project is in tiers, because the storage difference between “practical emergency knowledge” and “everything possibly relevant” is very large.
+
+Build tier	Suggested hardware	Typical contents	Storage target	Model tier
+Core	16 GB RAM, 512 GB SSD	Wikibooks, Wiktionary, iFixit, selected LibreTexts, CDC/WHO/FAO manuals, 1–2 small models	~150–300 GB	4B / 7B
+Recommended	32 GB RAM, 1 TB SSD	Core + Wikisource + broader textbook/manual corpus + 3–4 models + full indexes	~400–800 GB	8B + optional 24B
+Expanded	64 GB RAM, 2 TB SSD	Recommended + large literary/reference packs like big Gutenberg slices and more offline libraries	~1–2 TB	8B + 24B + specialty models
+
+These budgets are derived from the official Kiwix package sizes already surfaced for major source families, plus the official local-model package sizes already surfaced for the recommended LLMs. The exact number will vary depending on whether you include very large literary collections like full Project Gutenberg packs, how aggressively you deduplicate chunks, and whether you keep both normalized text and all raw artifacts on the same volume. 
+
+A good replication policy is to publish three bundle profiles—core, balanced, and max—each with its own lockfile, checksums, and release notes. Replicate via external SSD, LAN copy, or resumed HTTP downloads; keep a SHA256SUMS file in every bundle; and version the manifest independently from the content snapshot. That way a broken index can be rebuilt locally without re-downloading the world.
+
+2026-06-07
+2026-06-14
+2026-06-21
+2026-06-28
+2026-07-05
+Define manifests and schema
+Build downloader and verifier
+Pull Kiwix and official manuals
+Normalize and chunk
+Build exact search layer
+Build vector index
+Install runtimes and models
+Wire RAG app and citations
+Bundle, checksum, and replicate
+Foundations
+Corpus
+Retrieval
+Inference
+Packaging
+Suggested implementation timeline
+
+
+Show code
+Risks, licensing, and implementation checklist
+The legal checklist is the part many technically good offline archives get wrong. The archive should store license metadata per document, preserve upstream attribution text, keep NC sources in logically separate package tiers, and record whether a source allows LLM ingestion, redistribution, commercial use, and derivatives. This is particularly important because the corpus you want spans public-domain, CC BY-SA, CC BY-NC-SA, and version-specific terms. OpenStax deserves special caution because surfaced official pages were inconsistent; WHO/FAO/iFixit are much clearer but still non-commercial; CDC content is generous but not blanket-risk-free outside the U.S.; and Project Gutenberg is public-domain-heavy but jurisdiction-sensitive. 
+
+Security and safety matter just as much as licensing. Parser pipelines can be attacked by malformed files; Apache Tika’s security documentation explicitly discusses command execution, deserialization, and out-of-memory risks. Local services should be bound to 127.0.0.1 by default; Qdrant’s security docs explicitly recommend that for local development and note that its default binding can otherwise expose the instance more broadly than intended. Treat retrieved text as untrusted input to the model, because manuals and web-derived content can contain prompt-injection-like instructions even offline. For high-risk domains such as medicine, electricity, chemistry, and fabrication, the UI should prefer source-grounded answers with explicit citations or source excerpts, not free-form model improvisation. 
+
+The best update strategy is slow, explicit, and reproducible. Knowledge sources such as Kiwix directories and some reference repositories update on their own cadences, while model families and embedding standards evolve separately. Do not auto-update everything blindly. Instead, freeze quarterly or semiannual snapshots, test retrieval quality and bundle integrity, and promote only verified snapshots into “stable” releases. That is less glamorous than constant freshness, but much safer for an archive whose value comes from reliability. 
+
+Recommended next steps
+The best next step is to build a balanced English-first v1 rather than an over-ambitious everything-pack. Start with Kiwix Wikibooks + Wiktionary + iFixit + selected LibreTexts, plus curated official CDC/WHO/FAO manuals and a narrow set of OpenStax titles whose rights you verify manually. Then normalize only what you need for retrieval, index with LanceDB + ripgrep, and ship Gemma 3 4B, Mistral 7B, and Llama 3.1 8B as the default model trio. That gives you a genuinely usable offline system that still fits an ordinary PC. 
+
+Concise implementation checklist
+Create a thin Git repo that stores manifests, schemas, prompts, and build scripts, not the bulk payloads.
+Download a balanced v1 corpus: Kiwix practical/reference packages first, then official WHO/FAO/CDC/OpenStax/Appropedia/OSE sources after license review.
+Preserve raw originals and generate normalized Markdown/JSONL derivatives.
+Use structure-aware chunking with preserved heading paths and chunk provenance.
+Start with Nomic Embed Text v1.5 for English retrieval.
+Build ripgrep exact search plus LanceDB vector/hybrid search.
+Run models through Ollama by default, with llama.cpp as the reproducible low-level fallback.
+Ship Gemma 3 4B, Mistral 7B, and Llama 3.1 8B first; add Mistral Small 24B only for 32 GB-class machines.
+Store license, attribution, checksum, version, and source URL for every document.
+Bind all local APIs to localhost, verify hashes, and treat retrieved text as untrusted.
+Publish core / balanced / max bundle profiles with lockfiles and SHA256SUMS.
+Open questions and limitations
+A few important items remain inherently variable. I did not verify every individual OpenStax title/version because the surfaced official pages were inconsistent on license and AI-ingestion terms; you should manually verify every OpenStax title before bundling it. I also did not benchmark LanceDB, Faiss, Qdrant, and sqlite-vec on your exact final corpus, so the vector-store recommendation is based on official docs, public benchmark availability, and offline-operational fit rather than your workload-specific measurements. Finally, exact storage totals depend heavily on whether you include very large literary collections, how much raw-vs-normalized duplication you tolerate, and whether the archive must be personally usable only or legally redistributable to third parties.
+

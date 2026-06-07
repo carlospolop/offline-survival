@@ -1,0 +1,309 @@
+{
+  "generated_at": "2026-06-04T08:56:17.047Z",
+  "profiles": [
+    {
+      "id": "survival-essential",
+      "title": "Survival Essential",
+      "source_count": 5,
+      "expected_size_bytes": 3601679256
+    },
+    {
+      "id": "survival-plus",
+      "title": "Survival Plus",
+      "source_count": 13,
+      "expected_size_bytes": 30157889052
+    },
+    {
+      "id": "civilization-core",
+      "title": "Civilization Core",
+      "source_count": 27,
+      "expected_size_bytes": 54998184767
+    },
+    {
+      "id": "civilization-rebuild",
+      "title": "Civilization Rebuild",
+      "source_count": 32,
+      "expected_size_bytes": 83550805154
+    },
+    {
+      "id": "civilization-max",
+      "title": "Civilization Max",
+      "source_count": 34,
+      "expected_size_bytes": 149088282174
+    }
+  ],
+  "sources": [
+    {
+      "id": "survivalmanual-wiki",
+      "title": "SurvivalManual Wiki",
+      "type": "repo-archive",
+      "url": "https://github.com/ligi/SurvivalManual.wiki.git",
+      "expected_size_bytes": 6000000,
+      "license": "public-domain-derived"
+    },
+    {
+      "id": "survivalmanual-ebook",
+      "title": "SurvivalManual ebook",
+      "type": "repo-archive",
+      "url": "https://github.com/inferno986return/SurvivalManual-ebook/archive/refs/heads/main.zip",
+      "expected_size_bytes": 76335718,
+      "license": "public-domain-derived"
+    },
+    {
+      "id": "simplewiki-zim",
+      "title": "Simple English Wikipedia ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_simple_all_maxi_2026-05.zim",
+      "expected_size_bytes": 3466409738,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "who-basic-emergency-care",
+      "title": "WHO Basic Emergency Care",
+      "type": "pdf",
+      "url": "https://www.wiredhealthresources.net/presentations/1408/story_content/external_files/9789241513081-eng.pdf",
+      "expected_size_bytes": 4257552,
+      "license": "CC-BY-NC-SA-3.0-IGO"
+    },
+    {
+      "id": "wikem-zim",
+      "title": "WikEM Emergency Medicine ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/other/wikem_en_all_maxi_2026-04.zim",
+      "expected_size_bytes": 48676248,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikipedia-top1m-zim",
+      "title": "Wikipedia Top 1M No Images",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top1m_nopic_2026-04.zim",
+      "expected_size_bytes": 17134155148,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikipedia-medicine-zim",
+      "title": "Wikipedia Medicine ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_maxi_2026-04.zim",
+      "expected_size_bytes": 2215520569,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "ifixit-zim",
+      "title": "iFixit ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/ifixit/ifixit_en_all_2025-12.zim",
+      "expected_size_bytes": 3570695757,
+      "license": "CC-BY-NC-SA-3.0"
+    },
+    {
+      "id": "openstax-biology-2e",
+      "title": "LibreTexts Biology ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/libretexts/libretexts.org_en_bio_2025-01.zim",
+      "expected_size_bytes": 2240946728,
+      "license": "mixed-free"
+    },
+    {
+      "id": "fao-small-agriculture-pack",
+      "title": "FAO Agriculture Starter Pack",
+      "type": "pdf",
+      "url": "https://openknowledge.fao.org/server/api/core/bitstreams/1c80295f-d03d-47c1-99e2-7f5a407b5ae8/content/i1680e00.pdf",
+      "expected_size_bytes": 769778,
+      "license": "CC-BY-NC-SA-3.0-IGO"
+    },
+    {
+      "id": "wikivoyage-zim",
+      "title": "Wikivoyage English No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikivoyage/wikivoyage_en_all_nopic_2026-03.zim",
+      "expected_size_bytes": 231621256,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "gardening-stackexchange-zim",
+      "title": "Gardening Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 925329853,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "cooking-stackexchange-zim",
+      "title": "Cooking Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 237170707,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikibooks-zim",
+      "title": "Wikibooks English ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikibooks/wikibooks_en_all_nopic_2026-04.zim",
+      "expected_size_bytes": 3507893616,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wiktionary-zim",
+      "title": "Wiktionary English ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-05.zim",
+      "expected_size_bytes": 9123591835,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "appropedia-snapshot",
+      "title": "Appropedia Snapshot",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/other/appropedia_en_all_maxi_2026-02.zim",
+      "expected_size_bytes": 581641351,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "energypedia-zim",
+      "title": "Energypedia English No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/other/energypedia_en_all_nopic_2025-12.zim",
+      "expected_size_bytes": 722154643,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "open-source-ecology",
+      "title": "Open Source Ecology",
+      "type": "zim",
+      "url": "https://archive.org/download/osewiki_en_all_2019-08/osewiki_en_all_2019-08.zim",
+      "expected_size_bytes": 2964551754,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "cdc-public-health-pack",
+      "title": "CDC Public Health Pack",
+      "type": "pdf",
+      "url": "https://stacks.cdc.gov/view/cdc/60062/cdc_60062_DS1.pdf",
+      "expected_size_bytes": 6691434,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "openstreetmap-wiki-zim",
+      "title": "OpenStreetMap Wiki No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_nopic_2026-04.zim",
+      "expected_size_bytes": 472074286,
+      "license": "CC-BY-SA-2.0"
+    },
+    {
+      "id": "diy-stackexchange-zim",
+      "title": "DIY Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/diy.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 2050957131,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "woodworking-stackexchange-zim",
+      "title": "Woodworking Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 105105615,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "electronics-stackexchange-zim",
+      "title": "Electronics Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/electronics.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 4182459470,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "arduino-stackexchange-zim",
+      "title": "Arduino Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/arduino.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 259237565,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "engineering-stackexchange-zim",
+      "title": "Engineering Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/engineering.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 254016088,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "3dprinting-stackexchange-zim",
+      "title": "3D Printing Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 120411330,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "bicycles-stackexchange-zim",
+      "title": "Bicycles Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/bicycles.stackexchange.com_en_all_2026-02.zim",
+      "expected_size_bytes": 489509597,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikisource-zim",
+      "title": "Wikisource English ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-05.zim",
+      "expected_size_bytes": 11824699968,
+      "license": "mixed-free"
+    },
+    {
+      "id": "libretexts-core-science",
+      "title": "LibreTexts Math ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/libretexts/libretexts.org_en_math_2026-01.zim",
+      "expected_size_bytes": 830646230,
+      "license": "mixed-free"
+    },
+    {
+      "id": "libretexts-physics",
+      "title": "LibreTexts Physics ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/libretexts/libretexts.org_en_phys_2026-01.zim",
+      "expected_size_bytes": 559554453,
+      "license": "mixed-free"
+    },
+    {
+      "id": "libretexts-chemistry",
+      "title": "LibreTexts Chemistry ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/libretexts/libretexts.org_en_chem_2025-01.zim",
+      "expected_size_bytes": 2182916266,
+      "license": "mixed-free"
+    },
+    {
+      "id": "project-gutenberg-small",
+      "title": "Project Gutenberg Technology ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/gutenberg/gutenberg_en_lcc-t_2026-03.zim",
+      "expected_size_bytes": 13154803470,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "project-gutenberg-large",
+      "title": "Project Gutenberg English Literature ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/gutenberg/gutenberg_en_lcc-pr_2026-03.zim",
+      "expected_size_bytes": 16152121320,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "wikipedia-top1m-maxi",
+      "title": "Wikipedia Top 1M With Images",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top1m_maxi_2026-04.zim",
+      "expected_size_bytes": 49385355700,
+      "license": "CC-BY-SA-4.0"
+    }
+  ]
+}

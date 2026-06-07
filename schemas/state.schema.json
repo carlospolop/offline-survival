@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["settings", "sources", "downloads", "services", "models", "documents"],
+  "properties": {
+    "settings": { "type": "object" },
+    "sources": { "type": "array" },
+    "downloads": { "type": "array" },
+    "services": { "type": "array" },
+    "models": { "type": "array" },
+    "blobs": { "type": "array" },
+    "documents": { "type": "array" },
+    "events": { "type": "array" }
+  }
+}

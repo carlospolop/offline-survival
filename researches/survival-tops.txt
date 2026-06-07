@@ -1,0 +1,922 @@
+System design: offline survival + civilization knowledge repo
+
+The best architecture is not to put 50–200 GB of files directly into GitHub. The public GitHub repo should contain the blueprint, manifests, scripts, checksums, indexing tools, and app code. Users run one command and the repo downloads the selected packs from official sources into a local data/ folder.
+
+The design should have two editions:
+
+Core-50 Pack — under 50 GB, includes survival knowledge, core science, high-value Wikipedia subsets, offline search, and a local Ollama chat model.
+Civilization-Rebuild Pack — larger optional edition, optimized for compressed storage, with broader science, agriculture, engineering, medicine, manufacturing, governance, repair, and reference materials.
+
+The best overall stack is:
+
+Kiwix ZIM files + Markdown/PDF manuals + SQLite FTS5 + sqlite-vec + Ollama + Qwen3 8B + BGE-M3 embeddings.
+
+1. Key design decision
+
+A strict “under 50 GB including LLM” build should not include the full English Wikipedia all_nopic file, because that file alone is about 48 GB, leaving no room for the LLM, indexes, manuals, or other scientific data. The better compact choice is to combine a broad Wikipedia subset with targeted science/medicine ZIMs. Kiwix currently lists wikipedia_en_all_nopic at about 48 GB, while wikipedia_en_top1m_nopic is about 16 GB and wikipedia_en_simple_all_maxi is about 3.2 GB.
+
+So the best compact design is:
+
+Use compressed ZIM files for broad reference knowledge, curated open manuals for practical survival/rebuild tasks, and a small local RAG index over the most practical documents.
+
+Do not vector-index all of Wikipedia in the compact version. Let Kiwix handle Wikipedia search, and let the LLM RAG system index the curated manuals, textbooks, and extracted practical guides.
+
+2. Core-50 Pack: under 50 GB
+Goal
+
+A normal person with a regular PC should be able to download this pack onto a 64 GB or 128 GB USB SSD and later use it offline for:
+
+Emergency survival
+Water, food, shelter, sanitation
+First aid and basic emergency medicine
+Core science
+Practical agriculture
+Basic engineering and repair
+Local AI-assisted search and explanation
+Recommended Core-50 contents
+Component	Recommended source	Approx. size	Why it belongs
+Broad encyclopedia	wikipedia_en_top1m_nopic ZIM	~16 GB	Better fit than full Wikipedia; broad coverage without images.
+Simpler encyclopedia	wikipedia_en_simple_all_maxi ZIM	~3.2 GB	Easier explanations, useful for education and teaching.
+Medicine reference	wikipedia_en_medicine_maxi ZIM	~2.1 GB	Compact medical encyclopedia subset.
+Core science ZIMs	chemistry, physics, mathematics, molecular/cell biology, geography	~5–7 GB	Keeps science searchable offline without full Wikipedia.
+Survival manual	ligi/SurvivalManual	small	Offline survival guide based on the public-domain US Army survival manual.
+Survival eBook	inferno986return/SurvivalManual-ebook	<10 MB	ePub/PDF-style version useful for e-readers and printing.
+WHO emergency medicine	WHO Basic Emergency Care + selected PDFs	<500 MB initially	Practical emergency-care content for limited-resource settings.
+OpenStax core textbooks	Biology, Chemistry, Physics, Anatomy & Physiology, Microbiology, Algebra/Calculus/Statistics	~2–5 GB	Open-licensed science education foundation.
+FAO / agriculture manuals	Curated FAO PDFs	~1–3 GB	Food production, soil, irrigation, crops, livestock.
+Appropriate technology	Open Source Ecology / selected practical tech docs	~0.5–2 GB	Tools, energy, machines, resilient production.
+Search indexes	SQLite FTS5 + vector index	~2–4 GB	Fast offline search and RAG retrieval.
+Ollama chat model	qwen3:8b	~5.2 GB	Best default local reasoning/chat model in this size class.
+Ollama embedding model	bge-m3	~1.2 GB	Local embeddings for retrieval.
+
+Estimated total:
+
+~38–48 GB, depending on how many PDFs/textbooks are included and whether the repo stores extracted text sidecars.
+
+The compact build should enforce a hard budget. The installer should warn the user if the selected manifest exceeds 50 GB.
+
+3. Best local Ollama model
+Default model: qwen3:8b
+
+Use:
+
+ollama pull qwen3:8b
+ollama pull bge-m3
+
+Reason:
+
+qwen3:8b is about 5.2 GB in Ollama’s Q4_K_M quantization.
+It is Apache 2.0 licensed.
+It is designed for reasoning, instruction following, multilingual use, and tool integration.
+It is small enough for a normal 16 GB RAM PC, and often usable on 8 GB RAM machines with reduced performance.
+Embedding model: bge-m3
+
+Use bge-m3 for the RAG index.
+
+Reason:
+
+About 1.2 GB.
+Supports up to 8192 tokens.
+Designed for multilingual and multi-function retrieval use.
+Better for long technical chunks than tiny embedding models.
+Low-end fallback
+
+For old or low-RAM machines:
+
+ollama pull gemma3:4b
+ollama pull nomic-embed-text
+
+gemma3:4b is around 3.3 GB and has a long context window, while nomic-embed-text is only about 274 MB. This gives a smaller offline AI option when disk/RAM are limited.
+
+Alternative model
+
+llama3.1:8b is also a strong local option at around 4.9 GB and supports a 128K context window, but its license is less permissive than Qwen3’s Apache 2.0 license. I would include it as an optional model, not the default.
+
+4. Survival repositories: what to include
+Include in Core-50
+ligi/SurvivalManual
+
+This should be included. It is a survival guide based on the public-domain US Army Survival Field Manual FM 3-05.70 and is designed to work offline.
+
+Recommended handling:
+
+git clone https://github.com/ligi/SurvivalManual.git data/repos/SurvivalManual
+git clone https://github.com/ligi/SurvivalManual.wiki.git data/repos/SurvivalManual.wiki
+
+Then convert wiki pages to Markdown/text chunks for search.
+
+inferno986return/SurvivalManual-ebook
+
+Include this too. It converts the SurvivalManual wiki into an ePub/PDF-style format. The project states that it copied the wiki using git clone and that the ePub is under 4.5 MB. It is useful because printable/e-reader formats matter when power is limited.
+
+Recommended handling:
+
+git clone https://github.com/inferno986return/SurvivalManual-ebook.git data/repos/SurvivalManual-ebook
+Do not include as survival content
+CreativeLyons/NukeSurvivalToolkit_Wiki
+
+Despite the name, this is documentation for the Nuke Survival Toolkit, a Nuke compositing/software toolkit, not human survival. It is useful as an example of how to package an offline wiki as HTML/PDF, because it provides release ZIPs and an offline index.html workflow, but it should not be part of the survival knowledge pack.
+
+Use it as a packaging reference only.
+
+Use carefully
+alx-xlx/awesome-survival
+
+This repo is useful as a discovery index, but it should not be blindly mirrored. It links to many survival resources, but some are magnets, copyrighted collections, weapons-related items, or legally questionable sources. It should be used only to identify legitimate, open, civilian survival resources. The final project should avoid copyrighted dumps, offensive weapons material, and dangerous procedural content.
+
+5. Best knowledge sources for Core-50
+A. Wikipedia / Kiwix
+
+Use Kiwix ZIM files as the main compressed knowledge format.
+
+Why:
+
+ZIM is compressed and designed for offline web archives.
+Kiwix supports offline reading, local search, and serving content over a local network.
+Kiwix can be run as a local web server with kiwix-serve.
+
+Kiwix is designed for offline access to web content and can serve content locally, making it ideal for this project.
+
+Recommended Core-50 ZIM set:
+
+data/zim/
+  wikipedia_en_top1m_nopic_2026-04.zim
+  wikipedia_en_simple_all_maxi_2026-05.zim
+  wikipedia_en_medicine_maxi_2026-04.zim
+  wikipedia_en_physics_maxi_2026-04.zim
+  wikipedia_en_chemistry_maxi_2026-04.zim
+  wikipedia_en_mathematics_maxi_2026-04.zim
+  wikipedia_en_molcell_maxi_2026-04.zim
+  wikipedia_en_geography_maxi_2026-04.zim
+
+This gives broad coverage while leaving space for the LLM and manuals.
+
+B. OpenStax textbooks
+
+Use OpenStax as the main open textbook source.
+
+Recommended Core-50 textbooks:
+
+Biology 2e
+Chemistry 2e
+College Physics or University Physics
+Anatomy and Physiology
+Microbiology
+Algebra and Trigonometry
+Calculus volumes
+Introductory Statistics
+Psychology or Sociology for social organization basics
+
+OpenStax states that its content is licensed under Creative Commons Attribution and can be shared and adapted with attribution.
+
+Store both:
+
+data/docs/openstax/pdf/
+data/docs/openstax/text/
+
+PDFs are for humans. Extracted text is for search and the LLM.
+
+C. WHO emergency medicine
+
+Include a small, curated medical set.
+
+Start with:
+
+WHO / ICRC Basic Emergency Care
+First aid
+Infection prevention
+Sanitation and hygiene
+Maternal and newborn emergency basics
+Essential medicines references, where licensing allows
+
+WHO describes Basic Emergency Care as an open-access training course for first-contact healthcare providers managing acute illness and injury with limited resources.
+
+Important note: this archive should clearly state that medical content is for education and emergency reference only. It cannot replace trained clinicians.
+
+D. FAO agriculture and food systems
+
+Use FAO documents for agriculture, food security, irrigation, soil, crops, livestock, fisheries, and post-harvest handling. FAO maintains a publications catalogue and knowledge repository for its materials.
+
+Recommended categories:
+
+agriculture/
+  soil/
+  seeds/
+  irrigation/
+  grain-storage/
+  livestock/
+  poultry/
+  fisheries/
+  pest-management/
+  food-preservation/
+
+Do not download all FAO documents. Curate a practical set first.
+
+E. Open Source Ecology / appropriate technology
+
+Use Open Source Ecology and similar open appropriate-technology projects for the long version, and a small subset in Core-50.
+
+Open Source Ecology’s Global Village Construction Set aims to document about 50 industrial machines needed for a small civilization, including tools for agriculture, energy, industry, and materials.
+
+Use with caution: the documentation is valuable but uneven. Treat it as practical inspiration and engineering reference, not as guaranteed complete build instructions.
+
+6. Best storage formats
+
+Use different formats for different layers.
+
+Content type	Best format	Why
+Wikipedia / Wikimedia	.zim	Highly compressed, searchable, offline-ready.
+GitHub wikis	Markdown + HTML	Easy to read, diff, chunk, and index.
+Manuals	PDF + extracted .txt / .md	PDF preserves original; text powers search/RAG.
+Textbooks	PDF + extracted text	Human-readable and machine-searchable.
+Metadata	SQLite	Portable, one file, reliable.
+Full-text index	SQLite FTS5	Built-in full-text search, portable.
+Vector index	sqlite-vec	Keeps vectors in the same SQLite ecosystem.
+App config	YAML manifests	Easy to audit and edit.
+
+SQLite FTS5 is a strong default because it is designed for efficient full-text search over large document collections and supports ranking, phrase search, prefix search, boolean queries, and highlighting.
+
+For vectors, sqlite-vec is the best fit for this project because it is a small SQLite extension, written in C, designed to run anywhere SQLite runs, and supports vector search without needing a separate database server.
+
+Avoid making Chroma, Elasticsearch, or OpenSearch the default. They are useful, but heavier. Chroma can be an optional developer backend because it is open-source and designed for embeddings and retrieval, but SQLite is simpler for offline survival use.
+
+7. Core-50 architecture
+civilization-offline/
+│
+├── README.md
+├── LICENSE
+├── .gitignore
+│
+├── manifests/
+│   ├── core-50.yaml
+│   ├── llm-ollama.yaml
+│   ├── civilization-lite.yaml
+│   ├── civilization-full.yaml
+│   └── checksums/
+│
+├── scripts/
+│   ├── install.py
+│   ├── download.py
+│   ├── verify.py
+│   ├── extract_text.py
+│   ├── build_search_index.py
+│   ├── build_vector_index.py
+│   ├── serve.py
+│   ├── ask.py
+│   └── update_manifest.py
+│
+├── app/
+│   ├── server.py
+│   ├── rag.py
+│   ├── retriever.py
+│   ├── ollama_client.py
+│   └── static/
+│       ├── index.html
+│       ├── search.html
+│       └── chat.html
+│
+├── docs/
+│   ├── usage-offline.md
+│   ├── installing-on-windows.md
+│   ├── installing-on-linux.md
+│   ├── installing-on-macos.md
+│   ├── content-policy.md
+│   ├── licenses.md
+│   └── recovery-roadmap.md
+│
+├── data/              # gitignored; created by install script
+│   ├── zim/
+│   ├── repos/
+│   ├── docs/
+│   ├── text/
+│   ├── models/
+│   └── cache/
+│
+└── indexes/           # gitignored; generated locally
+    ├── documents.sqlite
+    ├── vectors.sqlite
+    └── manifest-state.sqlite
+
+The GitHub repo itself stays small. The downloaded archive lives in data/.
+
+8. Example install commands
+Compact survival + science archive, no LLM
+git clone https://github.com/YOUR_NAME/civilization-offline.git
+cd civilization-offline
+
+python scripts/install.py --pack core-50
+python scripts/build_search_index.py --pack core-50
+python scripts/serve.py
+
+Then open:
+
+http://127.0.0.1:7777
+Compact archive + local AI chat
+python scripts/install.py --pack core-50 --with-llm
+python scripts/build_search_index.py --pack core-50
+python scripts/build_vector_index.py --embedding-model bge-m3
+python scripts/serve.py --with-chat
+Long civilization pack
+python scripts/install.py --pack civilization-lite --with-llm
+python scripts/build_search_index.py --pack civilization-lite
+python scripts/build_vector_index.py --scope curated
+python scripts/serve.py --with-chat
+9. Example manifest design
+
+Use YAML manifests. Every downloadable item should have:
+
+ID
+Pack name
+Category
+URL
+Expected size
+License
+Format
+Checksum
+Whether to index
+Whether to extract text
+Priority
+
+Example:
+
+pack: core-50
+version: 2026.01
+
+items:
+  - id: wikipedia_en_top1m_nopic
+    category: encyclopedia
+    format: zim
+    source: kiwix
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top1m_nopic_2026-04.zim"
+    target: "data/zim/wikipedia_en_top1m_nopic.zim"
+    expected_size_gb: 16
+    license: "CC-BY-SA"
+    search_backend: "kiwix"
+    rag_index: false
+    priority: required
+
+  - id: survivalmanual_repo
+    category: survival
+    format: git
+    source: github
+    url: "https://github.com/ligi/SurvivalManual.git"
+    target: "data/repos/SurvivalManual"
+    license: "GPL-3.0"
+    extract_text: true
+    rag_index: true
+    priority: required
+
+  - id: survivalmanual_wiki
+    category: survival
+    format: git-wiki
+    source: github
+    url: "https://github.com/ligi/SurvivalManual.wiki.git"
+    target: "data/repos/SurvivalManual.wiki"
+    license: "public-domain-derived / verify"
+    extract_text: true
+    rag_index: true
+    priority: required
+
+  - id: qwen3_8b
+    category: llm
+    format: ollama-model
+    model: "qwen3:8b"
+    expected_size_gb: 5.2
+    license: "Apache-2.0"
+    optional: true
+
+  - id: bge_m3
+    category: embedding
+    format: ollama-model
+    model: "bge-m3"
+    expected_size_gb: 1.2
+    optional: true
+10. Offline search and chat flow
+Search flow
+User query
+   ↓
+Local web UI
+   ↓
+SQLite FTS5 search over manuals/textbooks
+   ↓
+Kiwix search over ZIM encyclopedia files
+   ↓
+Results shown with source path, title, category, license
+AI chat flow
+User question
+   ↓
+Query rewritten by app
+   ↓
+Hybrid retrieval:
+   - SQLite FTS5 keyword search
+   - sqlite-vec semantic search
+   - optional Kiwix search
+   ↓
+Top source chunks selected
+   ↓
+Prompt sent to Ollama Qwen3 8B
+   ↓
+Answer generated with citations to local files
+
+The LLM should not be treated as the source of truth. It should be a reasoning interface over local documents.
+
+The prompt should force this behavior:
+
+You are an offline survival and science assistant.
+Answer only using the retrieved local sources.
+Cite every factual claim with local source IDs.
+If the archive does not contain enough information, say so.
+Do not invent procedures.
+Do not provide offensive weaponization, harmful biological, or illegal instructions.
+Prefer safe, civilian, public-health-focused guidance.
+11. What the app should index
+Index by default
+
+Index these into SQLite FTS5 + vector DB:
+
+data/repos/SurvivalManual.wiki/
+data/repos/SurvivalManual-ebook/
+data/docs/openstax/text/
+data/docs/who/text/
+data/docs/fao/text/
+data/docs/appropriate-tech/text/
+data/docs/public-health/text/
+data/docs/engineering-basics/text/
+Do not vector-index by default
+
+Do not index all Wikipedia ZIMs into the vector DB by default.
+
+Reasons:
+
+It consumes too much space.
+It takes too long on normal PCs.
+Kiwix already provides compressed full-text search.
+RAG over Wikipedia can be added later as an optional long-build step.
+
+Optional command:
+
+python scripts/build_vector_index.py --include-zim --zim-scope medicine,physics,chemistry
+12. Long version: Civilization-Rebuild Pack
+
+The long version should be modular. Users should choose how much they want to download.
+
+Long Pack philosophy
+
+The long pack should prioritize:
+
+Compressed source files first
+Extracted text only where useful
+Indexes only for curated high-value documents
+Avoid duplicated content
+Avoid huge raw scientific corpora unless curated
+
+The full goal is not “download everything.” The goal is:
+
+Store the smallest possible set of knowledge that preserves the ability to recover food, water, medicine, energy, materials, tools, science, education, and governance.
+
+Civilization-Rebuild modules
+Module 1: Core-50
+
+Always included.
+
+core-50/
+  survival
+  emergency medicine
+  top Wikipedia
+  science subsets
+  local LLM
+  search index
+
+Estimated size:
+
+38–48 GB
+Module 2: Full encyclopedia
+
+Two options:
+
+Option A — Recommended long default
+wikipedia_en_all_nopic
+
+Approximate size:
+
+48 GB
+
+This gives full English Wikipedia text without pictures. It is the best size-to-coverage encyclopedia option.
+
+Option B — Image-rich archive
+wikipedia_en_all_maxi
+
+Approximate size:
+
+115 GB
+
+This is much larger, but includes images. Use only when storage allows.
+
+Recommendation:
+
+Civilization-Lite: use all_nopic
+Civilization-Full: use all_maxi
+Module 3: Wikimedia education pack
+
+Add:
+
+Wikibooks
+Wikiversity
+Wiktionary
+Wikisource
+Wikiquote optional
+Wikivoyage optional
+Project Gutenberg ZIMs if available
+
+Kiwix supports many offline content libraries beyond Wikipedia, including Wikimedia projects and public-domain book collections.
+
+Purpose:
+
+Education
+Language preservation
+Basic textbooks
+Public-domain literature
+Teaching material
+Module 4: Open textbooks pack
+
+Add the full OpenStax catalog that is relevant to civilization recovery:
+
+science/
+  biology
+  chemistry
+  physics
+  astronomy
+  anatomy
+  microbiology
+
+math/
+  algebra
+  precalculus
+  calculus
+  statistics
+
+society/
+  economics
+  psychology
+  sociology
+  government
+  business
+
+OpenStax is a strong long-term source because its content is explicitly Creative Commons Attribution licensed.
+
+Module 5: Agriculture and food pack
+
+Sources:
+
+FAO publications
+seed-saving manuals
+soil science
+composting
+irrigation
+post-harvest storage
+animal husbandry
+aquaculture
+food preservation
+low-tech greenhouses
+
+Store as:
+
+data/docs/agriculture/pdf/
+data/docs/agriculture/text/
+
+Index all extracted text.
+
+Module 6: Medicine and public health pack
+
+Sources:
+
+WHO manuals
+emergency care
+sanitation
+epidemiology
+nutrition
+maternal and child health
+vaccination education
+essential medicines lists where licensing allows
+infection prevention
+
+Keep this civilian, public-health focused.
+
+Exclude:
+
+weaponized biological procedures
+dangerous synthesis instructions
+content that enables harm
+Module 7: Engineering and manufacturing pack
+
+Categories:
+
+engineering/
+  civil/
+  mechanical/
+  electrical/
+  electronics/
+  radio/
+  thermodynamics/
+  engines/
+  pumps/
+  water-systems/
+  sanitation/
+  machining/
+  welding/
+  metallurgy/
+  ceramics/
+  glass/
+  cement-lime/
+  textiles/
+  paper-making/
+
+Sources:
+
+Open textbooks
+government public-domain manuals
+Open Source Ecology
+appropriate technology documents
+public-domain engineering handbooks where legally available
+Module 8: Energy pack
+
+Categories:
+
+energy/
+  wood-fuel
+  charcoal
+  biogas
+  solar
+  wind
+  micro-hydro
+  batteries
+  generators
+  steam
+  grid-basics
+
+Include diagrams where licensing allows, but keep the default long-lite mostly text/PDF.
+
+Module 9: Repair and maintenance pack
+
+Categories:
+
+repair/
+  bicycles
+  engines
+  hand-tools
+  electrical
+  radios
+  pumps
+  plumbing
+  sewing-machines
+  computers
+
+Only include open-licensed repair guides.
+
+Module 10: Governance, education, and social systems
+
+Categories:
+
+society/
+  basic-law
+  public-health-organization
+  education-curricula
+  accounting
+  logistics
+  conflict-resolution
+  cooperatives
+  emergency-management
+
+This part matters because restarting civilization is not only technical. Coordination, trust, recordkeeping, education, and governance are survival technologies too.
+
+13. Long Pack size targets
+Civilization-Lite
+
+Recommended for a 256 GB SSD.
+
+Core-50                                  40–48 GB
+Full Wikipedia no-pictures               48 GB
+Wikibooks/Wikiversity/Wiktionary/etc.    10–30 GB
+OpenStax + textbooks                      5–15 GB
+FAO/WHO/agriculture/medicine             10–30 GB
+Engineering/appropriate tech             10–30 GB
+Indexes                                  10–30 GB
+Extra LLM models                          5–20 GB
+
+Estimated total:
+
+140–250 GB
+Civilization-Full
+
+Recommended for 512 GB to 1 TB storage.
+
+Core-50
+Wikipedia all_maxi with images
+Wikimedia libraries
+Open textbooks
+Agriculture
+Medicine
+Engineering
+Appropriate technology
+Repair
+Maps
+Multiple LLMs
+Expanded indexes
+
+Estimated total:
+
+300–700+ GB
+
+The main storage explosion comes from images, maps, video, and full scientific-paper archives. The long version should therefore prefer compressed ZIM/PDF and curated text indexes.
+
+14. Best option for each major component
+Component	Best default	Why
+Large encyclopedia	Kiwix ZIM	Compressed, offline, searchable, mature.
+Compact Wikipedia choice	top1m_nopic + topic ZIMs	Better than full all_nopic when LLM must fit under 50 GB.
+Full long encyclopedia	wikipedia_en_all_nopic	Best coverage-to-size ratio.
+Human-readable manuals	PDF + HTML	Preserves original layout.
+LLM-readable manuals	Markdown/text	Best for chunking and search.
+Metadata	SQLite	Durable, portable, one file.
+Full-text search	SQLite FTS5	Lightweight, offline, no server required.
+Vector search	sqlite-vec	Portable, same database ecosystem.
+Optional vector DB	Chroma	Easier for developers, heavier for survival use.
+Local chat model	Ollama qwen3:8b	Strong reasoning, 5.2 GB, Apache 2.0.
+Low-end chat model	gemma3:4b	Smaller and easier on old machines.
+Embedding model	bge-m3	Strong multilingual, long-context retrieval.
+Low-end embedding	nomic-embed-text	Tiny, good enough, very small.
+Repo distribution	GitHub scripts + manifests	Avoids huge Git repo; reproducible.
+Downloads	Manifest + checksum + resume	Reliable and auditable.
+Updates	Versioned manifests	Keeps archive reproducible.
+15. How the public GitHub repo should work
+
+The public repo should have these user-facing commands:
+
+Download compact survival system
+python scripts/install.py --pack core-50
+Download compact survival system with local AI
+python scripts/install.py --pack core-50 --with-llm
+Download long civilization version
+python scripts/install.py --pack civilization-lite --with-llm
+Verify files
+python scripts/verify.py
+Build indexes
+python scripts/build_search_index.py
+python scripts/build_vector_index.py
+Start offline app
+python scripts/serve.py
+
+Then the user opens:
+
+http://127.0.0.1:7777
+
+The app should show:
+
+Search
+Chat with archive
+Browse Kiwix
+Browse manuals
+Browse textbooks
+Emergency quick guides
+Licenses
+Update / verify
+16. Recommended local UI
+
+The local app should be simple:
+
+Home
+├── Emergency survival
+├── Medicine
+├── Water and sanitation
+├── Food and agriculture
+├── Shelter and construction
+├── Energy
+├── Engineering
+├── Science
+├── Search all
+└── Ask local AI
+
+Avoid requiring Docker. Docker is useful for developers but bad as the default for a survival archive because it adds complexity.
+
+Use:
+
+Python standard library where possible
+SQLite
+FastAPI or Flask only if needed
+Kiwix tools for ZIM
+Ollama local API for chat
+17. Safety and content policy for the repo
+
+The project should clearly exclude:
+
+Offensive weapons construction
+Explosives
+Chemical weapon synthesis
+Biological weapon content
+Illegal drug production
+Harmful cyber/offensive instructions
+Copyrighted textbook dumps
+Unlicensed survival PDF collections
+
+Include instead:
+
+Civilian emergency response
+Public health
+Agriculture
+Sanitation
+Water treatment
+Shelter
+Communication
+Repair
+Science education
+Governance and logistics
+
+This makes the project easier to host publicly and more useful for real survival.
+
+18. Final recommended project name
+
+Good repo names:
+
+civilization-offline
+humanity-archive
+offline-survival-library
+resilience-archive
+open-civilization-kit
+
+Best name:
+
+open-civilization-kit
+
+It communicates that the project is open, practical, and broader than wilderness survival.
+
+19. Final build recommendation
+Core-50 default build
+
+Use:
+
+ZIM:
+  wikipedia_en_top1m_nopic
+  wikipedia_en_simple_all_maxi
+  wikipedia_en_medicine_maxi
+  wikipedia_en_physics_maxi
+  wikipedia_en_chemistry_maxi
+  wikipedia_en_mathematics_maxi
+  wikipedia_en_molcell_maxi
+  wikipedia_en_geography_maxi
+
+Repos:
+  ligi/SurvivalManual
+  ligi/SurvivalManual.wiki
+  inferno986return/SurvivalManual-ebook
+
+Docs:
+  OpenStax selected science/math/health textbooks
+  WHO Basic Emergency Care and selected public-health PDFs
+  FAO selected agriculture/food/sanitation PDFs
+  Open Source Ecology selected machine/appropriate-tech docs
+
+Search:
+  Kiwix for ZIM
+  SQLite FTS5 for extracted docs
+  sqlite-vec for vector retrieval
+
+AI:
+  Ollama qwen3:8b
+  Ollama bge-m3
+
+This is the best balance of:
+
+Under 50 GB
+Practical survival value
+Main scientific knowledge
+Local AI usability
+Legal public distribution
+Easy execution on a normal PC
+Long civilization build
+
+Add:
+
+Full Wikipedia no-pictures
+Wikibooks
+Wikiversity
+Wiktionary
+Wikisource
+Project Gutenberg / public-domain books
+Full OpenStax catalog
+Expanded FAO
+Expanded WHO
+Engineering manuals
+Appropriate technology
+Repair guides
+Offline maps by region
+Additional LLM models
+
+Keep it modular so users can choose:
+
+python scripts/install.py --pack core-50
+python scripts/install.py --pack civilization-lite
+python scripts/install.py --pack maps-europe
+python scripts/install.py --pack maps-north-america
+python scripts/install.py --pack medicine-expanded
+python scripts/install.py --pack engineering-expanded
+
+That gives you a public GitHub project that is usable by normal people, scalable for serious archivists, and realistic to maintain long-term.

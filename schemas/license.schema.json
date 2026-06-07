@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "name", "redistribution", "attribution_required", "commercial_use"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "redistribution": { "enum": ["allowed", "personal-only", "unclear", "forbidden"] },
+    "attribution_required": { "type": "boolean" },
+    "commercial_use": { "enum": ["allowed", "non-commercial-only", "unclear", "forbidden"] },
+    "notes": { "type": "string" }
+  }
+}

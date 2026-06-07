@@ -1,0 +1,14 @@
+id: survival-essential
+title: Survival Essential
+description: Small emergency archive for limited disks. Includes SurvivalManual, the printable SurvivalManual ebook, Simple English Wikipedia for basic reference, and WHO Basic Emergency Care. Best for water, shelter, food, first aid, sanitation, and offline search without requiring AI.
+target_size_gb: [5, 15]
+disk_budget_gb: 15
+sources:
+  - survivalmanual-wiki
+  - survivalmanual-ebook
+  - simplewiki-zim
+  - who-basic-emergency-care
+  - wikem-zim
+models:
+  optional:
+    - nomic-embed-text

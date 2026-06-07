@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Offline Survival",
+  "version": "0.1.0",
+  "identifier": "org.offlinesurvival.desktop",
+  "build": {
+    "frontendDist": "../ui/dist",
+    "devUrl": "http://127.0.0.1:5173"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Offline Survival",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 640,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["appimage", "msi", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "externalBin": [
+      "binaries/sca-node",
+      "binaries/kiwix-serve"
+    ],
+    "resources": [
+      "../backend",
+      "../ui/dist",
+      "../../manifests",
+      "../../schemas",
+      "../../policies",
+      "../../node_modules/@openzim/libzim/package.json",
+      "../../node_modules/@openzim/libzim/LICENSE",
+      "../../node_modules/@openzim/libzim/dist",
+      "../../node_modules/@openzim/libzim/build/Release/zim_binding.node",
+      "../../node_modules/@openzim/libzim/build/Release/libzim.so.9",
+      "../../node_modules/markdown-it",
+      "../../node_modules/argparse",
+      "../../node_modules/entities",
+      "../../node_modules/linkify-it",
+      "../../node_modules/mdurl",
+      "../../node_modules/punycode.js",
+      "../../node_modules/uc.micro",
+      "../../node_modules/bindings",
+      "../../node_modules/file-uri-to-path"
+    ]
+  }
+}

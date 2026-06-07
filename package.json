@@ -1,0 +1,35 @@
+{
+  "name": "survival-civilization-archive",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "api": "node app/backend/server.mjs",
+    "dev": "vite --config app/ui/vite.config.ts --host 127.0.0.1",
+    "build": "vite build --config app/ui/vite.config.ts",
+    "preview": "PORT=5173 node app/backend/server.mjs --static",
+    "test": "vitest run",
+    "lint:manifests": "node tools/manifest-lint.mjs",
+    "catalog:refresh": "node tools/catalog-refresh.mjs",
+    "index:bench": "node tools/index-bench.mjs",
+    "icons:generate": "node tools/generate-icons.mjs",
+    "sidecars:prepare": "node tools/prepare-tauri-sidecars.mjs",
+    "package:linux-portable": "node tools/package-portable-linux.mjs",
+    "tauri:dev": "tauri dev --config app/src-tauri/tauri.conf.json",
+    "tauri:build": "tauri build --config app/src-tauri/tauri.conf.json",
+    "validate": "npm run lint:manifests && npm run test && npm run build"
+  },
+  "dependencies": {
+    "@openzim/libzim": "^4.2.0",
+    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "markdown-it": "^14.1.0",
+    "svelte": "^5.19.5",
+    "vite": "^6.0.11",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.2",
+    "jsdom": "^26.0.0",
+    "vitest": "^4.1.8"
+  }
+}
