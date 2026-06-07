@@ -1,6 +1,10 @@
 node_modules/
 dist/
 app/ui/dist/
+!app/backend/vendor/yaml/dist/
+!app/backend/vendor/yaml/dist/**
+!app/backend/vendor/yaml/browser/dist/
+!app/backend/vendor/yaml/browser/dist/**
 app/src-tauri/target/
 app/src-tauri/binaries/*
 SurvivalCivilizationArchive/
