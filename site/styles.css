@@ -175,7 +175,8 @@ h3 {
 }
 
 .strip div,
-.steps article {
+.steps article,
+.featureGrid article {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -189,7 +190,8 @@ h3 {
 }
 
 .strip span,
-.steps p {
+.steps p,
+.featureGrid p {
   color: var(--muted);
   line-height: 1.45;
 }
@@ -199,6 +201,13 @@ h3 {
 }
 
 .steps {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 24px;
+}
+
+.featureGrid {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(4, 1fr);
@@ -216,6 +225,14 @@ h3 {
   height: 34px;
   justify-content: center;
   width: 34px;
+}
+
+.featureGrid article span {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .split {
@@ -305,6 +322,7 @@ footer span {
   .split.reverse,
   .strip,
   .steps,
+  .featureGrid,
   .downloadGrid {
     grid-template-columns: 1fr;
   }
