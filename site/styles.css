@@ -200,6 +200,10 @@ h3 {
   max-width: 720px;
 }
 
+.sectionTitle p {
+  margin-top: 14px;
+}
+
 .steps {
   display: grid;
   gap: 14px;
@@ -235,6 +239,28 @@ h3 {
   text-transform: uppercase;
 }
 
+.capabilityGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 24px;
+}
+
+.capabilityGrid article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.capabilityGrid p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
 .split {
   align-items: center;
   display: grid;
@@ -264,6 +290,34 @@ h3 {
   color: #24362b;
   font-weight: 800;
   padding: 9px 12px;
+}
+
+.profileTable {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 24px;
+  overflow: hidden;
+}
+
+.profileTable div {
+  background: #fff;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(180px, 0.32fr) minmax(0, 1fr);
+  padding: 14px 16px;
+}
+
+.profileTable div + div {
+  border-top: 1px solid var(--line);
+}
+
+.profileTable strong {
+  color: var(--green);
+}
+
+.profileTable span {
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .download {
@@ -323,6 +377,8 @@ footer span {
   .strip,
   .steps,
   .featureGrid,
+  .capabilityGrid,
+  .profileTable div,
   .downloadGrid {
     grid-template-columns: 1fr;
   }

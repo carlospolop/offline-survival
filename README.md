@@ -8,7 +8,9 @@ Offline Survival is a desktop app that downloads useful public knowledge packs, 
 
 ## Contents
 
+- [Project Overview](#project-overview)
 - [What It Does](#what-it-does)
+- [Main Functionality](#main-functionality)
 - [Download The App](#download-the-app)
 - [First Run](#first-run)
 - [Choosing A Library Size](#choosing-a-library-size)
@@ -20,6 +22,21 @@ Offline Survival is a desktop app that downloads useful public knowledge packs, 
 - [For Developers](#for-developers)
 - [Releases](#releases)
 
+## Project Overview
+
+Offline Survival is a desktop tool for preparing a useful offline knowledge archive before you need it. It is meant for emergencies, travel, field work, classrooms, labs, clinics, workshops, homelabs, and any place where internet access may be slow, censored, unreliable, expensive, or gone.
+
+The project is not a single static archive and it is not a cloud service. It is a **library builder**:
+
+- you choose a library size/profile
+- the app downloads public knowledge sources into a folder you control
+- the app keeps the original files and prepares/indexes what it can
+- you search and open that material locally
+- you can optionally run Local AI over indexed local sources
+- you can package a prepared library for another computer or USB drive
+
+The goal is practical continuity: a person should be able to prepare a disk with survival, medical, repair, agriculture, engineering, reference, and education material and still use it when there is no network.
+
 ## What It Does
 
 Offline Survival helps you create a local library with material such as:
@@ -30,6 +47,23 @@ Offline Survival helps you create a local library with material such as:
 - your own extra PDFs, EPUBs, Markdown, HTML, CSV, JSON, text files, and ZIM files
 
 The app keeps the original files, prepares readable copies when needed, builds a local search index, and can package the result for another computer.
+
+## Main Functionality
+
+| Functionality | What it means |
+| --- | --- |
+| Profile-based library building | Choose from small emergency profiles through large civilization-recovery profiles. Profiles control which sources are downloaded and help keep disk usage predictable. |
+| Download manager | Downloads selected public sources, records progress/state, supports retries/resume paths, and keeps files inside the chosen library folder. |
+| Source catalog | Sources are defined in manifests with URL, license, attribution, expected size, category, tags, runtime behavior, and profile membership. |
+| Local readers/openers | ZIM files can be served through Kiwix, PDFs open with the system viewer, and supported archives can be extracted and opened locally. |
+| Indexing and search | Supported files are normalized into searchable text and indexed locally so the library can be searched without internet access. |
+| Extra local knowledge | You can import your own PDFs, EPUBs, Markdown, HTML, CSV, JSON, text files, and ZIM files into the local library. |
+| Optional Local AI | The app can install and run an app-managed Ollama runtime and recommended models. AI answers use indexed local context when available. |
+| RAM safety guard | Local AI only starts when the selected installed chat model fits the currently available RAM and swap pressure is acceptable. |
+| Share packages | Build a package containing selected downloaded sources, search data, and available app files for Windows, macOS, and Linux. |
+| Cross-platform releases | GitHub Actions publishes Windows, macOS, and Linux builds for x64 and arm64, plus an all-platforms bundle. |
+| Recovery and maintenance | The app tracks state in the library folder, marks interrupted downloads, can retry/clean partial downloads, and keeps generated data separate from source code. |
+| Privacy by default | Libraries, indexes, imported files, logs, and optional model data stay local. Internal services bind to localhost by default. |
 
 ## Download The App
 
