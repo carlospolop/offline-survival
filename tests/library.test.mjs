@@ -26,6 +26,20 @@ function response(text) {
   return new Response(text, { status: 200, headers: { "content-length": String(Buffer.byteLength(text)) } });
 }
 
+async function writeFakeAllPlatformApps(projectRoot) {
+  const root = path.join(projectRoot, "release", "Offline-Survival-all-platforms");
+  const files = [
+    ["Offline-Survival-linux-x64", "Offline Survival_0.1.0_amd64.AppImage", "fake linux app"],
+    ["Offline-Survival-windows-x64", "Offline Survival.msi", "fake windows installer"],
+    ["Offline-Survival-macos-arm64", "Offline Survival.dmg", "fake macos dmg"]
+  ];
+  for (const [folder, file, content] of files) {
+    const dir = path.join(root, folder);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, file), content);
+  }
+}
+
 describe("library workflows", () => {
   it("downloads, verifies, indexes, and searches a text artifact", async () => {
     const source = {
@@ -141,11 +155,7 @@ describe("library workflows", () => {
 
   it("creates a profile-scoped share package from a portable app folder and local library", async () => {
     const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sca-project-"));
-    const appDir = path.join(projectRoot, "release/OfflineSurvival-Linux-x64/OfflineSurvival-App");
-    await fs.mkdir(appDir, { recursive: true });
-    await fs.writeFile(path.join(appDir, "Run-Offline-Survival.sh"), "#!/usr/bin/env sh\n");
-    await fs.chmod(path.join(appDir, "Run-Offline-Survival.sh"), 0o755);
-    await fs.writeFile(path.join(appDir, "Offline Survival_0.1.0_amd64.AppImage"), "fake app");
+    await writeFakeAllPlatformApps(projectRoot);
     await fs.mkdir(path.join(root, "raw/html"), { recursive: true });
     await fs.writeFile(path.join(root, "raw/html/shared.html"), "shared content");
     await fs.writeFile(path.join(root, "raw/html/private.html"), "private content");
@@ -166,13 +176,20 @@ describe("library workflows", () => {
     upsertSource(db, shared, { status: "indexed", local_path: "raw/html/shared.html", size_bytes: 14 });
     upsertSource(db, privateSource, { status: "indexed", local_path: "raw/html/private.html", size_bytes: 15 });
     try {
-      const result = await buildSharePackage({ db, libraryRoot: root, projectRoot, profile, catalogSources: [shared, privateSource] });
+      const result = await buildSharePackage({ db, libraryRoot: root, projectRoot, profile: { ...profile, primaryOs: "windows" }, catalogSources: [shared, privateSource] });
       expect(result.archivePath).toMatch(/OfflineSurvival-mini-Share-.*\.tar\.gz$/);
       expect(result.checksumPath).toBe(`${result.archivePath}.sha256`);
       expect(await fs.readFile(result.checksumPath, "utf8")).toContain(path.basename(result.archivePath));
-      expect(result.instructions.join(" ")).toContain("Run-Offline-Survival.sh");
-      const script = await fs.readFile(path.join(result.packageDir, "OfflineSurvival-App/Run-Offline-Survival.sh"), "utf8");
+      expect(result.primaryOs).toBe("windows");
+      expect(result.instructions.join(" ")).toContain("Run-Offline-Survival-Windows.bat");
+      expect(result.apps.map((app) => app.label).sort()).toEqual(["linux-x64", "macos-arm64", "windows-x64"]);
+      const script = await fs.readFile(path.join(result.packageDir, "Run-Offline-Survival-Linux.sh"), "utf8");
       expect(script).toContain("SCA_LIBRARY_ROOT");
+      expect(await fs.stat(path.join(result.packageDir, "Run-Offline-Survival-Windows.bat"))).toBeTruthy();
+      expect(await fs.stat(path.join(result.packageDir, "Run-Offline-Survival-macOS.command"))).toBeTruthy();
+      expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/windows-x64/Offline Survival.msi"))).toBeTruthy();
+      expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/macos-arm64/Offline Survival.dmg"))).toBeTruthy();
+      expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/linux-x64/Offline Survival_0.1.0_amd64.AppImage"))).toBeTruthy();
       expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/shared.html"))).toBeTruthy();
       await expect(fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/private.html"))).rejects.toThrow();
       await expect(fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/archive-state.sqlite-wal"))).rejects.toThrow();
@@ -188,11 +205,7 @@ describe("library workflows", () => {
 
   it("creates an all-downloaded share package when given every downloaded source", async () => {
     const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sca-project-"));
-    const appDir = path.join(projectRoot, "release/OfflineSurvival-Linux-x64/OfflineSurvival-App");
-    await fs.mkdir(appDir, { recursive: true });
-    await fs.writeFile(path.join(appDir, "Run-Offline-Survival.sh"), "#!/usr/bin/env bash\n");
-    await fs.chmod(path.join(appDir, "Run-Offline-Survival.sh"), 0o755);
-    await fs.writeFile(path.join(appDir, "Offline Survival_0.1.0_amd64.AppImage"), "fake app");
+    await writeFakeAllPlatformApps(projectRoot);
     await fs.mkdir(path.join(root, "raw/html"), { recursive: true });
     await fs.writeFile(path.join(root, "raw/html/first.html"), "first source");
     await fs.writeFile(path.join(root, "raw/html/second.html"), "second source");
@@ -221,6 +234,8 @@ describe("library workflows", () => {
       expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/second.html"))).toBeTruthy();
       const manifest = JSON.parse(await fs.readFile(path.join(result.packageDir, "share-manifest.json"), "utf8"));
       expect(manifest.profile.id).toBe("all-downloaded");
+      expect(manifest.apps_dir).toBe("OfflineSurvival-Apps");
+      expect(manifest.apps.map((app) => app.platform).sort()).toEqual(["linux", "macos", "windows"]);
       expect(manifest.sources.map((source) => source.id).sort()).toEqual([first.id, second.id].sort());
     } finally {
       db.close();

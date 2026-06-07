@@ -46,7 +46,7 @@ Download the file for your computer:
 | Linux Intel/AMD | `Offline-Survival-linux-x64` |
 | Linux ARM | `Offline-Survival-linux-arm64` |
 
-The release also includes an `Offline-Survival-all-platforms` archive. That bundle is useful when preparing a USB drive for mixed Windows, macOS, and Linux machines.
+Each platform ZIP also contains the all-platforms app bundle, so the same download can be reused when preparing a USB drive for Windows, macOS, and Linux machines. The separate `Offline-Survival-all-platforms` archive is available if you only want the app files without choosing a primary platform.
 
 ## First Run
 
@@ -88,7 +88,7 @@ Local AI answers are grounded in indexed local sources. For medical, electrical,
 
 ## Sharing An Offline Library
 
-The **Share** tab builds a portable package with the selected downloaded sources and app files.
+The **Share** tab builds a package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.
 
 ![Share package screen](docs/assets/screenshots/share.png)
 
@@ -98,7 +98,13 @@ Use this for:
 - moving the app to a computer with no internet
 - preparing a classroom, clinic, workshop, or field laptop
 
-The GitHub release workflow also creates a combined all-platforms release bundle so future sharing flows can include launchers for Windows, macOS, and Linux from the same release set.
+When creating a share package, choose the primary target OS. The package still includes every available OS app folder, plus generated start files:
+
+- Windows: `Run-Offline-Survival-Windows.bat`
+- macOS: `Run-Offline-Survival-macOS.command`
+- Linux: `Run-Offline-Survival-Linux.sh`
+
+Linux launchers can point directly at the included library. Windows and macOS installers may need one first-run step after installation: choose the included `OfflineSurvival-Library` folder as the library path.
 
 ## What Gets Downloaded
 

@@ -138,13 +138,36 @@ jobs:
       - name: Build release archives
         run: |
           set -euo pipefail
-          mkdir -p release-upload all-platforms/Offline-Survival-all-platforms
+          mkdir -p release-upload all-platforms/Offline-Survival-all-platforms per-platform
           for dir in downloaded-artifacts/Offline-Survival-*; do
             name="$(basename "$dir")"
-            (cd "$dir" && zip -qr "../../release-upload/${name}.zip" .)
             cp -R "$dir" "all-platforms/Offline-Survival-all-platforms/${name}"
           done
+
+          cat > "all-platforms/Offline-Survival-all-platforms/README-FIRST.txt" <<'EOF'
+          Offline Survival all-platforms bundle
+
+          This folder contains app release files for Windows, macOS, and Linux.
+          Use it with the app Share tab when creating a USB/share package for mixed operating systems.
+          Downloaded knowledge sources are not included here; share packages add the selected local library data.
+          EOF
+
           (cd all-platforms && zip -qr "../release-upload/Offline-Survival-all-platforms.zip" Offline-Survival-all-platforms)
+
+          for dir in downloaded-artifacts/Offline-Survival-*; do
+            name="$(basename "$dir")"
+            mkdir -p "per-platform/${name}"
+            cp -R all-platforms/Offline-Survival-all-platforms "per-platform/${name}/"
+            cat > "per-platform/${name}/START-HERE.txt" <<EOF
+          Offline Survival ${name#Offline-Survival-}
+
+          Open the folder Offline-Survival-all-platforms/${name} first for this computer.
+          The same ZIP also includes Windows, macOS, and Linux release files so it can be reused when preparing a share package for another OS.
+          Downloaded knowledge sources are not included in this release artifact.
+          EOF
+            (cd "per-platform/${name}" && zip -qr "../../release-upload/${name}.zip" .)
+          done
+
           sha256sum release-upload/*.zip > release-upload/SHA256SUMS.txt
 
       - name: Publish release

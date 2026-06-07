@@ -18,6 +18,7 @@
   let state: State = { settings: {}, sources: [], downloads: [], services: [], adapters: [], models: [], blobs: [], documents: [], events: [] };
   let system: any = null;
   let shareProfile = "";
+  let sharePrimaryOs = "linux";
   let activeTab = "dashboard";
   let filter = "";
   let query = "";
@@ -537,7 +538,7 @@
     if (!shareProfile) return;
     sharePackage = null;
     await run("share-package", async () => {
-      sharePackage = await api("/api/share/package", { method: "POST", body: JSON.stringify({ profileId: shareProfile }) });
+      sharePackage = await api("/api/share/package", { method: "POST", body: JSON.stringify({ profileId: shareProfile, primaryOs: sharePrimaryOs }) });
     });
   }
 
@@ -1498,7 +1499,7 @@
       <div class="sectionHeader">
         <h2>Share</h2>
       </div>
-      <p>Share creates one compressed package with the app and the selected downloaded sources. Copy it to another Linux computer, extract it, and launch it with the included runner.</p>
+      <p>Share creates one compressed package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.</p>
       <article class="recommendedSetup">
         <div>
           <strong>Generate app + sources package</strong>
@@ -1510,6 +1511,11 @@
               {#each shareOptions as option}
                 <option value={option.id}>{option.title} · {gb(option.sizeBytes)} · {option.sourceCount} sources</option>
               {/each}
+            </select>
+            <select bind:value={sharePrimaryOs} aria-label="Primary operating system">
+              <option value="linux">Primary launcher: Linux</option>
+              <option value="windows">Primary launcher: Windows</option>
+              <option value="macos">Primary launcher: macOS</option>
             </select>
             <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy || !shareProfile}>
               {busy === "share-package" ? "Generating Share Package" : "Generate Share Package"}
@@ -1552,6 +1558,12 @@
           <small>Size: {gb(sharePackage.sizeBytes)}</small>
           <small>Checksum: {sharePackage.checksum}</small>
           <small>Checksum file: {sharePackage.checksumPath}</small>
+          {#if sharePackage.primaryOs}
+            <small>Primary launcher: {sharePackage.primaryOs}</small>
+          {/if}
+          {#if sharePackage.apps?.length}
+            <small>Included app folders: {sharePackage.apps.map((app: any) => app.label).join(", ")}</small>
+          {/if}
           {#each sharePackage.instructions as instruction}
             <small>{instruction}</small>
           {/each}

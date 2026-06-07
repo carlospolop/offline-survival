@@ -62,17 +62,18 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
     profileId: profile.id,
     profileTitle: profile.title
   });
-  const sourceAppDir = await findPortableAppDir(projectRoot);
-  if (!sourceAppDir) {
+  const primaryOs = normalizePrimaryOs(profile.primaryOs ?? profile.targetOs ?? profile.os);
+  const appSources = await findShareAppSources(projectRoot);
+  if (!appSources.length) {
     updateShareProgress(db, {
       status: "failed",
       phase: "failed",
-      detail: "The portable app folder is missing. Build the portable release first, then create the share package.",
+      detail: "No app release artifacts were found. Download or build the all-platforms release bundle before creating the share package.",
       percent: 0,
       profileId: profile.id,
       profileTitle: profile.title
     });
-    throw new Error("The portable app folder is missing. Build the portable release first, then create the share package.");
+    throw new Error("No app release artifacts were found. Download or build the all-platforms release bundle before creating the share package.");
   }
   const selectedSourceIds = [...new Set(profile.sourceIds)];
   const selectedSourceRows = selectedSourcesForPackage(db, selectedSourceIds, profile);
@@ -81,7 +82,7 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
   const shareRoot = path.join(libraryRoot, "share");
   const packageName = `OfflineSurvival-${slug(profile.id)}-Share-${stamp}`;
   const packageDir = path.join(shareRoot, packageName);
-  const appDir = path.join(packageDir, "OfflineSurvival-App");
+  const appsDir = path.join(packageDir, "OfflineSurvival-Apps");
   const sharedLibraryDir = path.join(packageDir, "OfflineSurvival-Library");
   const archivePath = path.join(shareRoot, `${packageName}.tar.gz`);
 
@@ -91,12 +92,12 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
   updateShareProgress(db, {
     status: "running",
     phase: "copy-app",
-    detail: "Copying the portable app into the share package.",
+    detail: `Copying ${appSources.length} app release folders into the share package.`,
     percent: 10,
     profileId: profile.id,
     profileTitle: profile.title
   });
-  await fs.cp(sourceAppDir, appDir, { recursive: true, dereference: false });
+  const copiedApps = await copyShareApps({ appSources, appsDir });
   updateShareProgress(db, {
     status: "running",
     phase: "copy-library",
@@ -126,7 +127,7 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
     total: selectedSourceRows.length
   });
   await sanitizeSharedDatabase({ dbPath: path.join(sharedLibraryDir, "archive-state.sqlite"), selectedSourceIds, copiedRelPaths, profile });
-  await writeShareRunScript(path.join(appDir, "Run-Offline-Survival.sh"));
+  const launchers = await writeShareLaunchers({ packageDir, primaryOs, apps: copiedApps });
   updateShareProgress(db, {
     status: "running",
     phase: "metadata",
@@ -135,8 +136,8 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
     profileId: profile.id,
     profileTitle: profile.title
   });
-  const manifest = await writeShareManifest({ db, libraryRoot, packageDir, packageName, profile, selectedSourceIds, catalogSources });
-  const readme = await writeShareReadme({ packageDir, archiveName: path.basename(archivePath), profile });
+  const manifest = await writeShareManifest({ db, libraryRoot, packageDir, packageName, profile, selectedSourceIds, catalogSources, primaryOs, apps: copiedApps, launchers });
+  const readme = await writeShareReadme({ packageDir, archiveName: path.basename(archivePath), profile, primaryOs, apps: copiedApps });
 
   await fs.rm(archivePath, { force: true });
   updateShareProgress(db, {
@@ -160,7 +161,7 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
   const stat = await fs.stat(archivePath);
   const checksumPath = `${archivePath}.sha256`;
   await fs.writeFile(checksumPath, `${checksum}  ${path.basename(archivePath)}\n`);
-  recordEvent(db, "share-package", "Created profile share package", { archivePath, packageDir, profileId: profile.id, sourceCount: selectedSourceIds.length, sizeBytes: stat.size });
+  recordEvent(db, "share-package", "Created profile share package", { archivePath, packageDir, profileId: profile.id, sourceCount: selectedSourceIds.length, sizeBytes: stat.size, primaryOs, appCount: copiedApps.length });
   updateShareProgress(db, {
     status: "complete",
     phase: "complete",
@@ -177,14 +178,17 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
     packageDir,
     readme,
     manifest,
+    apps: copiedApps,
+    primaryOs,
+    launchers,
     profile: { id: profile.id, title: profile.title },
     checksum,
     sizeBytes: stat.size,
     instructions: [
       `Send ${archivePath} to the other computer.`,
       "Extract the archive.",
-      "Run OfflineSurvival-App/Run-Offline-Survival.sh.",
-      `The launcher points the app at the included OfflineSurvival-Library folder with the ${profile.title} sources automatically.`
+      launcherInstruction(primaryOs),
+      `The package includes the ${profile.title} sources in OfflineSurvival-Library and app artifacts for every available platform.`
     ]
   };
 }
@@ -202,7 +206,41 @@ function selectedSourcesForPackage(db, selectedSourceIds, profile) {
   return selectedSourceIds.map((id) => byId.get(id));
 }
 
-async function findPortableAppDir(projectRoot) {
+async function findShareAppSources(projectRoot) {
+  const candidates = [
+    process.env.SCA_SHARE_APPS_DIR,
+    process.env.SCA_ALL_PLATFORM_APP_DIR,
+    path.join(projectRoot, "release", "all-platforms", "Offline-Survival-all-platforms"),
+    path.join(projectRoot, "release", "Offline-Survival-all-platforms"),
+    path.join(projectRoot, "downloaded-artifacts"),
+    path.join(projectRoot, "release"),
+    projectRoot
+  ].filter(Boolean);
+  const seen = new Set();
+  const apps = [];
+  for (const candidate of candidates) {
+    const root = path.resolve(candidate);
+    const stat = await fs.stat(root).catch(() => null);
+    if (!stat?.isDirectory()) continue;
+    for (const entry of await fs.readdir(root, { withFileTypes: true }).catch(() => [])) {
+      if (!entry.isDirectory()) continue;
+      const parsed = parseReleaseAppFolder(entry.name);
+      if (!parsed) continue;
+      const sourceDir = path.join(root, entry.name);
+      const key = `${parsed.platform}-${parsed.arch}-${sourceDir}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      apps.push({ ...parsed, sourceDir });
+    }
+  }
+  const legacy = await findLegacyPortableAppDir(projectRoot);
+  if (legacy && !apps.some((app) => app.platform === "linux" && app.arch === "x64")) {
+    apps.push({ label: "linux-x64", platform: "linux", arch: "x64", sourceDir: legacy });
+  }
+  return apps.sort((a, b) => `${a.platform}-${a.arch}`.localeCompare(`${b.platform}-${b.arch}`));
+}
+
+async function findLegacyPortableAppDir(projectRoot) {
   const candidates = [
     process.env.SCA_PORTABLE_APP_DIR,
     path.join(projectRoot, "OfflineSurvival-App"),
@@ -213,9 +251,33 @@ async function findPortableAppDir(projectRoot) {
     const stat = await fs.stat(appDir).catch(() => null);
     if (!stat?.isDirectory()) continue;
     const launcher = await fs.stat(path.join(appDir, "Run-Offline-Survival.sh")).catch(() => null);
-    if (launcher?.isFile()) return appDir;
+    const appImage = await fs.stat(path.join(appDir, "Offline Survival_0.1.0_amd64.AppImage")).catch(() => null);
+    if (launcher?.isFile() || appImage?.isFile()) return appDir;
   }
   return null;
+}
+
+function parseReleaseAppFolder(name) {
+  const match = /^Offline-Survival-(linux|windows|macos)-(x64|arm64)$/.exec(name);
+  if (!match) return null;
+  return { label: `${match[1]}-${match[2]}`, platform: match[1], arch: match[2] };
+}
+
+async function copyShareApps({ appSources, appsDir }) {
+  await fs.rm(appsDir, { recursive: true, force: true });
+  const copied = [];
+  for (const app of appSources) {
+    const destination = path.join(appsDir, app.label);
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.cp(app.sourceDir, destination, { recursive: true, dereference: false });
+    copied.push({
+      label: app.label,
+      platform: app.platform,
+      arch: app.arch,
+      path: path.relative(path.dirname(appsDir), destination)
+    });
+  }
+  return copied;
 }
 
 async function copyProfileLibraryForShare({ db, libraryRoot, target, packageDir, sourceRows, profile }) {
@@ -262,26 +324,127 @@ async function copyIfExists(source, destination, packageDir) {
   return true;
 }
 
-async function writeShareRunScript(scriptPath) {
+async function writeShareRunScript(scriptPath, appLabel = "linux-x64") {
   const script = [
     "#!/usr/bin/env sh",
     "set -eu",
     "HERE=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)",
-    "export SCA_PORTABLE_APP_DIR=\"$HERE\"",
-    "export SCA_LIBRARY_ROOT=\"$HERE/../OfflineSurvival-Library\"",
+    `APP_DIR="$HERE/OfflineSurvival-Apps/${appLabel}"`,
+    "export SCA_PORTABLE_APP_DIR=\"$APP_DIR\"",
+    "export SCA_LIBRARY_ROOT=\"$HERE/OfflineSurvival-Library\"",
     "unset SNAP SNAP_NAME SNAP_REVISION SNAP_ARCH SNAP_CONTEXT SNAP_COOKIE SNAP_DATA SNAP_COMMON",
     "unset SNAP_USER_DATA SNAP_USER_COMMON SNAP_REAL_HOME SNAP_LIBRARY_PATH SNAP_LAUNCHER_ARCH_TRIPLET",
     "unset SNAP_INSTANCE_NAME SNAP_UID SNAP_EUID",
     "unset GDK_PIXBUF_MODULEDIR GDK_PIXBUF_MODULE_FILE GIO_MODULE_DIR GTK_EXE_PREFIX GTK_IM_MODULE_FILE GTK_PATH",
-    "cd \"$HERE\"",
-    "if [ -f \"Offline Survival_0.1.0_amd64.AppImage\" ]; then",
-    "  exec ./\"Offline Survival_0.1.0_amd64.AppImage\" \"$@\"",
+    "cd \"$APP_DIR\"",
+    "APPIMAGE=$(find . -maxdepth 2 -type f -name '*.AppImage' | head -n 1)",
+    "if [ -n \"$APPIMAGE\" ]; then",
+    "  chmod +x \"$APPIMAGE\" 2>/dev/null || true",
+    "  exec \"$APPIMAGE\" \"$@\"",
     "fi",
-    "exec ./\"Offline Survival.AppDir/usr/bin/survival-civilization-archive\" \"$@\"",
+    "if [ -x \"Offline Survival.AppDir/usr/bin/survival-civilization-archive\" ]; then",
+    "  exec ./\"Offline Survival.AppDir/usr/bin/survival-civilization-archive\" \"$@\"",
+    "fi",
+    "echo 'No Linux executable was found in' \"$APP_DIR\" >&2",
+    "echo 'Open the .deb or .rpm installer from that folder, then select OfflineSurvival-Library as the library path.' >&2",
+    "exit 1",
     ""
   ].join("\n");
   await fs.writeFile(scriptPath, script);
   await fs.chmod(scriptPath, 0o755);
+}
+
+async function writeShareLaunchers({ packageDir, primaryOs, apps }) {
+  const launchers = [];
+  const linux = chooseApp(apps, "linux");
+  if (linux) {
+    await writeShareRunScript(path.join(packageDir, "Run-Offline-Survival-Linux.sh"), linux.label);
+    launchers.push("Run-Offline-Survival-Linux.sh");
+  }
+  const windows = chooseApp(apps, "windows");
+  if (windows) {
+    const script = [
+      "@echo off",
+      "setlocal",
+      "set HERE=%~dp0",
+      "set SCA_LIBRARY_ROOT=%HERE%OfflineSurvival-Library",
+      `set APP_DIR=%HERE%OfflineSurvival-Apps\\${windows.label}`,
+      "for %%F in (\"%APP_DIR%\\*.exe\") do start \"Offline Survival\" \"%%~fF\" & exit /b 0",
+      "for %%F in (\"%APP_DIR%\\*.msi\") do start \"Offline Survival installer\" \"%%~fF\" & exit /b 0",
+      "echo No Windows installer or executable was found in %APP_DIR%",
+      "echo After installing, choose the OfflineSurvival-Library folder when the app opens.",
+      "pause",
+      ""
+    ].join("\r\n");
+    await fs.writeFile(path.join(packageDir, "Run-Offline-Survival-Windows.bat"), script);
+    launchers.push("Run-Offline-Survival-Windows.bat");
+  }
+  const macos = chooseApp(apps, "macos");
+  if (macos) {
+    const script = [
+      "#!/usr/bin/env sh",
+      "set -eu",
+      "HERE=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)",
+      `APP_DIR="$HERE/OfflineSurvival-Apps/${macos.label}"`,
+      "export SCA_LIBRARY_ROOT=\"$HERE/OfflineSurvival-Library\"",
+      "DMG=$(find \"$APP_DIR\" -maxdepth 2 -type f -name '*.dmg' | head -n 1)",
+      "APP=$(find \"$APP_DIR\" -maxdepth 3 -type d -name '*.app' | head -n 1)",
+      "if [ -n \"$APP\" ]; then open \"$APP\"; exit 0; fi",
+      "if [ -n \"$DMG\" ]; then open \"$DMG\"; exit 0; fi",
+      "echo 'No macOS app or dmg was found in' \"$APP_DIR\" >&2",
+      "echo 'After installing, choose OfflineSurvival-Library as the library path.' >&2",
+      "exit 1",
+      ""
+    ].join("\n");
+    await fs.writeFile(path.join(packageDir, "Run-Offline-Survival-macOS.command"), script);
+    await fs.chmod(path.join(packageDir, "Run-Offline-Survival-macOS.command"), 0o755);
+    launchers.push("Run-Offline-Survival-macOS.command");
+  }
+  await fs.writeFile(path.join(packageDir, "START-HERE.txt"), startHereText({ primaryOs, apps, launchers }));
+  launchers.push("START-HERE.txt");
+  return launchers;
+}
+
+function chooseApp(apps, platform) {
+  return apps.find((app) => app.platform === platform && app.arch === "x64")
+    ?? apps.find((app) => app.platform === platform)
+    ?? null;
+}
+
+function normalizePrimaryOs(value) {
+  return ["windows", "macos", "linux"].includes(String(value)) ? String(value) : platformName(process.platform);
+}
+
+function platformName(value) {
+  if (value === "win32") return "windows";
+  if (value === "darwin") return "macos";
+  return "linux";
+}
+
+function launcherInstruction(primaryOs) {
+  if (primaryOs === "windows") return "On Windows, run Run-Offline-Survival-Windows.bat.";
+  if (primaryOs === "macos") return "On macOS, run Run-Offline-Survival-macOS.command.";
+  return "On Linux, run Run-Offline-Survival-Linux.sh.";
+}
+
+function startHereText({ primaryOs, apps, launchers }) {
+  return [
+    "Offline Survival Share Package",
+    "",
+    launcherInstruction(primaryOs),
+    "",
+    "Other launchers included:",
+    ...launchers.map((launcher) => `- ${launcher}`),
+    "",
+    "Included app folders:",
+    ...apps.map((app) => `- OfflineSurvival-Apps/${app.label}`),
+    "",
+    "Included library:",
+    "- OfflineSurvival-Library",
+    "",
+    "If an installer opens instead of the app, install it and then choose the included OfflineSurvival-Library folder when Offline Survival asks for a library path.",
+    ""
+  ].join("\n");
 }
 
 async function sanitizeSharedDatabase({ dbPath, selectedSourceIds, copiedRelPaths, profile }) {
@@ -312,7 +475,7 @@ async function sanitizeSharedDatabase({ dbPath, selectedSourceIds, copiedRelPath
   }
 }
 
-async function writeShareManifest({ db, libraryRoot, packageDir, packageName, profile, selectedSourceIds, catalogSources }) {
+async function writeShareManifest({ db, libraryRoot, packageDir, packageName, profile, selectedSourceIds, catalogSources, primaryOs, apps, launchers }) {
   const sourceSql = placeholders(selectedSourceIds);
   const catalogById = new Map(catalogSources.map((source) => [source.id, source]));
   const manifest = {
@@ -325,8 +488,11 @@ async function writeShareManifest({ db, libraryRoot, packageDir, packageName, pr
       sourceIds: selectedSourceIds
     },
     library_source: libraryRoot,
-    app_dir: "OfflineSurvival-App",
+    primary_os: primaryOs,
+    apps_dir: "OfflineSurvival-Apps",
     library_dir: "OfflineSurvival-Library",
+    apps,
+    launchers,
     sources: db.prepare(`SELECT id, title, type, license, status, size_bytes, local_path FROM sources WHERE id IN (${sourceSql}) ORDER BY title`).all(...selectedSourceIds)
       .map((source) => ({ ...source, description: catalogById.get(source.id)?.description })),
     documents: db.prepare(`SELECT id, source_id, title, path, text_path, chunk_count FROM documents WHERE source_id IN (${sourceSql}) ORDER BY title`).all(...selectedSourceIds)
@@ -336,19 +502,23 @@ async function writeShareManifest({ db, libraryRoot, packageDir, packageName, pr
   return rel;
 }
 
-async function writeShareReadme({ packageDir, archiveName, profile }) {
+async function writeShareReadme({ packageDir, archiveName, profile, primaryOs, apps }) {
   const rel = "README-FIRST.txt";
   await fs.writeFile(path.join(packageDir, rel), [
     "Offline Survival Share Package",
     "",
-    `This package contains the application and the downloaded sources for the ${profile.title} profile.`,
+    `This package contains app release files and the downloaded sources for the ${profile.title} profile.`,
     "",
     "How to share:",
     `1. Send ${archiveName} to the other computer.`,
     "2. Extract it.",
-    "3. Run OfflineSurvival-App/Run-Offline-Survival.sh.",
+    `3. ${launcherInstruction(primaryOs)}`,
     "",
-    "The launcher automatically uses the included OfflineSurvival-Library folder.",
+    "Included app folders:",
+    ...apps.map((app) => `- OfflineSurvival-Apps/${app.label}`),
+    "",
+    "Linux launchers automatically point the app at OfflineSurvival-Library.",
+    "Windows and macOS installers may need one manual step after installation: choose the included OfflineSurvival-Library folder as the library path.",
     "No internet connection is required for already downloaded and prepared sources.",
     "",
     "License note: only redistribute sources whose licenses allow sharing.",
