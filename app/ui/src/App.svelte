@@ -19,6 +19,7 @@
   let system: any = null;
   let shareProfile = "";
   let sharePrimaryOs = "linux";
+  let shareAppsPath = "";
   let activeTab = "dashboard";
   let filter = "";
   let query = "";
@@ -538,7 +539,17 @@
     if (!shareProfile) return;
     sharePackage = null;
     await run("share-package", async () => {
-      sharePackage = await api("/api/share/package", { method: "POST", body: JSON.stringify({ profileId: shareProfile, primaryOs: sharePrimaryOs }) });
+      sharePackage = await api("/api/share/package", {
+        method: "POST",
+        body: JSON.stringify({ profileId: shareProfile, primaryOs: sharePrimaryOs, appBundlePath: shareAppsPath })
+      });
+    });
+  }
+
+  async function pickShareAppsFolder() {
+    await run("share-apps-folder", async () => {
+      const result = await api<{ path?: string; canceled?: boolean }>("/api/folder/pick", { method: "POST" });
+      if (result.path) shareAppsPath = result.path;
     });
   }
 
@@ -1503,7 +1514,7 @@
       <article class="recommendedSetup">
         <div>
           <strong>Generate app + sources package</strong>
-          <small>The package includes the portable app, downloaded files, prepared/opened files, and search indexes for the selected source set. Unrelated local content is left out.</small>
+          <small>The package includes app files from the extracted all-platforms release folder, downloaded files, prepared/opened files, and search indexes for the selected source set. Unrelated local content is left out.</small>
         </div>
         {#if shareOptions.length}
           <span class="actions">
@@ -1517,12 +1528,18 @@
               <option value="windows">Primary launcher: Windows</option>
               <option value="macos">Primary launcher: macOS</option>
             </select>
+            <button type="button" on:click={pickShareAppsFolder} disabled={!!busy}>App Bundle Folder</button>
             <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy || !shareProfile}>
               {busy === "share-package" ? "Generating Share Package" : "Generate Share Package"}
             </button>
           </span>
         {/if}
       </article>
+      {#if shareAppsPath}
+        <small class="pathHint">App bundle folder: {shareAppsPath}</small>
+      {:else}
+        <small class="pathHint">Optional: choose the extracted Offline-Survival-all-platforms folder before generating a mixed-OS package.</small>
+      {/if}
       {#if sharePackageProgress && (busy === "share-package" || ["running", "failed", "complete"].includes(String(sharePackageProgress.status ?? "")))}
         <div class="progressPanel">
           <div class="progressHeader">

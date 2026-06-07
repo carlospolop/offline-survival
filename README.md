@@ -106,6 +106,8 @@ When creating a share package, choose the primary target OS. The package still i
 
 Linux launchers can point directly at the included library. Windows and macOS installers may need one first-run step after installation: choose the included `OfflineSurvival-Library` folder as the library path.
 
+For the smoothest mixed-OS package, extract a release ZIP first and, in the Share tab, choose its `Offline-Survival-all-platforms` folder as the app bundle folder.
+
 ## What Gets Downloaded
 
 The catalog is defined in [manifests/sources/catalog.yaml](manifests/sources/catalog.yaml). It stores source URLs, sizes, licenses, categories, and profiles. The repository stores the catalog and app code only.

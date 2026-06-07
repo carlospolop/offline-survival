@@ -50,7 +50,7 @@ export async function buildPortableLayout({ db, libraryRoot }) {
   return { readme: "README-FIRST.txt", manifest: "portable-layout.json" };
 }
 
-export async function buildSharePackage({ db, libraryRoot, projectRoot, profile, catalogSources = [] }) {
+export async function buildSharePackage({ db, libraryRoot, projectRoot, profile, catalogSources = [], appBundlePath = "" }) {
   if (!profile?.id || !Array.isArray(profile.sourceIds) || !profile.sourceIds.length) {
     throw new Error("Choose a downloaded profile before generating a share package.");
   }
@@ -63,7 +63,7 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
     profileTitle: profile.title
   });
   const primaryOs = normalizePrimaryOs(profile.primaryOs ?? profile.targetOs ?? profile.os);
-  const appSources = await findShareAppSources(projectRoot);
+  const appSources = await findShareAppSources(projectRoot, appBundlePath);
   if (!appSources.length) {
     updateShareProgress(db, {
       status: "failed",
@@ -206,8 +206,9 @@ function selectedSourcesForPackage(db, selectedSourceIds, profile) {
   return selectedSourceIds.map((id) => byId.get(id));
 }
 
-async function findShareAppSources(projectRoot) {
+async function findShareAppSources(projectRoot, appBundlePath = "") {
   const candidates = [
+    appBundlePath ? path.resolve(appBundlePath) : "",
     process.env.SCA_SHARE_APPS_DIR,
     process.env.SCA_ALL_PLATFORM_APP_DIR,
     path.join(projectRoot, "release", "all-platforms", "Offline-Survival-all-platforms"),
@@ -222,6 +223,14 @@ async function findShareAppSources(projectRoot) {
     const root = path.resolve(candidate);
     const stat = await fs.stat(root).catch(() => null);
     if (!stat?.isDirectory()) continue;
+    const direct = parseReleaseAppFolder(path.basename(root));
+    if (direct) {
+      const key = `${direct.platform}-${direct.arch}-${root}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        apps.push({ ...direct, sourceDir: root });
+      }
+    }
     for (const entry of await fs.readdir(root, { withFileTypes: true }).catch(() => [])) {
       if (!entry.isDirectory()) continue;
       const parsed = parseReleaseAppFolder(entry.name);

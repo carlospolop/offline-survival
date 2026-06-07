@@ -411,7 +411,14 @@ async function route(req, res) {
       try {
         const result = await withDb((db) => {
           const profile = shareProfileFromRequest(db, catalog, body.profileId);
-          return buildSharePackage({ db, libraryRoot, projectRoot: root, profile: { ...profile, primaryOs: body.primaryOs }, catalogSources: catalog.sources });
+          return buildSharePackage({
+            db,
+            libraryRoot,
+            projectRoot: root,
+            profile: { ...profile, primaryOs: body.primaryOs },
+            catalogSources: catalog.sources,
+            appBundlePath: body.appBundlePath
+          });
         });
         return send(res, 200, result);
       } catch (error) {
