@@ -33,7 +33,7 @@ describe("language selectors", () => {
     expect(source).toContain("document.documentElement.lang = uiLanguage");
     expect(source).toContain('<option value="es">');
 
-    const withoutTranslationMap = source.replace(/const uiText:[\s\S]*?\n  \};\n\n  \$:/, "TRANSLATION_MAP_REMOVED\n\n  $:");
+    const withoutTranslationMap = source.replace(/const uiText:[\s\S]*?\n  \};\s+const catalogText/, "TRANSLATION_MAP_REMOVED\n\n  const catalogText");
     const forbiddenDynamicEnglish = [
       "Verification passed",
       "The app will remove the current searchable index",
@@ -46,6 +46,14 @@ describe("language selectors", () => {
       "Open ${source.title}"
     ];
     for (const phrase of forbiddenDynamicEnglish) expect(withoutTranslationMap).not.toContain(phrase);
+    expect(source).toContain("function profileTitle(profile");
+    expect(source).toContain("function sourceTitle(source");
+    expect(source).toContain('\"survival-essential-es\":');
+    expect(source).toContain('title: \"Supervivencia esencial ES\"');
+    expect(source).toContain('\"wikipedia-es-top-zim\":');
+    expect(source).toContain('title: \"Wikipedia en español Top sin imágenes ZIM\"');
+    expect(source).not.toMatch(/\{(?:profile|source|model|result|citation)\.(?:title|description|category)\}/);
+    expect(source).not.toMatch(/\{(?:profile|source)\.status\}/);
 
     const markup = source.slice(source.indexOf("</script>") + 9);
     const rawText = [...markup.matchAll(/>\s*([^<{#:@][^<{}]*[A-Za-z][^<{}]*)\s*</g)]

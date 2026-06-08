@@ -329,6 +329,8 @@
       easyPrepareLine: "Extracting archives and preparing downloaded files for offline use.",
       easyIndexLine: "Building local search and Local AI context indexes.",
       easyAiLine: "Installing Ollama and recommended models; see the Local AI progress panel for model download details.",
+      easyInstallProgressTitle: "Easy Install",
+      allDownloadedSources: "All Downloaded Sources",
       downloadProfileTooltip: "Download every source needed for {title}. Already downloaded sources are skipped, and up to 4 downloads run in parallel.",
       downloadTooltip: "Download {title} into the local library so it can later be verified, opened, indexed, searched, and used by Local AI.",
       verifyTooltip: "Verify {title} by checking the downloaded file on disk against its recorded size and checksum when one is available. This does not download new data.",
@@ -609,6 +611,8 @@
       easyPrepareLine: "Extrayendo archivos y preparando descargas para uso offline.",
       easyIndexLine: "Creando índices de búsqueda local y contexto de IA local.",
       easyAiLine: "Instalando Ollama y modelos recomendados; mira el panel de IA local para detalles.",
+      easyInstallProgressTitle: "Instalación fácil",
+      allDownloadedSources: "Todas las fuentes descargadas",
       downloadProfileTooltip: "Descarga todas las fuentes necesarias para {title}. Las ya descargadas se omiten y hasta 4 descargas se ejecutan en paralelo.",
       downloadTooltip: "Descarga {title} en la biblioteca local para poder verificarlo, abrirlo, indexarlo, buscarlo y usarlo con IA local.",
       verifyTooltip: "Verifica {title} comprobando el archivo descargado en disco contra su tamaño y checksum registrados cuando existan. No descarga datos nuevos.",
@@ -618,6 +622,182 @@
       openExtractOpenTooltip: "Abre {title} extrayendo el archivo y lanzando el archivo configurado con el visor del sistema.",
       openDirectTooltip: "Abre {title} con la aplicación predeterminada del sistema para el archivo descargado.",
       thisPc: "este PC"
+    }
+  };
+
+
+  const catalogText: Record<string, any> = {
+    es: {
+      profiles: {
+        "survival-essential": {
+          title: "Supervivencia esencial",
+          description: "Archivo pequeño de emergencia para discos limitados. Incluye SurvivalManual, el ebook imprimible de SurvivalManual, Wikipedia en inglés simple para referencia básica y Basic Emergency Care de la OMS. Recomendado para agua, refugio, comida, primeros auxilios, saneamiento y búsqueda offline sin necesitar IA."
+        },
+        "survival-plus": {
+          title: "Supervivencia ampliada",
+          description: "Archivo para portátil o USB-SSD que amplía Supervivencia esencial con referencias más amplias de Wikipedia, Wikipedia Medicine, conocimiento de reparación de iFixit, biología, viajes/geografía, agricultura, jardinería, cocina, seguridad alimentaria y modelos de IA local recomendados para preguntas basadas en fuentes."
+        },
+        "civilization-core": {
+          title: "Civilización básica",
+          description: "Perfil de estación comunitaria de conocimiento para un SSD de clase 512 GB. Añade Wikibooks, Wiktionary, salud pública de CDC, Appropedia, Open Source Ecology, OpenStreetMap, energía, reparación, electrónica, microcontroladores, ingeniería, impresión 3D, carpintería, construcción y mantenimiento de bicicletas para reconstrucción práctica."
+        },
+        "civilization-rebuild": {
+          title: "Reconstrucción civilizatoria",
+          description: "Archivo de escala estación de trabajo para una unidad de clase 1 TB. Añade Wikisource, ciencia básica de LibreTexts y un conjunto inicial de Project Gutenberg para educación, ingeniería, ciencia, medicina, agricultura, tecnología apropiada, gobernanza y continuidad cultural."
+        },
+        "civilization-max": {
+          title: "Civilización máxima",
+          description: "Perfil de preservación profunda para discos grandes. Añade cobertura de Wikipedia con imágenes y mayor cobertura de Project Gutenberg sobre Reconstrucción civilizatoria, priorizando amplitud, réplica a largo plazo, continuidad cultural y archivado en unidades grandes."
+        },
+        "survival-essential-es": {
+          title: "Supervivencia esencial ES",
+          description: "Archivo pequeño de emergencia en español para discos limitados. Incluye cobertura enciclopédica fácil de leer en español, material de atención de emergencia de la OMS en español, formación CERT ante desastres en español y guía de CDC para preparar un kit de emergencia en español."
+        },
+        "survival-plus-es": {
+          title: "Supervivencia ampliada ES",
+          description: "Archivo en español para portátil o USB-SSD que amplía Supervivencia esencial ES con Wikipedia compacta en español, referencia médica en español, procedimientos de reparación de iFixit y Wikivoyage en español para viajes y geografía."
+        },
+        "civilization-core-es": {
+          title: "Civilización básica ES",
+          description: "Perfil de estación comunitaria de conocimiento en español. Añade Wikibooks ES y Wiktionary ES a la base española de supervivencia y reparación para educación, referencia lingüística y uso comunitario práctico."
+        },
+        "civilization-rebuild-es": {
+          title: "Reconstrucción civilizatoria ES",
+          description: "Archivo en español de escala estación de trabajo. Añade Wikisource ES, paquetes temáticos de Wikipedia en español sobre historia, matemáticas, física e informática, además de Project Gutenberg en español para educación profunda y continuidad cultural."
+        },
+        "civilization-max-es": {
+          title: "Civilización máxima ES",
+          description: "Perfil grande de archivo en español. Añade la Wikipedia completa en español sin imágenes sobre Reconstrucción civilizatoria ES para referencia amplia en español y preservación a largo plazo."
+        },
+        "survival-essential-bilingual": {
+          title: "Supervivencia esencial bilingüe",
+          description: "Archivo pequeño de emergencia en inglés y español. Combina Supervivencia esencial con Supervivencia esencial ES para hogares o equipos que necesitan ambos idiomas sin conexión."
+        },
+        "survival-plus-bilingual": {
+          title: "Supervivencia ampliada bilingüe",
+          description: "Archivo bilingüe para portátil o USB-SSD. Combina Supervivencia ampliada con Supervivencia ampliada ES, manteniendo fuentes inglesas para cubrir huecos y añadiendo Wikipedia, medicina, reparación y viajes en español."
+        },
+        "civilization-core-bilingual": {
+          title: "Civilización básica bilingüe",
+          description: "Perfil bilingüe de estación comunitaria de conocimiento. Combina Civilización básica con Civilización básica ES para una cobertura más amplia en reparación, educación, lengua, salud pública y reconstrucción en inglés y español."
+        },
+        "civilization-rebuild-bilingual": {
+          title: "Reconstrucción civilizatoria bilingüe",
+          description: "Archivo bilingüe de escala estación de trabajo. Combina Reconstrucción civilizatoria con Reconstrucción civilizatoria ES, manteniendo fuentes profundas de STEM y cultura maker en inglés y añadiendo material temático, literario y de referencia en español."
+        },
+        "civilization-max-bilingual": {
+          title: "Civilización máxima bilingüe",
+          description: "Perfil de preservación profunda en inglés y español. Combina Civilización máxima con Civilización máxima ES para grandes unidades de archivo bilingües y réplica a largo plazo."
+        }
+      },
+      sources: {
+        "survivalmanual-wiki": { title: "Wiki SurvivalManual", description: "Guía de supervivencia offline basada en el manual de supervivencia del Ejército de EE. UU. en dominio público." },
+        "survivalmanual-ebook": { title: "Ebook SurvivalManual", description: "Versión de SurvivalManual orientada a impresión y lectores electrónicos." },
+        "simplewiki-zim": { title: "Wikipedia en inglés simple ZIM", description: "Paquete enciclopédico de lectura sencilla para educación y referencia general." },
+        "who-basic-emergency-care": { title: "Atención básica de emergencia de la OMS", description: "Material de formación en atención de emergencia para proveedores de primer contacto en entornos con recursos limitados." },
+        "wikem-zim": { title: "WikEM Medicina de emergencia ZIM", description: "Referencia compacta de medicina de emergencia para consulta clínica rápida." },
+        "wikipedia-top1m-zim": { title: "Wikipedia inglesa Top 1M sin imágenes", description: "Subconjunto amplio de Wikipedia en inglés sin imágenes." },
+        "wikipedia-medicine-zim": { title: "Wikipedia Medicina ZIM", description: "Subconjunto médico para referencia offline." },
+        "ifixit-zim": { title: "iFixit ZIM", description: "Procedimientos de reparación offline para dispositivos y herramientas." },
+        "openstax-biology-2e": { title: "Biología LibreTexts ZIM", description: "Biblioteca offline de libros de biología, incluyendo material alineado con OpenStax." },
+        "fao-small-agriculture-pack": { title: "Paquete inicial de agricultura FAO", description: "Referencias seleccionadas sobre agricultura, suelo, riego, almacenamiento y ganadería." },
+        "wikivoyage-zim": { title: "Wikivoyage inglés sin imágenes ZIM", description: "Referencia offline de viajes, geografía, regiones y rutas útil para orientación y planificación." },
+        "gardening-stackexchange-zim": { title: "Gardening Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre jardinería, suelo, compostaje, plagas, semillas y cuidado de plantas." },
+        "cooking-stackexchange-zim": { title: "Cooking Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre cocina, seguridad alimentaria, almacenamiento, conservación e ingredientes." },
+        "wikibooks-zim": { title: "Wikibooks inglés ZIM", description: "Libros prácticos y libros de texto offline." },
+        "wiktionary-zim": { title: "Wiktionary inglés ZIM", description: "Diccionario y referencia lingüística offline." },
+        "appropedia-snapshot": { title: "Copia de Appropedia", description: "Copia de la wiki de tecnología apropiada y sostenibilidad." },
+        "energypedia-zim": { title: "Energypedia inglés sin imágenes ZIM", description: "Referencia práctica sobre energía renovable, energía aislada, combustible de cocina y sistemas eléctricos." },
+        "open-source-ecology": { title: "Open Source Ecology", description: "Archivo ZIM del Global Village Construction Set y documentación de maquinaria abierta." },
+        "cdc-public-health-pack": { title: "Paquete de salud pública CDC", description: "Referencias de salud pública y emergencias de EE. UU. en dominio público cuando están disponibles." },
+        "openstreetmap-wiki-zim": { title: "Wiki OpenStreetMap sin imágenes ZIM", description: "Documentación offline sobre etiquetado de OpenStreetMap, práctica cartográfica y datos geográficos." },
+        "diy-stackexchange-zim": { title: "DIY Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre reparación doméstica, construcción, fontanería, electricidad y mantenimiento." },
+        "woodworking-stackexchange-zim": { title: "Woodworking Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre carpintería, uniones, herramientas y taller." },
+        "electronics-stackexchange-zim": { title: "Electronics Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre diseño electrónico, diagnóstico, potencia, sensores y reparación." },
+        "arduino-stackexchange-zim": { title: "Arduino Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre microcontroladores, sensores, automatización y proyectos de reparación." },
+        "engineering-stackexchange-zim": { title: "Engineering Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre ingeniería práctica, mecánica, materiales, sistemas y fabricación." },
+        "3dprinting-stackexchange-zim": { title: "3D Printing Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre fabricación aditiva, reparación de impresoras, materiales y fabricación." },
+        "bicycles-stackexchange-zim": { title: "Bicycles Stack Exchange ZIM", description: "Preguntas y respuestas offline sobre mantenimiento de bicicletas, reparación, transporte de carga, piezas y herramientas." },
+        "wikisource-zim": { title: "Wikisource inglés ZIM", description: "Textos fuente y referencias históricas offline." },
+        "libretexts-core-science": { title: "Matemáticas LibreTexts ZIM", description: "Biblioteca offline de libros de texto de matemáticas de LibreTexts." },
+        "libretexts-physics": { title: "Física LibreTexts ZIM", description: "Biblioteca offline de libros de texto de física de LibreTexts." },
+        "libretexts-chemistry": { title: "Química LibreTexts ZIM", description: "Biblioteca offline de libros de texto de química de LibreTexts." },
+        "project-gutenberg-small": { title: "Tecnología Project Gutenberg ZIM", description: "Libros en dominio público sobre tecnología, ingeniería y artes prácticas de Project Gutenberg." },
+        "project-gutenberg-large": { title: "Literatura inglesa Project Gutenberg ZIM", description: "Paquete de literatura inglesa en dominio público de Project Gutenberg." },
+        "wikipedia-top1m-maxi": { title: "Wikipedia inglesa Top 1M con imágenes", description: "Paquete enriquecido de Wikipedia en inglés con el millón de artículos principales e imágenes para referencia amplia." },
+        "vikidia-es-zim": { title: "Vikidia en español sin imágenes ZIM", description: "Paquete enciclopédico en español de lectura sencilla para lectores jóvenes y referencia básica." },
+        "who-basic-emergency-care-es": { title: "Atención básica de emergencia OMS en español", description: "Resumen de atención de emergencia de la OMS en español para proveedores de primer contacto en entornos con recursos limitados." },
+        "who-bec-quick-cards-es": { title: "Tarjetas rápidas BEC OMS en español", description: "Referencia rápida en español de Basic Emergency Care de la OMS para triaje y atención rápida." },
+        "cert-basic-training-es": { title: "Formación básica CERT en español", description: "Manual del participante de Community Emergency Response Team en español para respuesta a desastres, primeros auxilios y preparación." },
+        "cdc-build-emergency-kit-es": { title: "Kit de emergencia CDC en español", description: "Guía de CDC en español para preparar un kit de emergencia con suministros básicos." },
+        "wikipedia-es-top-zim": { title: "Wikipedia en español Top sin imágenes ZIM", description: "Subconjunto amplio de Wikipedia en español sin imágenes para referencia general compacta." },
+        "wikipedia-es-medicine-zim": { title: "Wikipedia Medicina en español sin imágenes ZIM", description: "Subconjunto médico de Wikipedia en español para salud y medicina offline." },
+        "ifixit-es-zim": { title: "iFixit en español ZIM", description: "Procedimientos de reparación offline en español para dispositivos, electrodomésticos, herramientas y equipos." },
+        "wikivoyage-es-zim": { title: "Wikivoyage en español sin imágenes ZIM", description: "Referencia offline en español de viajes, geografía, regiones y rutas." },
+        "wikibooks-es-zim": { title: "Wikibooks en español sin imágenes ZIM", description: "Libros prácticos y libros de texto offline en español de Wikibooks." },
+        "wiktionary-es-zim": { title: "Wiktionary en español sin imágenes ZIM", description: "Diccionario y referencia lingüística offline en español." },
+        "wikisource-es-zim": { title: "Wikisource en español sin imágenes ZIM", description: "Textos fuente, literatura y referencias históricas offline en español." },
+        "wikipedia-es-history-zim": { title: "Wikipedia Historia en español sin imágenes ZIM", description: "Paquete temático de historia de Wikipedia en español para cobertura compacta de humanidades offline." },
+        "wikipedia-es-mathematics-zim": { title: "Wikipedia Matemáticas en español sin imágenes ZIM", description: "Paquete temático de matemáticas de Wikipedia en español para referencia STEM compacta offline." },
+        "wikipedia-es-physics-zim": { title: "Wikipedia Física en español sin imágenes ZIM", description: "Paquete temático de física de Wikipedia en español para referencia STEM compacta offline." },
+        "wikipedia-es-computer-zim": { title: "Wikipedia Informática en español sin imágenes ZIM", description: "Paquete temático de informática de Wikipedia en español para referencia compacta de ordenadores y software offline." },
+        "project-gutenberg-es-zim": { title: "Project Gutenberg en español ZIM", description: "Libros en español en dominio público de Project Gutenberg." },
+        "wikipedia-es-all-nopic-zim": { title: "Wikipedia en español completa sin imágenes ZIM", description: "Paquete completo de Wikipedia en español sin imágenes para referencia offline amplia en discos grandes." }
+      },
+      categories: {
+        survival: "supervivencia",
+        "science-education": "ciencia y educación",
+        medicine: "medicina",
+        repair: "reparación",
+        "food-systems": "sistemas alimentarios",
+        geography: "geografía",
+        reconstruction: "reconstrucción"
+      },
+      statuses: {
+        missing: "pendiente",
+        queued: "en cola",
+        downloading: "descargando",
+        resuming: "reanudando",
+        paused: "pausado",
+        failed: "fallido",
+        complete: "completo",
+        downloaded: "descargado",
+        downloaded_unverified: "descargado sin verificar",
+        verified: "verificado",
+        indexed: "indexado",
+        "indexed-original-only": "registrado para búsqueda básica",
+        running: "activo",
+        installed: "instalado",
+        ready: "listo",
+        opened: "abierto",
+        available: "disponible",
+        stopped: "parado",
+        pulling: "descargando",
+        installing: "instalando",
+        starting: "iniciando",
+        blocked: "bloqueado",
+        broken: "roto",
+        corrupt: "corrupto",
+        ready_for_kiwix: "listo para Kiwix",
+        not_ready: "no listo"
+      },
+      phases: {
+        download: "Descarga",
+        prepare: "Preparación",
+        index: "Indexación",
+        ai: "IA local",
+        "runtime-download": "Descarga del runtime",
+        "model-pull": "Descarga del modelo",
+        running: "En curso",
+        failed: "Fallido",
+        complete: "Completado"
+      },
+      tiers: {
+        "browse-only": "solo consulta",
+        "survival-ai": "IA de supervivencia",
+        "core-ai": "IA básica",
+        workstation: "estación de trabajo"
+      }
     }
   };
 
@@ -694,13 +874,13 @@
   $: shareOptions = [
     ...(downloadedSourcesForShare.length ? [{
       id: "all-downloaded",
-      title: "All Downloaded Sources",
+      title: t("allDownloadedSources"),
       sizeBytes: downloadedShareBytes,
       sourceCount: downloadedSourcesForShare.length
     }] : []),
     ...shareableProfiles.map((profile) => ({
       id: profile.id,
-      title: profile.title,
+      title: profileTitle(profile),
       sizeBytes: Number(profile.preparedSizeBytes ?? profile.expectedSizeBytes ?? 0),
       sourceCount: profile.sourceIds?.length ?? 0
     }))
@@ -726,7 +906,14 @@
   }
 
   function setUiLanguage(language: string) {
-    uiLanguage = language === "es" ? "es" : "en";
+    const nextLanguage = language === "es" ? "es" : "en";
+    const changed = uiLanguage !== nextLanguage;
+    uiLanguage = nextLanguage;
+    if (changed) {
+      verifyFeedback = {};
+      maintenanceFeedback = null;
+      error = catalogError ? t("loadBackendError", { error: catalogError }) : error;
+    }
     if (typeof window !== "undefined") {
       window.localStorage.setItem("offline-survival-ui-language", uiLanguage);
       document.documentElement.lang = uiLanguage;
@@ -736,6 +923,66 @@
   function t(key: string, vars: Record<string, string | number> = {}) {
     const template = uiText[uiLanguage]?.[key] ?? uiText.en[key] ?? key;
     return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+  }
+
+  function localizedRecord(kind: "profiles" | "sources", id: unknown) {
+    return catalogText[uiLanguage]?.[kind]?.[String(id ?? "")] ?? null;
+  }
+
+  function profileTitle(profile: Profile | Record<string, any> | null | undefined) {
+    if (!profile) return "";
+    return localizedRecord("profiles", profile.id)?.title ?? profile.title ?? "";
+  }
+
+  function profileDescription(profile: Profile | Record<string, any> | null | undefined) {
+    if (!profile) return "";
+    return localizedRecord("profiles", profile.id)?.description ?? profile.description ?? "";
+  }
+
+  function sourceTitle(source: Source | Record<string, any> | null | undefined) {
+    if (!source) return "";
+    return localizedRecord("sources", source.id)?.title ?? source.title ?? String(source.id ?? "");
+  }
+
+  function sourceDescription(source: Source | Record<string, any> | null | undefined) {
+    if (!source) return "";
+    return localizedRecord("sources", source.id)?.description ?? source.description ?? "";
+  }
+
+  function sourceCategory(source: Source | Record<string, any> | null | undefined) {
+    const category = String(source?.category ?? "");
+    return catalogText[uiLanguage]?.categories?.[category] ?? category;
+  }
+
+  function sourceForId(sourceId: unknown) {
+    const id = String(sourceId ?? "");
+    return sourceCatalog.get(id) ?? stateSources.find((source) => source.id === id) ?? null;
+  }
+
+  function sourceTitleById(sourceId: unknown, fallback = "") {
+    const source = sourceForId(sourceId);
+    return source ? sourceTitle(source) : fallback || String(sourceId ?? "");
+  }
+
+  function profileTitleById(profileId: unknown, fallback = "") {
+    const id = String(profileId ?? "");
+    const profile = catalogProfiles.find((item) => item.id === id);
+    return profile ? profileTitle(profile) : fallback || id;
+  }
+
+  function statusLabel(status: unknown) {
+    const value = String(status ?? "");
+    return catalogText[uiLanguage]?.statuses?.[value] ?? value;
+  }
+
+  function phaseLabel(phase: unknown) {
+    const value = String(phase ?? "");
+    return catalogText[uiLanguage]?.phases?.[value] ?? value;
+  }
+
+  function tierLabel(tier: unknown) {
+    const value = String(tier ?? "");
+    return catalogText[uiLanguage]?.tiers?.[value] ?? value;
   }
 
   function keepShareProfileValid(options: Array<{ id: string }>, current: string) {
@@ -885,7 +1132,7 @@
     const isReindex = fullyIndexedSourceIds.has(sourceId);
     const accepted = await requestConfirm({
       tone: "normal",
-      title: t(isReindex ? "reindexSourceTitle" : "indexSourceTitle", { title: source?.title ?? sourceId }),
+      title: t(isReindex ? "reindexSourceTitle" : "indexSourceTitle", { title: sourceTitleById(sourceId) }),
       body: t(isReindex ? "indexRebuildBody" : "indexNewBody"),
       steps: [
         ...(isReindex ? [t("indexRemoveRowsStep")] : []),
@@ -894,7 +1141,7 @@
         t("indexStoreStep")
       ],
       details: [
-        [t("source"), source?.title ?? sourceId],
+        [t("source"), sourceTitleById(sourceId)],
         [t("downloadedFileSize"), gb(Number(local?.size_bytes ?? source?.expected_size_bytes ?? 0))],
         [t("indexLocation"), t("localAppDatabase")],
         [t("embeddingModelRequired"), t("embeddingNotRequired")]
@@ -940,7 +1187,7 @@
     const plan: any = await api("/api/source/open-plan", { method: "POST", body: JSON.stringify({ sourceId }) });
     const accepted = await requestConfirm({
       tone: "normal",
-      title: t("openSourceTitle", { title: plan.title }),
+      title: t("openSourceTitle", { title: sourceTitleById(sourceId, plan.title) }),
       body: t("openSourceBody"),
       steps: plan.steps,
       details: [
@@ -1230,7 +1477,7 @@
       const source = sourceCatalog.get(id);
       if (!source) continue;
       if (haystackFilter) {
-        const haystack = `${source.title} ${source.description} ${source.category} ${source.license} ${(source.tags ?? []).join(" ")}`.toLowerCase();
+        const haystack = `${sourceTitle(source)} ${sourceDescription(source)} ${sourceCategory(source)} ${source.license} ${(source.tags ?? []).join(" ")}`.toLowerCase();
         if (!haystack.includes(haystackFilter)) continue;
       }
       sources.push(source);
@@ -1249,9 +1496,9 @@
     if (profile.variant === "spanish") return t("spanishProfile");
     if (profile.variant === "bilingual") return t("bilingualProfile");
     const variant = profile.variant ? `${String(profile.variant).charAt(0).toUpperCase()}${String(profile.variant).slice(1)}` : "";
-    if (language && variant && language !== variant) return `${language} · ${variant} profile`;
-    if (language) return `${language} profile`;
-    return index === 0 ? t("baseProfile") : t("addsTo", { title: catalog.profiles[index - 1]?.title ?? "" });
+    if (language && variant && language !== variant) return uiLanguage === "es" ? `${language} · perfil ${variant}` : `${language} · ${variant} profile`;
+    if (language) return uiLanguage === "es" ? `Perfil ${language.toLowerCase()}` : `${language} profile`;
+    return index === 0 ? t("baseProfile") : t("addsTo", { title: profileTitle(catalog.profiles[index - 1]) });
   }
 
   function sourceProgressInfo(source: Source) {
@@ -1363,7 +1610,7 @@
   }
 
   function recommendedInstallSummary() {
-    const parts = recommendedAiModels.map((model) => `${model.title} (${gb(model.expected_size_bytes)})`);
+    const parts = recommendedAiModels.map((model) => `${modelTitle(model)} (${gb(model.expected_size_bytes)})`);
     return parts.join(" + ") || t("calculatingRecommendedModels");
   }
 
@@ -1408,20 +1655,20 @@
   }
 
   function downloadProfileTooltip(profile: Profile) {
-    return t("downloadProfileTooltip", { title: profile.title });
+    return t("downloadProfileTooltip", { title: profileTitle(profile) });
   }
 
   function downloadTooltip(source: Source | Record<string, any>) {
-    return t("downloadTooltip", { title: source.title });
+    return t("downloadTooltip", { title: sourceTitle(source) });
   }
 
   function verifyTooltip(source: Source | Record<string, any>) {
-    return t("verifyTooltip", { title: source.title });
+    return t("verifyTooltip", { title: sourceTitle(source) });
   }
 
   function indexTooltip(source: Source | Record<string, any>) {
     const verb = fullyIndexedSourceIds.has(source.id) ? t("reindex") : t("index");
-    return t("indexTooltip", { verb, title: source.title });
+    return t("indexTooltip", { verb, title: sourceTitle(source) });
   }
 
   function indexActionLabel(sourceId: string) {
@@ -1430,10 +1677,14 @@
 
   function openTooltip(source: Source | Record<string, any>) {
     const action = source.open?.action ?? (source.type === "zim" ? "kiwix_serve" : "direct_open");
-    if (action === "kiwix_serve") return t("openZimTooltip", { title: source.title });
-    if (action === "extract_serve") return t("openExtractServeTooltip", { title: source.title });
-    if (action === "extract_open") return t("openExtractOpenTooltip", { title: source.title });
-    return t("openDirectTooltip", { title: source.title });
+    if (action === "kiwix_serve") return t("openZimTooltip", { title: sourceTitle(source) });
+    if (action === "extract_serve") return t("openExtractServeTooltip", { title: sourceTitle(source) });
+    if (action === "extract_open") return t("openExtractOpenTooltip", { title: sourceTitle(source) });
+    return t("openDirectTooltip", { title: sourceTitle(source) });
+  }
+
+  function modelTitle(model: Record<string, any> | null | undefined) {
+    return model?.title ?? "";
   }
 </script>
 
@@ -1442,7 +1693,7 @@
     <h1>Offline Survival</h1>
     <label class="languageControl">
       {t("appLanguage")}
-      <select bind:value={uiLanguage} on:change={(event) => setUiLanguage(event.currentTarget.value)}>
+      <select value={uiLanguage} on:change={(event) => setUiLanguage(event.currentTarget.value)}>
         <option value="en">{t("english")}</option>
         <option value="es">{t("spanish")}</option>
       </select>
@@ -1458,7 +1709,7 @@
           {t("recommendedSetup")}
           <small>{t("recommendationExplain")}</small>
         </span>
-        <strong>{recommendedSetupProfile?.title ?? t("noProfileFits")}</strong>
+        <strong>{recommendedSetupProfile ? profileTitle(recommendedSetupProfile) : t("noProfileFits")}</strong>
       </div>
       <div class="meter">
         <span>{t("recommendationCap")}</span>
@@ -1516,11 +1767,11 @@
             <label class="checkRow">
               <input type="checkbox" checked={Boolean(easyProfileSelections[profile.id])} on:change={(event) => toggleEasyProfile(profile.id, event.currentTarget.checked)} />
               <span>
-                <strong>{profile.title}</strong>
+                <strong>{profileTitle(profile)}</strong>
                 <small>{gb(profile.preparedSizeBytes ?? profile.expectedSizeBytes)} {t("preparedDisk")} · {gb(profile.expectedSizeBytes)} {t("download")} · {profile.sourceIds.length} {t("sources")}</small>
               </span>
             </label>
-            <small>{profile.description}</small>
+            <small>{profileDescription(profile)}</small>
           </article>
         {/each}
         <article class:recommendedModel={easyInstallAi}>
@@ -1548,7 +1799,7 @@
       {#if easyInstallProgress}
         <div class="progressPanel">
           <div class="progressHeader">
-            <strong>{easyInstallProgress.phase ?? "Easy Install"}</strong>
+            <strong>{phaseLabel(easyInstallProgress.phase) || t("easyInstallProgressTitle")}</strong>
             <span>{easyInstallProgress.percent ?? 0}%</span>
           </div>
           <progress max="100" value={easyInstallProgress.percent ?? 0}></progress>
@@ -1559,8 +1810,8 @@
       {#if showEasyAiProgress}
         <div class="progressPanel aiProgress">
           <div class="progressHeader">
-            <strong>{aiInstallProgress.item ?? t("localAiSetup")}</strong>
-            <span>{aiInstallProgress.phase ?? aiInstallProgress.status}</span>
+            <strong>{sourceTitleById(aiInstallProgress.sourceId, aiInstallProgress.item ?? t("localAiSetup"))}</strong>
+            <span>{phaseLabel(aiInstallProgress.phase ?? aiInstallProgress.status)}</span>
           </div>
           <progress max="100" value={aiInstallProgress.percent ?? 0}></progress>
           <small>{aiInstallProgress.detail}</small>
@@ -1620,7 +1871,7 @@
       <section class="band profileCard">
         <div class="sectionHeader">
           <div>
-            <h2>{profile.title}</h2>
+            <h2>{profileTitle(profile)}</h2>
             <small>{profileSubtitle(profile, index)}</small>
           </div>
           <span class="tooltipHost" title={downloadProfileTooltip(profile)}>
@@ -1629,7 +1880,7 @@
             </button>
           </span>
         </div>
-        <p>{profile.description}</p>
+        <p>{profileDescription(profile)}</p>
         <div class="stats">
           <span>{t("addonSourcesShown", { count: added.length })}</span>
           <span>{t("preparedAddonDisk", { size: gb(profile.addedPreparedSizeBytes ?? profile.addedExpectedSizeBytes ?? 0) })}</span>
@@ -1657,13 +1908,13 @@
             {@const verifyNotice = verifyFeedback[source.id]}
             <div class="row">
               <span>
-                <strong>{source.title}</strong>
-                <small>{source.category} · {source.license} · {info.local?.local_path ?? t("notDownloaded")}</small>
+                <strong>{sourceTitle(source)}</strong>
+                <small>{sourceCategory(source)} · {source.license} · {info.local?.local_path ?? t("notDownloaded")}</small>
               </span>
               <span>{source.type}</span>
               <span>{gb(preparedSize(source))}</span>
               <span class="sourceProgress">
-                <span class:ok={statusTone(info.status) === "ok"} class:warn={statusTone(info.status) === "warn"} class:bad={statusTone(info.status) === "bad"}>{info.status}</span>
+                <span class:ok={statusTone(info.status) === "ok"} class:warn={statusTone(info.status) === "warn"} class:bad={statusTone(info.status) === "bad"}>{statusLabel(info.status)}</span>
                 {#if info.totalKnown}
                   <progress max="100" value={info.progress}></progress>
                   <small>{info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
@@ -1740,8 +1991,8 @@
           {@const pauseBusy = busy === `pause-${downloadRow.source_id}`}
           {@const retryBusy = busy === `retry-${downloadRow.source_id}`}
           <div class="row">
-            <span>{downloadRow.source_id}<small>{downloadRow.error}</small></span>
-            <span class:ok={statusTone(downloadRow.status) === "ok"} class:warn={statusTone(downloadRow.status) === "warn"} class:bad={statusTone(downloadRow.status) === "bad"}>{downloadRow.status}</span>
+            <span>{sourceTitleById(downloadRow.source_id)}<small>{downloadRow.error}</small></span>
+            <span class:ok={statusTone(downloadRow.status) === "ok"} class:warn={statusTone(downloadRow.status) === "warn"} class:bad={statusTone(downloadRow.status) === "bad"}>{statusLabel(downloadRow.status)}</span>
             <span class="sourceProgress">
               {#if downloadTotalKnown}
                 <progress max="100" value={downloadProgress}></progress>
@@ -1839,8 +2090,8 @@
           {#each extraImportedSources as source}
             <div class="resourceRow">
               <span>
-                <strong>{source.title}</strong>
-                <small>{source.type} · {source.status} · {source.local_path}</small>
+                <strong>{sourceTitle(source)}</strong>
+                <small>{source.type} · {statusLabel(source.status)} · {source.local_path}</small>
               </span>
               <span class="actions">
                 <button type="button" on:click={() => openOriginal(source.id)} disabled={!!busy || !source.local_path}>{t("openButton")}</button>
@@ -1872,7 +2123,7 @@
           <select bind:value={searchSource}>
             <option value="">{t("allSearchable")}</option>
             {#each searchableSources as source}
-              <option value={source.id}>{source.title}</option>
+              <option value={source.id}>{sourceTitle(source)}</option>
             {/each}
           </select>
           <select bind:value={searchLicense}>
@@ -1892,7 +2143,7 @@
           {#if searchableSources.length}
             <div class="actions">
               {#each searchableSources as source}
-                <button type="button" class:active={searchSource === source.id} on:click={() => searchSource = source.id}>{source.title}</button>
+                <button type="button" class:active={searchSource === source.id} on:click={() => searchSource = source.id}>{sourceTitle(source)}</button>
               {/each}
               <button type="button" class:active={!searchSource} on:click={() => searchSource = ""}>{t("all")}</button>
             </div>
@@ -1906,8 +2157,8 @@
               {@const info = sourceProgressInfo(source)}
               <div class="resourceRow">
                 <span>
-                  <strong>{source.title}</strong>
-                  <small>{info.downloadRow?.status ?? "queued"} · {info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
+                  <strong>{sourceTitle(source)}</strong>
+                  <small>{statusLabel(info.downloadRow?.status ?? "queued")} · {info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
                 </span>
                 <span class="sourceProgress">
                   <progress max="100" value={info.progress}></progress>
@@ -1929,7 +2180,7 @@
               {@const verifyNotice = verifyFeedback[source.id]}
               <div class="resourceRow">
                 <span>
-                  <strong>{source.title}</strong>
+                  <strong>{sourceTitle(source)}</strong>
                   <small>{source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch")}</small>
                 </span>
                 <span class="actions">
@@ -1961,7 +2212,7 @@
             title={t("openSearchResultTitle")}
             on:click={() => openSearchHit(result)}
           >
-            <h3>{result.title}</h3>
+            <h3>{sourceTitleById(result.source_id, result.title)}</h3>
             <p>{@html result.snippet}</p>
             <small>{result.path} · {t("clickToOpenMatch")}</small>
           </button>
@@ -1983,13 +2234,13 @@
       </div>
       <div class="stats">
         <span>{recommendedInstallSummary()}</span>
-        <span>{system?.tier ?? t("machineTierUnknown")}</span>
+        <span>{system?.tier ? tierLabel(system.tier) : t("machineTierUnknown")}</span>
       </div>
       {#if showAiInstallProgress}
         <div class="progressPanel aiProgress">
           <div class="progressHeader">
-            <strong>{aiInstallProgress.item ?? t("localAiSetup")}</strong>
-            <span class:bad={aiInstallProgress.status === "failed"}>{aiInstallProgress.phase ?? aiInstallProgress.status}</span>
+            <strong>{sourceTitleById(aiInstallProgress.sourceId, aiInstallProgress.item ?? t("localAiSetup"))}</strong>
+            <span class:bad={aiInstallProgress.status === "failed"}>{phaseLabel(aiInstallProgress.phase ?? aiInstallProgress.status)}</span>
           </div>
           <progress max="100" value={aiInstallProgress.percent ?? 0}></progress>
           <small>{aiInstallProgress.detail}</small>
@@ -2017,7 +2268,7 @@
           {@const serviceRunning = service.status === "running"}
           <article>
             <strong>{service.name}</strong>
-            <span class:ok={statusTone(service.status) === "ok"} class:warn={statusTone(service.status) === "warn"} class:bad={statusTone(service.status) === "bad"}>{service.status}</span>
+            <span class:ok={statusTone(service.status) === "ok"} class:warn={statusTone(service.status) === "warn"} class:bad={statusTone(service.status) === "bad"}>{statusLabel(service.status)}</span>
             <small>{service.url}</small>
             {#if serviceRunning}
               <button on:click={() => stop(service.name)} disabled={!!busy}>{t("stop")}</button>
@@ -2029,7 +2280,7 @@
               <small>{t("localAiRuntimeMissingHelp")}</small>
             {:else if service.name === "ollama" && (service.status === "available" || service.status === "stopped" || service.status === "failed")}
               {#if startAiModel}
-                <small>{t("startupGuard", { available: gb(system?.availableMemBytes ?? 0), required: gb(startAiRequiredBytes), model: startAiModel.title })}</small>
+                <small>{t("startupGuard", { available: gb(system?.availableMemBytes ?? 0), required: gb(startAiRequiredBytes), model: modelTitle(startAiModel) })}</small>
                 {#if startAiSwapPressure}
                   <small>{t("swapTooFull")}</small>
                 {/if}
@@ -2055,9 +2306,9 @@
           {#if recommendedChatModel}
             <article class="recommendedModel">
               <span class="badge">{t("recommendedChatBadge")}</span>
-              <strong>{recommendedChatModel.title}</strong>
+              <strong>{modelTitle(recommendedChatModel)}</strong>
               <small>{recommendationReason(recommendedChatModel)}</small>
-              <small>{recommendedChatModel.pull} · {gb(recommendedChatModel.expected_size_bytes)} · {recommendedChatModel.status}</small>
+              <small>{recommendedChatModel.pull} · {gb(recommendedChatModel.expected_size_bytes)} · {statusLabel(recommendedChatModel.status)}</small>
               <button class="primaryAction" on:click={() => pullModel(recommendedChatModel.id)} disabled={!!busy || recommendedChatModel.status === "pulling" || recommendedChatModel.status === "installed"}>
                 {recommendedChatModel.status === "installed" ? t("installed") : t("pullRecommendedChatModel")}
               </button>
@@ -2066,9 +2317,9 @@
           {#if recommendedEmbeddingModel}
             <article class="recommendedModel">
               <span class="badge">{t("recommendedEmbeddingBadge")}</span>
-              <strong>{recommendedEmbeddingModel.title}</strong>
+              <strong>{modelTitle(recommendedEmbeddingModel)}</strong>
               <small>{recommendationReason(recommendedEmbeddingModel)}</small>
-              <small>{recommendedEmbeddingModel.pull} · {gb(recommendedEmbeddingModel.expected_size_bytes)} · {recommendedEmbeddingModel.status}</small>
+              <small>{recommendedEmbeddingModel.pull} · {gb(recommendedEmbeddingModel.expected_size_bytes)} · {statusLabel(recommendedEmbeddingModel.status)}</small>
               <button class="primaryAction" on:click={() => pullModel(recommendedEmbeddingModel.id)} disabled={!!busy || recommendedEmbeddingModel.status === "pulling" || recommendedEmbeddingModel.status === "installed"}>
                 {recommendedEmbeddingModel.status === "installed" ? t("installed") : t("pullRecommendedEmbedding")}
               </button>
@@ -2079,11 +2330,11 @@
       <div class="serviceGrid">
         {#each availableModels as model}
           <article class:recommendedModel={model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id}>
-            <strong>{model.title}</strong>
-            <span class:ok={statusTone(model.status) === "ok"} class:warn={statusTone(model.status) === "warn"} class:bad={statusTone(model.status) === "bad"}>{model.status}</span>
+            <strong>{modelTitle(model)}</strong>
+            <span class:ok={statusTone(model.status) === "ok"} class:warn={statusTone(model.status) === "warn"} class:bad={statusTone(model.status) === "bad"}>{statusLabel(model.status)}</span>
             <small>{t("engine")}: {model.runtime} · {model.pull} · {model.role} · {gb(model.expected_size_bytes)}</small>
             {#if model.id === recommendedChatModel?.id}
-              <small>{t("recommendedChatForTier", { tier: system?.tier ?? "this PC" })}</small>
+              <small>{t("recommendedChatForTier", { tier: system?.tier ? tierLabel(system.tier) : t("thisPc") })}</small>
             {/if}
             {#if model.id === recommendedEmbeddingModel?.id}
               <small>{t("recommendedEmbeddingHelp")}</small>
@@ -2111,7 +2362,7 @@
         <select bind:value={questionSource}>
           <option value="">{t("allIndexedResources")}</option>
           {#each indexedSources as source}
-            <option value={source.id}>{source.title}</option>
+            <option value={source.id}>{sourceTitle(source)}</option>
           {/each}
         </select>
         <textarea placeholder={t("askPlaceholder")} bind:value={question}></textarea>
@@ -2121,7 +2372,7 @@
         <article class="answer">
           <p>{answer.answer}</p>
           {#each answer.citations as citation}
-            <small>[{citation.index}] {citation.title} · {citation.path}</small>
+            <small>[{citation.index}] {sourceTitleById(citation.source_id, citation.title)} · {citation.path}</small>
           {/each}
         </article>
       {/if}
@@ -2166,8 +2417,8 @@
       {#if sharePackageProgress && (busy === "share-package" || ["running", "failed", "complete"].includes(String(sharePackageProgress.status ?? "")))}
         <div class="progressPanel">
           <div class="progressHeader">
-            <strong>{sharePackageProgress.profileTitle ?? t("sharePackageProgressTitle")}</strong>
-            <span class:bad={sharePackageProgress.status === "failed"} class:ok={sharePackageProgress.status === "complete"}>{sharePackageProgress.phase ?? sharePackageProgress.status}</span>
+            <strong>{profileTitleById(sharePackageProgress.profileId, sharePackageProgress.profileTitle ?? t("sharePackageProgressTitle"))}</strong>
+            <span class:bad={sharePackageProgress.status === "failed"} class:ok={sharePackageProgress.status === "complete"}>{phaseLabel(sharePackageProgress.phase ?? sharePackageProgress.status)}</span>
           </div>
           <progress max="100" value={sharePackageProgress.percent ?? 0}></progress>
           <small>{sharePackageProgress.detail}</small>
@@ -2191,7 +2442,7 @@
         <article class="answer">
           <strong>{t("sharePackageReady")}</strong>
           {#if sharePackage.profile}
-            <small>{t("profile")}: {sharePackage.profile.title}</small>
+            <small>{t("profile")}: {profileTitle(sharePackage.profile)}</small>
           {/if}
           <small>{t("archive")}: {sharePackage.archivePath}</small>
           <small>{t("folder")}: {sharePackage.packageDir}</small>
