@@ -91,6 +91,13 @@ function optionalNumber(value) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function validateProfileLanguage(profiles, language) {
+  if (!language) return;
+  if (!["en", "es", "both"].includes(String(language))) throw new Error(`Invalid content language ${language}`);
+  const mismatches = profiles.filter((profile) => profile.language !== language);
+  if (mismatches.length) throw new Error(`Selected profiles do not match content language ${language}: ${mismatches.map((profile) => profile.id).join(", ")}`);
+}
+
 async function withDb(work) {
   const db = openState(libraryRoot);
   try {
@@ -139,6 +146,7 @@ async function route(req, res) {
       const catalog = await loadCatalog();
       const profile = catalog.profiles.find((item) => item.id === body.profileId);
       if (!profile) throw new Error(`Unknown profile ${body.profileId}`);
+      validateProfileLanguage([profile], body.contentLanguage);
       const result = await withDb((db) => downloadProfile({ db, libraryRoot, profile, sources: catalog.sources, diskBudgetBytes: optionalNumber(body.diskBudgetBytes), concurrency: Number(body.concurrency ?? 4) }));
       return send(res, 200, result);
     }
@@ -149,6 +157,7 @@ async function route(req, res) {
         .map((id) => catalog.profiles.find((profile) => profile.id === id))
         .filter(Boolean);
       if (!selectedProfiles.length && !body.installAi) throw new Error("Select at least one profile or Local AI install");
+      validateProfileLanguage(selectedProfiles, body.contentLanguage);
       const result = await withDb((db) => easyInstall({ db, catalog, selectedProfiles, installAi: Boolean(body.installAi), concurrency: Number(body.concurrency ?? 4) }));
       return send(res, 200, result);
     }

@@ -44,6 +44,7 @@
   let loadingCatalog = true;
   let libraryPath = "";
   let easyInstallAi = true;
+  let contentLanguage = initialContentLanguage();
   let easyProfileSelections: Record<string, boolean> = {};
   let verifyFeedback: Record<string, { ok: boolean; message: string }> = {};
   const verifyFeedbackTimers = new Map<string, number>();
@@ -64,6 +65,8 @@
       english: "English",
       spanish: "Spanish",
       bilingual: "Bilingual",
+      contentLanguage: "Content language",
+      aiRecommendations: "AI",
       englishProfile: "English profile",
       spanishProfile: "Spanish profile",
       bilingualProfile: "Bilingual profile",
@@ -346,6 +349,8 @@
       english: "Inglés",
       spanish: "Español",
       bilingual: "Bilingüe",
+      contentLanguage: "Idioma del contenido",
+      aiRecommendations: "IA",
       englishProfile: "Perfil en inglés",
       spanishProfile: "Perfil en español",
       bilingualProfile: "Perfil bilingüe",
@@ -787,7 +792,18 @@
         index: "Indexación",
         ai: "IA local",
         "runtime-download": "Descarga del runtime",
+        "runtime-ready": "Runtime listo",
+        "runtime-extract": "Extracción del runtime",
         "model-pull": "Descarga del modelo",
+        "starting-ollama": "Arranque de Ollama",
+        queued: "En cola",
+        checking: "Comprobación",
+        "copy-app": "Copia de la app",
+        "copy-library": "Copia de la biblioteca",
+        database: "Base de datos",
+        metadata: "Metadatos",
+        compress: "Compresión",
+        checksum: "Checksum",
         running: "En curso",
         failed: "Fallido",
         complete: "Completado"
@@ -797,12 +813,36 @@
         "survival-ai": "IA de supervivencia",
         "core-ai": "IA básica",
         workstation: "estación de trabajo"
+      },
+      details: {
+        "Downloading selected profile sources while Local AI installs in parallel.": "Descargando fuentes de los perfiles seleccionados mientras la IA local se instala en paralelo.",
+        "Downloading selected profile sources.": "Descargando fuentes de los perfiles seleccionados.",
+        "Preparing downloaded sources while Local AI continues installing.": "Preparando fuentes descargadas mientras la IA local sigue instalándose.",
+        "Preparing downloaded sources for offline use.": "Preparando fuentes descargadas para uso offline.",
+        "Indexing downloaded sources while Local AI continues installing.": "Indexando fuentes descargadas mientras la IA local sigue instalándose.",
+        "Indexing downloaded sources for Search and Local AI context.": "Indexando fuentes descargadas para Búsqueda y contexto de IA local.",
+        "Source setup is done; Local AI is still installing in parallel.": "La preparación de fuentes ha terminado; la IA local sigue instalándose en paralelo.",
+        "Easy Install completed.": "Instalación fácil completada.",
+        "Local AI install is queued and will run in parallel with source downloads.": "La instalación de IA local está en cola y se ejecutará en paralelo con las descargas de fuentes.",
+        "Preparing app-managed Ollama and recommended models.": "Preparando Ollama gestionado por la app y los modelos recomendados.",
+        "Starting local Ollama service.": "Iniciando el servicio local de Ollama.",
+        "Ollama is already available.": "Ollama ya está disponible.",
+        "Extracting Ollama runtime.": "Extrayendo el runtime de Ollama.",
+        "All recommended Local AI components are installed.": "Todos los componentes recomendados de IA local están instalados.",
+        "Share package created.": "Paquete compartido creado.",
+        "Preparing the included library database.": "Preparando la base de datos de biblioteca incluida.",
+        "Writing package manifest and launch instructions.": "Escribiendo el manifiesto del paquete y las instrucciones de inicio.",
+        "Compressing the share package. Large packages can stay here for a while.": "Comprimiendo el paquete compartido. Los paquetes grandes pueden quedarse aquí un rato.",
+        "Calculating package checksum.": "Calculando el checksum del paquete."
       }
     }
   };
 
   $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
   $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
+  $: contentProfiles = profilesForContentLanguage(contentLanguage);
+  $: contentSourceIds = new Set(contentProfiles.flatMap((profile) => profile.sourceIds ?? []));
+  $: contentSources = catalogSources.filter((source) => contentSourceIds.has(source.id));
   $: catalogModels = Array.isArray(catalog.models) ? catalog.models.filter(Boolean) : [];
   $: stateSettings = state.settings ?? {};
   $: stateSources = Array.isArray(state.sources) ? state.sources.filter(Boolean) : [];
@@ -854,14 +894,14 @@
   $: startAiRequiredBytes = estimateAiRamBytes(startAiModel);
   $: startAiSwapPressure = Boolean(system?.swapTotalBytes > 0 && system?.swapFreeBytes < Math.max(1024 ** 3, system.swapTotalBytes * 0.4));
   $: startAiAllowed = Boolean(startAiModel && system?.availableMemBytes >= startAiRequiredBytes && !startAiSwapPressure);
-  $: recommendedSetupProfile = recommendedProfile(system, catalogProfiles);
+  $: recommendedSetupProfile = recommendedProfile(system, contentProfiles);
   $: aiInstallProgress = progressObject(stateSettings.aiInstallProgress);
   $: easyInstallProgress = progressObject(stateSettings.easyInstallProgress);
   $: sharePackageProgress = progressObject(stateSettings.sharePackageProgress);
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
   $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy === "ai-install");
   $: aiInstallComplete = aiInstallProgress?.status === "complete";
-  $: selectedEasyProfiles = catalogProfiles.filter((profile) => easyProfileSelections[profile.id]);
+  $: selectedEasyProfiles = contentProfiles.filter((profile) => easyProfileSelections[profile.id]);
   $: selectedEasySourceIds = [...new Set(selectedEasyProfiles.flatMap((profile) => profile.sourceIds ?? []))];
   $: selectedEasyDownloadBytes = selectedEasySourceIds.reduce((sum, id) => sum + Number(sourceCatalog.get(id)?.expected_size_bytes ?? 0), 0);
   $: selectedEasyPreparedBytes = selectedEasySourceIds.reduce((sum, id) => {
@@ -870,7 +910,7 @@
   }, 0);
   $: downloadedSourcesForShare = stateSources.filter((source) => sourceIsDownloaded(source));
   $: downloadedShareBytes = downloadedSourcesForShare.reduce((sum, source) => sum + Number(source.size_bytes ?? sourceCatalog.get(source.id)?.prepared_size_bytes ?? sourceCatalog.get(source.id)?.expected_size_bytes ?? 0), 0);
-  $: shareableProfiles = catalogProfiles.filter((profile) => profileIsFullyDownloaded(profile));
+  $: shareableProfiles = contentProfiles.filter((profile) => profileIsFullyDownloaded(profile));
   $: shareOptions = [
     ...(downloadedSourcesForShare.length ? [{
       id: "all-downloaded",
@@ -905,19 +945,38 @@
     return saved === "es" ? "es" : "en";
   }
 
+  function initialContentLanguage() {
+    if (typeof window === "undefined") return initialUiLanguage();
+    const saved = window.localStorage.getItem("offline-survival-content-language");
+    if (saved === "en" || saved === "es" || saved === "both") return saved;
+    return initialUiLanguage();
+  }
+
   function setUiLanguage(language: string) {
     const nextLanguage = language === "es" ? "es" : "en";
     const changed = uiLanguage !== nextLanguage;
     uiLanguage = nextLanguage;
+    contentLanguage = nextLanguage;
     if (changed) {
       verifyFeedback = {};
       maintenanceFeedback = null;
       error = catalogError ? t("loadBackendError", { error: catalogError }) : error;
+      easyProfileSelections = {};
+      selectRecommendedEasyInstall();
     }
     if (typeof window !== "undefined") {
       window.localStorage.setItem("offline-survival-ui-language", uiLanguage);
+      window.localStorage.setItem("offline-survival-content-language", contentLanguage);
       document.documentElement.lang = uiLanguage;
     }
+  }
+
+  function setContentLanguage(language: string) {
+    contentLanguage = language === "both" ? "both" : language === "es" ? "es" : "en";
+    easyProfileSelections = {};
+    filter = "";
+    selectRecommendedEasyInstall();
+    if (typeof window !== "undefined") window.localStorage.setItem("offline-survival-content-language", contentLanguage);
   }
 
   function t(key: string, vars: Record<string, string | number> = {}) {
@@ -983,6 +1042,26 @@
   function tierLabel(tier: unknown) {
     const value = String(tier ?? "");
     return catalogText[uiLanguage]?.tiers?.[value] ?? value;
+  }
+
+  function detailLabel(detail: unknown) {
+    const value = String(detail ?? "");
+    if (uiLanguage !== "es") return value;
+    const mapped = catalogText.es.details?.[value];
+    if (mapped) return mapped;
+    if (value.startsWith("Downloading ")) return value.replace("Downloading ", "Descargando ");
+    if (value.startsWith("Pulling ")) return value.replace("Pulling ", "Descargando ");
+    if (value.startsWith("Finished ")) return value.replace("Finished ", "Finalizado ");
+    if (value.startsWith("Copying ")) return value.replace("Copying ", "Copiando ");
+    return value;
+  }
+
+  function profileMatchesContentLanguage(profile: Profile | Record<string, any>, language = contentLanguage) {
+    return String(profile.language ?? "en") === language;
+  }
+
+  function profilesForContentLanguage(language: string) {
+    return catalogProfiles.filter((profile) => profileMatchesContentLanguage(profile, language));
   }
 
   function keepShareProfileValid(options: Array<{ id: string }>, current: string) {
@@ -1068,7 +1147,7 @@
     markProfileQueued(profile);
     await run(`profile-${profile.id}`, () => api("/api/profile/download", {
       method: "POST",
-      body: JSON.stringify({ profileId: profile.id, concurrency: 4 })
+      body: JSON.stringify({ profileId: profile.id, contentLanguage, concurrency: 4 })
     }));
   }
 
@@ -1229,6 +1308,7 @@
       method: "POST",
       body: JSON.stringify({
         profileIds: selectedEasyProfiles.map((profile) => profile.id),
+        contentLanguage,
         installAi: easyInstallAi,
         concurrency: 4
       })
@@ -1307,7 +1387,7 @@
   }
 
   async function writeLock() {
-    const profile = catalog.profiles[0];
+    const profile = contentProfiles[0];
     if (!profile) return;
     await run("lock", () => api("/api/lock", { method: "POST", body: JSON.stringify({ profileId: profile.id }) }));
   }
@@ -1498,7 +1578,7 @@
     const variant = profile.variant ? `${String(profile.variant).charAt(0).toUpperCase()}${String(profile.variant).slice(1)}` : "";
     if (language && variant && language !== variant) return uiLanguage === "es" ? `${language} · perfil ${variant}` : `${language} · ${variant} profile`;
     if (language) return uiLanguage === "es" ? `Perfil ${language.toLowerCase()}` : `${language} profile`;
-    return index === 0 ? t("baseProfile") : t("addsTo", { title: profileTitle(catalog.profiles[index - 1]) });
+    return index === 0 ? t("baseProfile") : t("addsTo", { title: profileTitle(contentProfiles[index - 1]) });
   }
 
   function sourceProgressInfo(source: Source) {
@@ -1547,16 +1627,17 @@
   }
 
   function initializeEasyProfiles() {
-    if (Object.keys(easyProfileSelections).length || !catalog.profiles.length) return;
+    if (Object.keys(easyProfileSelections).length || !profilesForContentLanguage(contentLanguage).length) return;
     selectRecommendedEasyInstall();
   }
 
   function selectRecommendedEasyInstall() {
-    if (!catalogProfiles.length) return;
-    const recommended = recommendedProfile(system, catalogProfiles);
-    const recommendedIndex = recommended ? catalogProfiles.findIndex((profile) => profile.id === recommended.id) : -1;
+    const profiles = profilesForContentLanguage(contentLanguage);
+    if (!profiles.length) return;
+    const recommended = recommendedProfile(system, profiles);
+    const recommendedIndex = recommended ? profiles.findIndex((profile) => profile.id === recommended.id) : -1;
     const lastSelectedIndex = recommendedIndex >= 0 ? recommendedIndex : 0;
-    easyProfileSelections = Object.fromEntries(catalogProfiles.map((profile, index) => [profile.id, index <= lastSelectedIndex]));
+    easyProfileSelections = Object.fromEntries(profiles.map((profile, index) => [profile.id, index <= lastSelectedIndex]));
     easyInstallAi = recommendedAiModels.length > 0;
   }
 
@@ -1586,8 +1667,9 @@
   }
 
   function recommendedProfile(systemInfo: any, profilesCatalog: Profile[]) {
-    if (systemInfo?.recommendedProfile?.title) return systemInfo.recommendedProfile;
-    const profiles = Array.isArray(systemInfo?.recommendedProfiles) ? systemInfo.recommendedProfiles : [];
+    const allowedIds = new Set(profilesCatalog.map((profile) => profile.id));
+    if (systemInfo?.recommendedProfile?.id && allowedIds.has(systemInfo.recommendedProfile.id)) return systemInfo.recommendedProfile;
+    const profiles = (Array.isArray(systemInfo?.recommendedProfiles) ? systemInfo.recommendedProfiles : []).filter((profile: Profile) => allowedIds.has(profile.id));
     return profiles[profiles.length - 1] ?? profilesCatalog[0] ?? null;
   }
 
@@ -1628,7 +1710,7 @@
       return `${t("modelProgress", { current: gb(progress.modelBytesReceived), total: gb(progress.modelBytesTotal), percent: progress.percent ?? 0 })}${eta}`;
     }
     if (progress.totalBytes) return `${t("overallProgress", { current: gb(progress.currentBytes ?? 0), total: gb(progress.totalBytes) })}${eta}`;
-    return progress.detail ?? "";
+    return detailLabel(progress.detail);
   }
 
   function duration(seconds: number) {
@@ -1651,7 +1733,7 @@
     if (progress.phase === "prepare") return t("easyPrepareLine");
     if (progress.phase === "index") return t("easyIndexLine");
     if (progress.phase === "ai") return t("easyAiLine");
-    return progress.detail ?? "";
+    return detailLabel(progress.detail);
   }
 
   function downloadProfileTooltip(profile: Profile) {
@@ -1698,7 +1780,15 @@
         <option value="es">{t("spanish")}</option>
       </select>
     </label>
-    <button class="easyInstallButton" type="button" class:active={activeTab === "easy"} data-badge={uiLanguage === "es" ? "Recomendado" : "Recommended"} on:click={openEasyInstall}>{t("easyInstall")}</button>
+    <label class="languageControl">
+      {t("contentLanguage")}
+      <select value={contentLanguage} on:change={(event) => setContentLanguage(event.currentTarget.value)}>
+        <option value="en">{t("english")}</option>
+        <option value="es">{t("spanish")}</option>
+        <option value="both">{t("bilingual")}</option>
+      </select>
+    </label>
+    <button class="easyInstallButton" type="button" class:active={activeTab === "easy"} data-badge={t("recommendedBadge")} on:click={openEasyInstall}>{t("easyInstall")}</button>
     <div class="meter">
       <span>{t("downloaded")}</span>
       <strong>{gb(downloadedBytes)}</strong>
@@ -1728,7 +1818,7 @@
     <div class="sidebarService">
       <div>
         <span>Kiwix</span>
-        <strong class:ok={statusTone(kiwixService.status) === "ok"} class:warn={statusTone(kiwixService.status) === "warn"} class:bad={statusTone(kiwixService.status) === "bad"}>{kiwixService.status}</strong>
+        <strong class:ok={statusTone(kiwixService.status) === "ok"} class:warn={statusTone(kiwixService.status) === "warn"} class:bad={statusTone(kiwixService.status) === "bad"}>{statusLabel(kiwixService.status)}</strong>
         <small>{kiwixService.url}</small>
       </div>
       {#if kiwixService.status === "running"}
@@ -1762,7 +1852,7 @@
         </div>
       </div>
       <div class="serviceGrid">
-        {#each catalog.profiles as profile}
+        {#each contentProfiles as profile}
           <article class:recommendedModel={easyProfileSelections[profile.id]}>
             <label class="checkRow">
               <input type="checkbox" checked={Boolean(easyProfileSelections[profile.id])} on:change={(event) => toggleEasyProfile(profile.id, event.currentTarget.checked)} />
@@ -1803,7 +1893,7 @@
             <span>{easyInstallProgress.percent ?? 0}%</span>
           </div>
           <progress max="100" value={easyInstallProgress.percent ?? 0}></progress>
-          <small>{easyInstallProgress.detail}</small>
+          <small>{detailLabel(easyInstallProgress.detail)}</small>
           <small>{easyInstallProgressLine(easyInstallProgress)}</small>
         </div>
       {/if}
@@ -1814,7 +1904,7 @@
             <span>{phaseLabel(aiInstallProgress.phase ?? aiInstallProgress.status)}</span>
           </div>
           <progress max="100" value={aiInstallProgress.percent ?? 0}></progress>
-          <small>{aiInstallProgress.detail}</small>
+          <small>{detailLabel(aiInstallProgress.detail)}</small>
           <small>{progressLine(aiInstallProgress)}</small>
         </div>
       {/if}
@@ -1829,8 +1919,8 @@
       </div>
       <p>{t("profilesHelp")}</p>
       <div class="stats">
-        <span>{catalog.profiles.length} {t("profiles").toLowerCase()}</span>
-        <span>{catalog.sources.length} {t("catalogSources")}</span>
+        <span>{contentProfiles.length} {t("profiles").toLowerCase()}</span>
+        <span>{contentSources.length} {t("catalogSources")}</span>
         <span>{state.documents.length} {t("indexedDocuments")}</span>
         <span>{state.blobs.length} {t("uniqueBlobs")}</span>
         <span>{state.services.filter((service) => service.status === "running").length} {t("servicesRunning")}</span>
@@ -1840,7 +1930,7 @@
           <span>{system.platform}/{system.arch}</span>
           <span>{system.cpuCount} {t("cpuThreads")}</span>
           <span>{gb(system.totalMemBytes)} RAM</span>
-          <span>AI: {system.aiRecommendation.join(", ") || t("aiNone")}</span>
+          <span>{t("aiRecommendations")}: {system.aiRecommendation.join(", ") || t("aiNone")}</span>
         </div>
       {/if}
     </section>
@@ -1857,14 +1947,14 @@
         <small>{catalogError}</small>
         <button type="button" on:click={load}>{t("retryLoadingProfiles")}</button>
       </section>
-    {:else if catalog.profiles.length === 0}
+    {:else if contentProfiles.length === 0}
       <section class="band emptyState">
         <h2>{t("noProfilesFound")}</h2>
         <p>{t("noProfilesFoundHelp")}</p>
         <button type="button" on:click={refreshCatalog}>{t("refreshCatalog")}</button>
       </section>
     {:else}
-    {#each catalog.profiles as profile, index}
+    {#each contentProfiles as profile, index}
       {@const added = addedSources(profile)}
       {@const progress = profileProgressInfo(profile)}
       {@const hasDownloadableSources = profileHasDownloadableSources(profile)}
@@ -2243,7 +2333,7 @@
             <span class:bad={aiInstallProgress.status === "failed"}>{phaseLabel(aiInstallProgress.phase ?? aiInstallProgress.status)}</span>
           </div>
           <progress max="100" value={aiInstallProgress.percent ?? 0}></progress>
-          <small>{aiInstallProgress.detail}</small>
+          <small>{detailLabel(aiInstallProgress.detail)}</small>
           <small>{progressLine(aiInstallProgress)}</small>
         </div>
       {:else if aiInstallComplete}
@@ -2253,7 +2343,7 @@
             <span class="ok">{t("complete")}</span>
           </div>
           <progress max="100" value="100"></progress>
-          <small>{aiInstallProgress.detail}</small>
+          <small>{detailLabel(aiInstallProgress.detail)}</small>
         </div>
       {/if}
     </section>
@@ -2273,9 +2363,9 @@
             {#if serviceRunning}
               <button on:click={() => stop(service.name)} disabled={!!busy}>{t("stop")}</button>
             {:else if service.status === "installing" || service.status === "starting"}
-              <small>{service.message ?? t("localAiSetupInProgress")}</small>
+              <small>{service.message ? detailLabel(service.message) : t("localAiSetupInProgress")}</small>
             {:else if service.status === "blocked"}
-              <small>{service.message ?? t("localAiBlockedByRam")}</small>
+              <small>{service.message ? detailLabel(service.message) : t("localAiBlockedByRam")}</small>
             {:else if service.status === "missing"}
               <small>{t("localAiRuntimeMissingHelp")}</small>
             {:else if service.name === "ollama" && (service.status === "available" || service.status === "stopped" || service.status === "failed")}
@@ -2421,7 +2511,7 @@
             <span class:bad={sharePackageProgress.status === "failed"} class:ok={sharePackageProgress.status === "complete"}>{phaseLabel(sharePackageProgress.phase ?? sharePackageProgress.status)}</span>
           </div>
           <progress max="100" value={sharePackageProgress.percent ?? 0}></progress>
-          <small>{sharePackageProgress.detail}</small>
+          <small>{detailLabel(sharePackageProgress.detail)}</small>
           {#if sharePackageProgress.total}
             <small>{t("shareProgressSources", { current: sharePackageProgress.current ?? 0, total: sharePackageProgress.total, percent: sharePackageProgress.percent ?? 0 })}</small>
           {:else}

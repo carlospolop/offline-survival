@@ -76,6 +76,20 @@ describe("HTTP API", () => {
     })).json();
     expect(emptyEasyInstall.error).toMatch(/Select at least one profile/);
 
+    const mismatchedEasyInstall = await (await fetch(`http://127.0.0.1:${port}/api/easy-install`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ profileIds: ["survival-essential"], contentLanguage: "es", installAi: false })
+    })).json();
+    expect(mismatchedEasyInstall.error).toMatch(/do not match content language es/);
+
+    const mismatchedProfileDownload = await (await fetch(`http://127.0.0.1:${port}/api/profile/download`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ profileId: "survival-essential", contentLanguage: "es" })
+    })).json();
+    expect(mismatchedProfileDownload.error).toMatch(/do not match content language es/);
+
     const extraDir = await fs.mkdtemp(path.join(os.tmpdir(), "sca-http-extra-"));
     await fs.writeFile(path.join(extraDir, "notes.md"), "# Local Notes\nStore batteries cool and dry.");
     const scan = await (await fetch(`http://127.0.0.1:${port}/api/extra-knowledge/scan`, {

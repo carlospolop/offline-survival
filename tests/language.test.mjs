@@ -30,8 +30,14 @@ describe("language selectors", () => {
     expect(es.filter((key) => !en.includes(key))).toEqual([]);
     expect(en.filter((key) => !es.includes(key))).toEqual([]);
     expect(source).toContain("offline-survival-ui-language");
+    expect(source).toContain("offline-survival-content-language");
     expect(source).toContain("document.documentElement.lang = uiLanguage");
+    expect(source).toContain("contentLanguage = nextLanguage");
+    expect(source).toContain("$: contentProfiles = profilesForContentLanguage(contentLanguage);");
+    expect(source).toContain("$: selectedEasyProfiles = contentProfiles.filter");
+    expect(source).toContain("profileIds: selectedEasyProfiles.map");
     expect(source).toContain('<option value="es">');
+    expect(source).toContain('<option value="both">{t("bilingual")}</option>');
 
     const withoutTranslationMap = source.replace(/const uiText:[\s\S]*?\n  \};\s+const catalogText/, "TRANSLATION_MAP_REMOVED\n\n  const catalogText");
     const forbiddenDynamicEnglish = [
@@ -54,6 +60,7 @@ describe("language selectors", () => {
     expect(source).toContain('title: \"Wikipedia en español Top sin imágenes ZIM\"');
     expect(source).not.toMatch(/\{(?:profile|source|model|result|citation)\.(?:title|description|category)\}/);
     expect(source).not.toMatch(/\{(?:profile|source)\.status\}/);
+    expect(source).not.toContain("{#each catalog.profiles");
 
     const markup = source.slice(source.indexOf("</script>") + 9);
     const rawText = [...markup.matchAll(/>\s*([^<{#:@][^<{}]*[A-Za-z][^<{}]*)\s*</g)]
