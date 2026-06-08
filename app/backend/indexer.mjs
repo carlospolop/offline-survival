@@ -546,6 +546,49 @@ async function extractPdfText(file) {
 }
 
 async function loadPdfParse() {
+  // pdf-parse@2.x requires DOMMatrix / Path2D / ImageData (canvas browser APIs)
+  // at module init time. Node.js does not define these globally. When @napi-rs/canvas
+  // is not bundled (e.g. in the Tauri sidecar), module load throws
+  // "DOMMatrix is not defined". Inject minimal stubs — text extraction never calls
+  // canvas drawing methods, so the stubs are never exercised.
+  if (typeof globalThis.DOMMatrix === "undefined") {
+    globalThis.DOMMatrix = class DOMMatrix {
+      constructor() {
+        this.a=1;this.b=0;this.c=0;this.d=1;this.e=0;this.f=0;
+        this.m11=1;this.m12=0;this.m13=0;this.m14=0;
+        this.m21=0;this.m22=1;this.m23=0;this.m24=0;
+        this.m31=0;this.m32=0;this.m33=1;this.m34=0;
+        this.m41=0;this.m42=0;this.m43=0;this.m44=1;
+        this.is2D=true;this.isIdentity=true;
+      }
+      multiply(){return this;} translate(){return this;} scale(){return this;}
+      scale3d(){return this;} rotate(){return this;} rotateAxisAngle(){return this;}
+      skewX(){return this;} skewY(){return this;} inverse(){return new globalThis.DOMMatrix();}
+      transformPoint(p){return p||{x:0,y:0};} toString(){return "matrix(1,0,0,1,0,0)";}
+      toFloat32Array(){return new Float32Array(16);} toFloat64Array(){return new Float64Array(16);}
+      static fromMatrix(){return new globalThis.DOMMatrix();}
+      static fromArray(){return new globalThis.DOMMatrix();}
+      static fromFloat32Array(){return new globalThis.DOMMatrix();}
+      static fromFloat64Array(){return new globalThis.DOMMatrix();}
+    };
+  }
+  if (typeof globalThis.Path2D === "undefined") {
+    globalThis.Path2D = class Path2D {
+      constructor(){}
+      moveTo(){}; lineTo(){}; closePath(){}; arc(){}; arcTo(){};
+      bezierCurveTo(){}; quadraticCurveTo(){}; ellipse(){}; rect(){}; addPath(){};
+    };
+  }
+  if (typeof globalThis.ImageData === "undefined") {
+    globalThis.ImageData = class ImageData {
+      constructor(w, h) { this.width=w||1; this.height=h||1; this.data=new Uint8ClampedArray((w||1)*(h||1)*4); }
+    };
+  }
+
+  // Try ESM-style bare import first (dev), then CJS from bundle cwd (Tauri).
+  // In the Tauri bundle: import.meta.url is inside _up_/backend/ which cannot
+  // reach _up_/_up_/node_modules/ via upward traversal, but process.cwd()
+  // is set to _up_/_up_/ by Rust (current_dir=catalog_root) so it finds it.
   for (const base of [import.meta.url, path.join(process.cwd(), "package.json")]) {
     try {
       const req = createRequire(base);
