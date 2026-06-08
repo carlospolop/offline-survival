@@ -348,6 +348,20 @@ h3 {
   text-align: center;
 }
 
+.downloadNote {
+  color: #d8f3e5;
+  font-size: 13px;
+  margin-top: 18px;
+  opacity: 0.85;
+}
+
+.downloadNote code {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 1px 5px;
+}
+
 footer {
   align-items: center;
   border-top: 1px solid var(--line);

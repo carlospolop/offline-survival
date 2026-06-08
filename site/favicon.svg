@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Offline Survival">
-  <rect width="64" height="64" rx="14" fill="#164f38"/>
-  <path d="M32 9 12 19v14c0 12 8 19 20 23 12-4 20-11 20-23V19L32 9Z" fill="#f5f7f2"/>
-  <path d="M32 15 18 22v11c0 8 5 13 14 17 9-4 14-9 14-17V22l-14-7Z" fill="#0f7a55"/>
-  <path d="M32 21c-6 5-10 11-10 17 0 5 4 9 10 9s10-4 10-9c0-6-4-12-10-17Z" fill="#f5f7f2"/>
-  <path d="M32 28c-3 3-5 6-5 10 0 3 2 5 5 5s5-2 5-5c0-4-2-7-5-10Z" fill="#d3a21e"/>
+  <rect width="64" height="64" rx="13" fill="#164f38"/>
+  <rect x="30" y="45" width="4" height="12" rx="2" fill="#0d5030"/>
+  <path d="M22 37 L24.5 45 L39.5 45 L42 37 Z" fill="#1a6040"/>
+  <path d="M32 9 C38 16 44 25 41 33 C40 37 36 36 32 40 C28 36 24 37 23 33 C20 25 26 16 32 9 Z" fill="#d3a21e"/>
+  <path d="M32 9 C26 16 20 25 23 33 C24 37 28 36 32 40 C30 37 28 33 28 27 C28 21 30 14 32 9 Z" fill="#8a5800" opacity="0.4"/>
+  <path d="M32 15 C34 20 36 27 34 33 C33 29 32 23 32 15 Z" fill="#fde68a" opacity="0.9"/>
 </svg>

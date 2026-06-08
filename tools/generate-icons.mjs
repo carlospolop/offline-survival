@@ -15,19 +15,57 @@ await fs.writeFile(path.join(outDir, "128x128@2x.png"), icon256);
 await fs.writeFile(path.join(outDir, "icon.ico"), ico([icon32, icon128, icon256]));
 console.log("Wrote Tauri icons");
 
+// All coordinates in a 64×64 virtual canvas, scaled to the target size.
+function getColor(nx, ny) {
+  const cr = 13;
+  if (nx < cr && ny < cr && Math.hypot(nx - cr, ny - cr) > cr) return null;
+  if (nx > 64 - cr && ny < cr && Math.hypot(nx - (64 - cr), ny - cr) > cr) return null;
+  if (nx < cr && ny > 64 - cr && Math.hypot(nx - cr, ny - (64 - cr)) > cr) return null;
+  if (nx > 64 - cr && ny > 64 - cr && Math.hypot(nx - (64 - cr), ny - (64 - cr)) > cr) return null;
+
+  const CX = 32;
+
+  // Torch handle
+  if (ny >= 45 && ny <= 57 && nx >= 30 && nx <= 34) return [13, 80, 48];
+
+  // Torch cup (trapezoid, wider at top)
+  if (ny >= 37 && ny <= 45) {
+    const t = (ny - 37) / 8;
+    if (Math.abs(nx - CX) <= 10 - t * 2) return [26, 96, 64];
+  }
+
+  // Flame (teardrop shape, peaks ~65 % from top)
+  if (ny >= 9 && ny <= 40) {
+    const t = (ny - 9) / 31;
+    const peakT = 0.65;
+    const halfW = t <= peakT
+      ? 10 * Math.sqrt(t / peakT)
+      : 10 * Math.cos((Math.PI / 2) * (t - peakT) / (1 - peakT));
+
+    if (Math.abs(nx - CX) <= halfW) {
+      if (t > 0.12 && t < 0.82 && Math.abs(nx - CX) <= halfW * 0.38) return [253, 230, 138];
+      if (nx < CX - halfW * 0.3) return [170, 115, 10];
+      return [211, 162, 30];
+    }
+  }
+
+  return [22, 79, 56]; // background #164f38
+}
+
 function png(width, height) {
+  const scale = width / 64;
   const rows = [];
   for (let y = 0; y < height; y++) {
     const row = Buffer.alloc(1 + width * 4);
     row[0] = 0;
     for (let x = 0; x < width; x++) {
       const i = 1 + x * 4;
-      const edge = x < 40 || y < 40 || x > width - 41 || y > height - 41;
-      const diagonal = Math.abs(x - y) < 18 || Math.abs(x + y - width) < 18;
-      row[i] = edge ? 36 : diagonal ? 246 : 229;
-      row[i + 1] = edge ? 79 : diagonal ? 224 : 234;
-      row[i + 2] = edge ? 58 : diagonal ? 138 : 223;
-      row[i + 3] = 255;
+      const color = getColor((x + 0.5) / scale, (y + 0.5) / scale);
+      if (color === null) {
+        row[i] = 0; row[i + 1] = 0; row[i + 2] = 0; row[i + 3] = 0;
+      } else {
+        row[i] = color[0]; row[i + 1] = color[1]; row[i + 2] = color[2]; row[i + 3] = 255;
+      }
     }
     rows.push(row);
   }
