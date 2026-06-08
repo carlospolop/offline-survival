@@ -50,8 +50,11 @@ function hostTriple() {
 async function ensureLibzimResourcePaths() {
   const releaseDir = path.resolve("node_modules/@openzim/libzim/build/Release");
   await fs.mkdir(releaseDir, { recursive: true });
+  // Each platform runner only has its own shared library; create empty placeholders
+  // for the others so all listed Tauri resources can be found at bundle time.
   await ensureFile(path.join(releaseDir, "zim_binding.node"));
-  await ensureFile(path.join(releaseDir, "libzim.so.9"));
+  await ensureFile(path.join(releaseDir, "libzim.so.9")); // Linux
+  await ensureFile(path.join(releaseDir, "libzim.9.dylib")); // macOS
 }
 
 async function ensureFile(file) {

@@ -2,9 +2,7 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
-import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
-import { promisify } from "node:util";
 import { now } from "./state.mjs";
 
 const textExtensions = new Set([".txt", ".md", ".markdown", ".csv", ".json", ".html", ".htm"]);
@@ -13,7 +11,6 @@ const extractableBinaryExtensions = new Set([".pdf"]);
 const zimTextMimePattern = /^(text\/|application\/xhtml\+xml|application\/xml|application\/json)/i;
 const zimMaxEntryBytes = Number(process.env.SCA_ZIM_MAX_ENTRY_BYTES ?? 50 * 1024 * 1024);
 const zimMaxEntries = Number(process.env.SCA_ZIM_MAX_ENTRIES ?? 0);
-const execFileAsync = promisify(execFile);
 
 export async function normalizeAndIndex({ db, libraryRoot, sourceId, sourceConfig = null }) {
   const source = db.prepare("SELECT * FROM sources WHERE id=?").get(sourceId);
@@ -76,6 +73,10 @@ export async function normalizeAndIndex({ db, libraryRoot, sourceId, sourceConfi
 }
 
 async function normalizeAndIndexZim({ db, libraryRoot, source, sourceId, fullPath }) {
+  // libzim throws a fatal C++ exception on files smaller than the 80-byte header,
+  // which bypasses JS try/catch and crashes the process. Pre-check the size.
+  const stat = await fs.stat(fullPath).catch(() => null);
+  if (!stat || stat.size < 80) throw new Error(`ZIM file too small (${stat?.size ?? 0} bytes)`);
   const { Archive, setClusterCacheMaxSize } = await loadLibzim();
   setClusterCacheMaxSize?.(8);
   const archive = new Archive(fullPath);
@@ -235,7 +236,7 @@ async function extractSourceText({ libraryRoot, source, sourceConfig, fullPath }
   if (sourceConfig?.open?.action?.startsWith("extract_") && ext === ".zip") {
     const extractDir = path.join(libraryRoot, "opened", source.id);
     await fs.mkdir(extractDir, { recursive: true });
-    await execFileAsync("unzip", ["-oq", fullPath, "-d", extractDir], { maxBuffer: 20 * 1024 * 1024 });
+    await extractZipToDir(fullPath, extractDir);
     const entry = sourceConfig.open.entry ?? "";
     const target = safeJoin(extractDir, entry);
     const stat = await fs.stat(target).catch(() => null);
@@ -284,14 +285,64 @@ async function readTextDirectory(dir, libraryRoot) {
 }
 
 async function extractEpubText(file) {
-  const { stdout } = await execFileAsync("unzip", ["-Z1", file], { maxBuffer: 20 * 1024 * 1024 });
-  const entries = stdout.split(/\r?\n/).filter((name) => epubTextExtensions.has(path.extname(name).toLowerCase()));
+  const buffer = await fs.readFile(file);
+  const entries = listZipEntries(buffer);
   const parts = [];
   for (const entry of entries) {
-    const { stdout: content } = await execFileAsync("unzip", ["-p", file, entry], { maxBuffer: 50 * 1024 * 1024 });
-    parts.push(content);
+    if (!epubTextExtensions.has(path.extname(entry.name).toLowerCase())) continue;
+    try { parts.push(readZipEntry(buffer, entry).toString("utf8")); } catch { /* skip */ }
   }
   return parts.join("\n\n");
+}
+
+function listZipEntries(buffer) {
+  const EOCD_SIG = 0x06054b50;
+  const CD_SIG = 0x02014b50;
+  let eocd = -1;
+  for (let i = buffer.length - 22; i >= Math.max(0, buffer.length - 65558); i--) {
+    if (buffer.readUInt32LE(i) === EOCD_SIG) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Not a ZIP file");
+  const count = buffer.readUInt16LE(eocd + 10);
+  let pos = buffer.readUInt32LE(eocd + 16);
+  const entries = [];
+  for (let i = 0; i < count; i++) {
+    if (pos + 46 > buffer.length || buffer.readUInt32LE(pos) !== CD_SIG) break;
+    const method = buffer.readUInt16LE(pos + 10);
+    const compSize = buffer.readUInt32LE(pos + 20);
+    const nameLen = buffer.readUInt16LE(pos + 28);
+    const extraLen = buffer.readUInt16LE(pos + 30);
+    const commentLen = buffer.readUInt16LE(pos + 32);
+    const localOffset = buffer.readUInt32LE(pos + 42);
+    const name = buffer.subarray(pos + 46, pos + 46 + nameLen).toString("utf8");
+    entries.push({ name, method, compSize, localOffset });
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+function readZipEntry(buffer, entry) {
+  const LOCAL_SIG = 0x04034b50;
+  const p = entry.localOffset;
+  if (p + 30 > buffer.length || buffer.readUInt32LE(p) !== LOCAL_SIG) throw new Error("Bad local header");
+  const nameLen = buffer.readUInt16LE(p + 26);
+  const extraLen = buffer.readUInt16LE(p + 28);
+  const dataStart = p + 30 + nameLen + extraLen;
+  const compressed = buffer.subarray(dataStart, dataStart + entry.compSize);
+  if (entry.method === 0) return compressed;
+  if (entry.method === 8) return zlib.inflateRawSync(compressed);
+  throw new Error(`Unsupported ZIP compression: ${entry.method}`);
+}
+
+async function extractZipToDir(zipFile, outDir) {
+  const buffer = await fs.readFile(zipFile);
+  const entries = listZipEntries(buffer);
+  for (const entry of entries) {
+    if (entry.name.endsWith("/")) continue;
+    const outPath = safeJoin(outDir, entry.name);
+    await fs.mkdir(path.dirname(outPath), { recursive: true });
+    await fs.writeFile(outPath, readZipEntry(buffer, entry));
+  }
 }
 
 async function loadLibzim() {
@@ -466,46 +517,27 @@ function hash(text) {
 }
 
 async function extractPdfText(file) {
-  const buffer = await fs.readFile(file);
-  const parts = [];
-  const source = buffer.toString("latin1");
-  const streamPattern = /<<(?:.|\n|\r)*?>>\s*stream\r?\n([\s\S]*?)\r?\nendstream/g;
-  for (const match of source.matchAll(streamPattern)) {
-    const headerStart = source.lastIndexOf("<<", match.index);
-    const header = source.slice(headerStart, match.index);
-    let payload = Buffer.from(match[1], "latin1");
-    if (/FlateDecode/.test(header)) {
-      try {
-        payload = zlib.inflateSync(payload);
-      } catch {
-        continue;
-      }
-    }
-    parts.push(extractPdfStrings(payload.toString("latin1")));
+  const PDFParse = await loadPdfParse();
+  if (!PDFParse) return "";
+  const data = await fs.readFile(file);
+  const parser = new PDFParse({ data });
+  try {
+    const result = await parser.getText();
+    return (result.text ?? "")
+      .replace(/--\s*\d+\s+of\s+\d+\s*--/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  } finally {
+    parser.destroy();
   }
-  parts.push(extractPdfStrings(source));
-  return parts.join("\n").replace(/\s+/g, " ").trim();
 }
 
-function extractPdfStrings(text) {
-  const strings = [];
-  for (const match of text.matchAll(/\((?:\\.|[^\\)])*\)\s*Tj/g)) {
-    strings.push(decodePdfString(match[0].replace(/\)\s*Tj$/, "").slice(1, -1)));
+async function loadPdfParse() {
+  for (const base of [import.meta.url, path.join(process.cwd(), "package.json")]) {
+    try {
+      const req = createRequire(base);
+      return req("pdf-parse").PDFParse;
+    } catch { /* try next */ }
   }
-  for (const match of text.matchAll(/\[((?:.|\n|\r)*?)\]\s*TJ/g)) {
-    for (const inner of match[1].matchAll(/\((?:\\.|[^\\)])*\)/g)) {
-      strings.push(decodePdfString(inner[0].slice(1, -1)));
-    }
-  }
-  return strings.join(" ");
-}
-
-function decodePdfString(value) {
-  return value
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .replace(/\\\(/g, "(")
-    .replace(/\\\)/g, ")")
-    .replace(/\\\\/g, "\\");
+  return null;
 }

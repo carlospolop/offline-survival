@@ -306,25 +306,98 @@ describe("extended archive services", () => {
     expect(semanticSearch(db, "water storage", 1)[0].source_id).toBe(source.id);
     db.close();
   });
+
+  it("extracts EPUB text into searchable chunks", async () => {
+    const db = openState(root);
+    const source = {
+      id: "epub-source",
+      title: "EPUB Source",
+      type: "epub",
+      license: "CC0",
+      url: "https://example.test/source.epub",
+      expected_size_bytes: 1,
+      runtime: ["index"],
+      profiles: ["survival-essential"]
+    };
+    await fs.mkdir(path.join(root, "raw/epub"), { recursive: true });
+    await fs.writeFile(path.join(root, "raw/epub/source.epub"), minimalEpub("Purify water with iodine tablets"));
+    upsertSource(db, source, { status: "downloaded", local_path: "raw/epub/source.epub" });
+    const indexed = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id });
+    expect(indexed.chunks).toBeGreaterThan(0);
+    expect(semanticSearch(db, "iodine water", 1)[0].source_id).toBe(source.id);
+    db.close();
+  });
 });
 
 function minimalPdf(text) {
-  return `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length ${text.length + 20} >>
-stream
-BT /F1 12 Tf (${text}) Tj ET
-endstream
-endobj
-trailer << /Root 1 0 R >>
-%%EOF`;
+  // Build a structurally valid PDF so pdf-parse can parse it correctly.
+  const stream = `BT /F1 12 Tf 72 720 Td (${text}) Tj ET`;
+  const objs = [
+    `1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj`,
+    `2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj`,
+    `3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj`,
+    `4 0 obj<</Length ${stream.length}>>\nstream\n${stream}\nendstream\nendobj`,
+    `5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>endobj`
+  ];
+  let out = "%PDF-1.4\n";
+  const offsets = [];
+  for (const o of objs) { offsets.push(out.length); out += o + "\n"; }
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  for (const off of offsets) out += `${String(off).padStart(10, "0")} 00000 n \n`;
+  out += `trailer<</Size ${objs.length + 1}/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, "latin1");
+}
+
+function minimalEpub(text) {
+  return buildZipBuffer([
+    { name: "mimetype", data: Buffer.from("application/epub+zip") },
+    { name: "chapter1.html", data: Buffer.from(`<html><body><p>${text}</p></body></html>`) }
+  ]);
+}
+
+function buildZipBuffer(files) {
+  const locals = [];
+  const chunks = [];
+  let pos = 0;
+  for (const { name, data } of files) {
+    const nb = Buffer.from(name, "utf8");
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0);
+    lh.writeUInt16LE(20, 4);
+    lh.writeUInt16LE(0, 6);
+    lh.writeUInt16LE(0, 8);        // STORE (no compression)
+    lh.writeUInt32LE(0, 10);       // mod time+date (not checked)
+    lh.writeUInt32LE(0, 14);       // CRC (not verified by reader)
+    lh.writeUInt32LE(data.length, 18);
+    lh.writeUInt32LE(data.length, 22);
+    lh.writeUInt16LE(nb.length, 26);
+    lh.writeUInt16LE(0, 28);
+    locals.push({ offset: pos, nb, size: data.length });
+    chunks.push(lh, nb, data);
+    pos += 30 + nb.length + data.length;
+  }
+  const cdStart = pos;
+  for (let i = 0; i < files.length; i++) {
+    const { nb, offset, size } = locals[i];
+    const cd = Buffer.alloc(46);
+    cd.writeUInt32LE(0x02014b50, 0);
+    cd.writeUInt16LE(0x0014, 4);
+    cd.writeUInt16LE(20, 6);
+    cd.writeUInt32LE(0, 16);       // CRC
+    cd.writeUInt32LE(size, 20);
+    cd.writeUInt32LE(size, 24);
+    cd.writeUInt16LE(nb.length, 28);
+    cd.writeUInt32LE(offset, 42);
+    chunks.push(cd, nb);
+    pos += 46 + nb.length;
+  }
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(pos - cdStart, 12);
+  eocd.writeUInt32LE(cdStart, 16);
+  chunks.push(eocd);
+  return Buffer.concat(chunks);
 }

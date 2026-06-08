@@ -47,6 +47,8 @@
       "../../node_modules/@openzim/libzim/dist",
       "../../node_modules/@openzim/libzim/build/Release/zim_binding.node",
       "../../node_modules/@openzim/libzim/build/Release/libzim.so.9",
+      "../../node_modules/@openzim/libzim/build/Release/libzim.9.dylib",
+      "../../node_modules/pdf-parse",
       "../../node_modules/markdown-it",
       "../../node_modules/argparse",
       "../../node_modules/entities",
