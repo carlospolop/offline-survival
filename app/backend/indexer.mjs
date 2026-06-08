@@ -346,16 +346,16 @@ async function extractZipToDir(zipFile, outDir) {
 }
 
 async function loadLibzim() {
-  try {
-    return await import("@openzim/libzim");
-  } catch (importError) {
+  // Try ESM import first, then CommonJS resolved from the backend directory
+  // (same as loadPdfParse — process.cwd() is the app data dir in Tauri bundles,
+  // not the resources dir, so import.meta.url is the reliable base).
+  for (const base of [null, import.meta.url, path.join(process.cwd(), "package.json")]) {
     try {
-      const require = createRequire(path.join(process.cwd(), "package.json"));
-      return require("@openzim/libzim");
-    } catch {
-      throw importError;
-    }
+      if (base === null) return await import("@openzim/libzim");
+      return createRequire(base)("@openzim/libzim");
+    } catch { /* try next */ }
   }
+  throw new Error("@openzim/libzim could not be loaded. ZIM files will remain openable but cannot be full-text indexed.");
 }
 
 function readableZimItem(entry) {

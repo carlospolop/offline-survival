@@ -1637,7 +1637,7 @@
 
 {#if confirmDialog}
   <div class="modalBackdrop" role="presentation" on:click={() => answerConfirm(false)}>
-    <dialog open class:dangerModal={confirmDialog.tone === "danger"} class="confirmModal" aria-labelledby="confirm-title" on:click|stopPropagation>
+    <div role="dialog" aria-modal="true" class:dangerModal={confirmDialog.tone === "danger"} class="confirmModal" aria-labelledby="confirm-title" on:click|stopPropagation>
       <div class="modalHeader">
         <div>
           <span class="modalKicker">{confirmDialog.tone === "danger" ? "Destructive action" : "Confirmation"}</span>
@@ -1666,6 +1666,6 @@
           {confirmDialog.confirmLabel ?? "Continue"}
         </button>
       </div>
-    </dialog>
+    </div>
   </div>
 {/if}
