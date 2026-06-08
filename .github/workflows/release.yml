@@ -156,18 +156,7 @@ jobs:
 
           for dir in downloaded-artifacts/Offline-Survival-*; do
             name="$(basename "$dir")"
-            mkdir -p "per-platform/${name}"
-            cp -R "${dir}/." "per-platform/${name}/"
-            cp -R all-platforms/Offline-Survival-all-platforms "per-platform/${name}/"
-            cat > "per-platform/${name}/START-HERE.txt" <<EOF
-          Offline Survival ${name#Offline-Survival-}
-
-          Open the installer or app package in this folder for this computer.
-          The Offline-Survival-all-platforms folder also included here can be reused
-          when preparing a share package for a different OS.
-          Downloaded knowledge sources are not included in this release artifact.
-          EOF
-            (cd "per-platform/${name}" && zip -qr "../../release-upload/${name}.zip" .)
+            (cd "$(dirname "$dir")" && zip -qr "../release-upload/${name}.zip" "$(basename "$dir")")
           done
 
           sha256sum release-upload/*.zip > release-upload/SHA256SUMS.txt
