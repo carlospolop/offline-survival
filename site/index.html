@@ -7,7 +7,7 @@
     <meta name="description" content="A private desktop app for building, searching, and sharing an offline survival and civilization recovery library." />
     <meta property="og:title" content="Offline Survival" />
     <meta property="og:description" content="Download practical knowledge, search it offline, and share a ready-to-use library with other computers." />
-    <meta property="og:image" content="assets/screenshots/dashboard.png" />
+    <meta property="og:image" content="favicon.png" />
     <link rel="icon" href="favicon.png" type="image/png" />
     <link rel="shortcut icon" href="favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="favicon.png" />
@@ -41,8 +41,31 @@
             <a class="button secondary" href="#how" data-i18n="seeHow">See how it works</a>
           </div>
         </div>
-        <figure class="heroShot">
-          <img src="assets/screenshots/dashboard.png" alt="Offline Survival dashboard showing profiles and download controls" />
+        <figure class="heroShot appMockup" aria-label="Offline Survival dashboard preview">
+          <div class="mockupSidebar">
+            <strong>Offline Survival</strong>
+            <span data-i18n="mockEasyInstall">Easy Install</span>
+            <span data-i18n="mockDownloaded">Downloaded</span>
+            <span data-i18n="mockLibraryPath">Library path</span>
+            <button type="button" data-i18n="mockSetLibrary">Set Library</button>
+          </div>
+          <div class="mockupMain">
+            <div class="mockupTabs">
+              <span data-i18n="mockDownloads">Downloads</span>
+              <span data-i18n="mockSearch">Search</span>
+              <span data-i18n="mockSettings">Settings</span>
+            </div>
+            <div class="mockupPanel">
+              <p class="mockupKicker" data-i18n="mockProfiles">Profiles</p>
+              <h3 data-i18n="mockProfileTitle">Survival Essential</h3>
+              <p data-i18n="mockProfileText">Small emergency reference set with first aid, water, food, repair, and offline reference sources.</p>
+              <div class="mockupRows">
+                <span data-i18n="mockSourceFirstAid">First aid manual</span>
+                <span data-i18n="mockSourceWater">Water and sanitation</span>
+                <span data-i18n="mockSourceRepair">Repair references</span>
+              </div>
+            </div>
+          </div>
         </figure>
       </section>
     </header>
@@ -141,14 +164,46 @@
           <h2 data-i18n="aiTitle">Ask questions over your offline library.</h2>
           <p data-i18n="aiText">Local AI can use Ollama and recommended models to help search and summarize indexed sources while keeping the library on the selected computer or drive.</p>
         </div>
-        <figure>
-          <img src="assets/screenshots/local-ai.png" alt="Offline Survival Local AI setup screen" />
+        <figure class="appMockup aiMockup" aria-label="Offline Survival Local AI preview">
+          <div class="mockupMain">
+            <div class="mockupTabs">
+              <span data-i18n="mockSearch">Search</span>
+              <span data-i18n="mockLocalAi">Local AI</span>
+              <span data-i18n="mockSettings">Settings</span>
+            </div>
+            <div class="mockupPanel">
+              <p class="mockupKicker" data-i18n="mockLocalAi">Local AI</p>
+              <h3 data-i18n="mockAiTitle">Ask with local context</h3>
+              <p data-i18n="mockAiText">Use indexed offline sources as context while the library stays on this computer.</p>
+              <div class="mockupStatus">
+                <span data-i18n="mockModel">Recommended model</span>
+                <strong>qwen3:8b</strong>
+              </div>
+              <button type="button" data-i18n="mockInstallAi">Install Local AI</button>
+            </div>
+          </div>
         </figure>
       </section>
 
       <section class="section split reverse">
-        <figure>
-          <img src="assets/screenshots/share.svg" alt="Offline Survival share package screen" />
+        <figure class="appMockup shareMockup" aria-label="Offline Survival share package preview">
+          <div class="mockupMain">
+            <div class="mockupTabs">
+              <span data-i18n="mockDownloads">Downloads</span>
+              <span data-i18n="mockShare">Share</span>
+              <span data-i18n="mockSettings">Settings</span>
+            </div>
+            <div class="mockupPanel">
+              <p class="mockupKicker" data-i18n="mockSharePackage">Share package</p>
+              <h3 data-i18n="mockPrepareDrive">Prepare a portable drive</h3>
+              <p data-i18n="mockShareText">Bundle downloaded sources, indexes, metadata, and available app folders for another machine.</p>
+              <div class="mockupRows">
+                <span data-i18n="mockSourcesToShare">Sources to share</span>
+                <span data-i18n="mockAppBundle">App bundle folder</span>
+                <span data-i18n="mockDownloadedIncluded">Downloaded sources included</span>
+              </div>
+            </div>
+          </div>
         </figure>
         <div>
           <p class="kicker" data-i18n="handoffKicker">Offline handoff</p>
@@ -305,6 +360,31 @@
           pillFood: "Agricultura y alimentos",
           pillTextbooks: "Libros de texto",
           pillOwn: "Tus propios PDF y ZIM",
+          mockEasyInstall: "Instalación fácil",
+          mockDownloaded: "Descargado",
+          mockLibraryPath: "Ruta de biblioteca",
+          mockSetLibrary: "Guardar biblioteca",
+          mockDownloads: "Descargas",
+          mockSearch: "Búsqueda",
+          mockSettings: "Ajustes",
+          mockProfiles: "Perfiles",
+          mockProfileTitle: "Supervivencia esencial",
+          mockProfileText: "Pequeño conjunto de referencias de emergencia con primeros auxilios, agua, alimentos, reparación y fuentes offline.",
+          mockSourceFirstAid: "Manual de primeros auxilios",
+          mockSourceWater: "Agua y saneamiento",
+          mockSourceRepair: "Referencias de reparación",
+          mockLocalAi: "IA local",
+          mockAiTitle: "Pregunta con contexto local",
+          mockAiText: "Usa fuentes offline indexadas como contexto mientras la biblioteca permanece en este ordenador.",
+          mockModel: "Modelo recomendado",
+          mockInstallAi: "Instalar IA local",
+          mockShare: "Compartir",
+          mockSharePackage: "Paquete compartido",
+          mockPrepareDrive: "Preparar una unidad portátil",
+          mockShareText: "Agrupa fuentes descargadas, índices, metadatos y carpetas de app disponibles para otra máquina.",
+          mockSourcesToShare: "Fuentes para compartir",
+          mockAppBundle: "Carpeta del paquete de app",
+          mockDownloadedIncluded: "Fuentes descargadas incluidas",
           profileEssentialName: "Supervivencia esencial",
           profileEssential: "Pequeño conjunto de referencias de emergencia para discos limitados.",
           profilePlusName: "Supervivencia ampliada",
