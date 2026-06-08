@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { now } from "./state.mjs";
 
 const textExtensions = new Set([".txt", ".md", ".markdown", ".csv", ".json", ".html", ".htm"]);
@@ -346,14 +347,26 @@ async function extractZipToDir(zipFile, outDir) {
 }
 
 async function loadLibzim() {
-  // Try ESM import first, then CommonJS resolved from the backend directory
-  // (same as loadPdfParse — process.cwd() is the app data dir in Tauri bundles,
-  // not the resources dir, so import.meta.url is the reliable base).
-  for (const base of [null, import.meta.url, path.join(process.cwd(), "package.json")]) {
-    try {
-      if (base === null) return await import("@openzim/libzim");
-      return createRequire(base)("@openzim/libzim");
-    } catch { /* try next */ }
+  // Try ESM import first (works in dev where node_modules is intact).
+  try { return await import("@openzim/libzim"); } catch {}
+
+  // In the Tauri bundle, dist/index.js is an ES module that uses
+  // `import bindings from "bindings"` — Node.js 22.x cannot require() ESM
+  // without --experimental-require-module, and the bindings package's
+  // __dirname heuristic breaks in a sidecar context anyway.
+  // Load zim_binding.node directly by absolute path instead: native .node
+  // files are always loaded as CJS regardless of the surrounding module type.
+  const backendDir = path.dirname(fileURLToPath(import.meta.url));
+  const searchBases = [
+    path.join(backendDir, ".."),     // Resources/ in Tauri bundle
+    path.join(backendDir, "../.."),  // project root in dev fallback
+    process.cwd(),
+  ];
+  for (const base of searchBases) {
+    const nodeFile = path.join(base, "node_modules/@openzim/libzim/build/Release/zim_binding.node");
+    if (await fs.access(nodeFile).then(() => true, () => false)) {
+      return createRequire(import.meta.url)(nodeFile);
+    }
   }
   throw new Error("@openzim/libzim could not be loaded. ZIM files will remain openable but cannot be full-text indexed.");
 }

@@ -317,7 +317,13 @@
       cancelLabel: "Cancel"
     });
     if (!accepted) return;
-    await run(`index-${sourceId}`, () => api("/api/index", { method: "POST", body: JSON.stringify({ sourceId }) }));
+    let result: any = null;
+    await run(`index-${sourceId}`, async () => {
+      result = await api("/api/index", { method: "POST", body: JSON.stringify({ sourceId }) });
+    });
+    if (result?.originalOnly) {
+      error = `Could not build a full-text index for this source. It is registered for basic search only. ${result.note ?? ""}`.trim();
+    }
   }
 
   async function indexAllDownloaded() {
