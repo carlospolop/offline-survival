@@ -1080,6 +1080,9 @@
                 <span class="tooltipHost" title={openTooltip(source)}>
                   <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || sourceBusy}>Open</button>
                 </span>
+                {#if busy === `index-${source.id}`}
+                  <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
+                {/if}
                 {#if verifyNotice}
                   <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
                 {/if}
@@ -1233,6 +1236,9 @@
               <span class="actions">
                 <button type="button" on:click={() => openOriginal(source.id)} disabled={!!busy || !source.local_path}>Open</button>
                 <button type="button" on:click={() => indexSource(source.id)} disabled={!!busy || !source.local_path}>{indexActionLabel(source.id)}</button>
+                {#if busy === `index-${source.id}`}
+                  <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
+                {/if}
               </span>
             </div>
           {/each}
@@ -1324,6 +1330,9 @@
                   <span class="tooltipHost" title={indexTooltip(source)}>
                     <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading}>{indexActionLabel(source.id)}</button>
                   </span>
+                  {#if busy === `index-${source.id}`}
+                    <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
+                  {/if}
                   {#if verifyNotice}
                     <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
                   {/if}
