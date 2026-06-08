@@ -32,7 +32,15 @@ export async function normalizeAndIndex({ db, libraryRoot, sourceId, sourceConfi
       });
     }
   }
-  const extracted = await extractSourceText({ libraryRoot, source, sourceConfig, fullPath });
+  let extracted;
+  try {
+    extracted = await extractSourceText({ libraryRoot, source, sourceConfig, fullPath });
+  } catch (error) {
+    return await registerOriginalOnlyIndex({
+      db, libraryRoot, source, sourceConfig, sourceId,
+      note: `Text extraction failed: ${String(error.message ?? error)}. The original file remains openable.`
+    });
+  }
   if (!extracted.supported) {
     return await registerOriginalOnlyIndex({ db, libraryRoot, source, sourceConfig, sourceId, note: "Original reader source registered; full-text extraction is not available for this format." });
   }
@@ -161,12 +169,15 @@ async function normalizeAndIndexZim({ db, libraryRoot, source, sourceId, fullPat
 
 export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [] }) {
   const catalogById = new Map(catalogSources.map((source) => [source.id, source]));
+  // Re-index any source that has never been indexed (d.source_id IS NULL) OR was
+  // previously registered as original-only (extraction may have failed in a prior
+  // app version — always retry so upgraded versions can produce full-text indexes).
   const rows = db.prepare(`
     SELECT s.id
     FROM sources s
     LEFT JOIN documents d ON d.source_id=s.id
     WHERE s.local_path IS NOT NULL
-      AND (d.source_id IS NULL OR (s.type='zim' AND s.status='indexed-original-only'))
+      AND (d.source_id IS NULL OR s.status='indexed-original-only')
       AND s.status NOT IN ('missing', 'broken', 'paused')
     ORDER BY s.title
   `).all();
@@ -179,7 +190,7 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
     FROM sources s
     LEFT JOIN documents d ON d.source_id=s.id
     WHERE s.local_path IS NOT NULL
-      AND (d.source_id IS NULL OR (s.type='zim' AND s.status='indexed-original-only'))
+      AND (d.source_id IS NULL OR s.status='indexed-original-only')
       AND s.status NOT IN ('missing', 'broken', 'paused')
     ORDER BY s.title
   `).all();
@@ -677,11 +688,39 @@ async function loadPdfParse() {
   // In the Tauri bundle: import.meta.url is inside _up_/backend/ which cannot
   // reach _up_/_up_/node_modules/ via upward traversal, but process.cwd()
   // is set to _up_/_up_/ by Rust (current_dir=catalog_root) so it finds it.
+  const errors = [];
   for (const base of [import.meta.url, path.join(process.cwd(), "package.json")]) {
     try {
       const req = createRequire(base);
       return req("pdf-parse").PDFParse;
-    } catch { /* try next */ }
+    } catch (e) {
+      errors.push(String(e.message ?? e));
+    }
   }
+
+  // Explicit fallback: walk up from backend dir to find pdf-parse CJS entry.
+  const backendDir = path.dirname(fileURLToPath(import.meta.url));
+  const cjsRelative = "node_modules/pdf-parse/dist/pdf-parse/cjs/index.cjs";
+  const searchRoots = [
+    backendDir,
+    path.join(backendDir, ".."),
+    path.join(backendDir, "../.."),
+    path.join(backendDir, "../../.."),
+    process.cwd(),
+  ];
+  for (const root of searchRoots) {
+    for (const variant of ["", "_up_/", "_up_/_up_/"]) {
+      const candidate = path.join(root, variant, cjsRelative);
+      const ok = await fs.stat(candidate).then((s) => s.size > 0, () => false);
+      if (!ok) continue;
+      try {
+        return createRequire(import.meta.url)(candidate).PDFParse;
+      } catch (e) {
+        errors.push(`${candidate}: ${String(e.message ?? e)}`);
+      }
+    }
+  }
+
+  process.stderr.write(`[pdf-parse] Could not load: ${errors.join(" | ")}\n`);
   return null;
 }
