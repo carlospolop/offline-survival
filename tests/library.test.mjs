@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Creator, StringItem } from "@openzim/libzim";
 import { ensureLibrary, openState, removeSourcesNotInCatalog, upsertSource } from "../app/backend/state.mjs";
 import { downloadProfile, downloadSource, verifySource } from "../app/backend/downloader.mjs";
-import { indexDownloadedSources, normalizeAndIndex, search } from "../app/backend/indexer.mjs";
+import { indexDownloadedSources, loadLibzim, normalizeAndIndex, search } from "../app/backend/indexer.mjs";
 import { exportManifest, integrityReport, writeLock } from "../app/backend/archive.mjs";
 import { buildSharePackage } from "../app/backend/release.mjs";
 import { systemInfo } from "../app/backend/system.mjs";
@@ -345,37 +345,104 @@ describe("library workflows", () => {
     db.close();
   });
 
-  it("extracts, indexes, searches, and opens real ZIM article paths", async () => {
-    const zimPath = path.join(root, "raw/zim/mini.zim");
-    const creator = new Creator()
-      .configNbWorkers(1)
-      .configIndexing(true, "en")
-      .startZimCreation(zimPath);
-    await creator.addItem(new StringItem("Water_Purification", "text/html", "Water Purification", { FRONT_ARTICLE: 1, COMPRESS: 1 }, "<h1>Water Purification</h1><p>Boil water before storage.</p>"));
-    await creator.addItem(new StringItem("Fire_Safety", "text/html", "Fire Safety", { FRONT_ARTICLE: 1, COMPRESS: 1 }, "<h1>Fire Safety</h1><p>Keep tinder dry and ventilate smoke.</p>"));
-    creator.setMainPath("Water_Purification");
-    await creator.finishZimCreation();
+  it("loads libzim from the packaged resource layout", async () => {
+    const resourceRoot = path.join(root, "packaged", "_up_", "_up_");
+    const releaseDir = path.join(resourceRoot, "node_modules/@openzim/libzim/build/Release");
+    const localReleaseDir = path.resolve("node_modules/@openzim/libzim/build/Release");
+    await fs.mkdir(releaseDir, { recursive: true });
+    await fs.copyFile(path.join(localReleaseDir, "zim_binding.node"), path.join(releaseDir, "zim_binding.node"));
+    const platformLib = process.platform === "darwin" ? "libzim.9.dylib" : "libzim.so.9";
+    await fs.copyFile(path.join(localReleaseDir, platformLib), path.join(releaseDir, platformLib));
 
-    const source = {
-      id: "mini-zim",
-      title: "Mini ZIM",
-      type: "zim",
-      license: "CC0",
-      url: "https://example.test/mini.zim",
-      expected_size_bytes: 1024,
-      runtime: ["kiwix"]
-    };
+    const originalForce = process.env.SCA_FORCE_LIBZIM_FALLBACK;
+    const originalRoots = process.env.SCA_LIBZIM_SEARCH_ROOTS;
+    try {
+      process.env.SCA_FORCE_LIBZIM_FALLBACK = "1";
+      process.env.SCA_LIBZIM_SEARCH_ROOTS = resourceRoot;
+      const libzim = await loadLibzim();
+      expect(typeof libzim.Archive).toBe("function");
+      expect(typeof libzim.Creator).toBe("function");
+    } finally {
+      if (originalForce === undefined) delete process.env.SCA_FORCE_LIBZIM_FALLBACK;
+      else process.env.SCA_FORCE_LIBZIM_FALLBACK = originalForce;
+      if (originalRoots === undefined) delete process.env.SCA_LIBZIM_SEARCH_ROOTS;
+      else process.env.SCA_LIBZIM_SEARCH_ROOTS = originalRoots;
+    }
+  });
+
+  it("extracts, indexes, searches, and opens several real ZIM article paths", async () => {
+    const fixtures = [
+      {
+        id: "mini-html-zim",
+        file: "mini-html.zim",
+        title: "Mini HTML ZIM",
+        entry: "Fire_Safety",
+        query: "tinder",
+        items: [
+          ["Water_Purification", "text/html", "Water Purification", "<h1>Water Purification</h1><p>Boil water before storage.</p>"],
+          ["Fire_Safety", "text/html", "Fire Safety", "<h1>Fire Safety</h1><p>Keep tinder dry and ventilate smoke.</p>"]
+        ]
+      },
+      {
+        id: "mini-xhtml-zim",
+        file: "mini-xhtml.zim",
+        title: "Mini XHTML ZIM",
+        entry: "Primeros_Auxilios",
+        query: "vendaje",
+        items: [
+          ["Primeros_Auxilios", "application/xhtml+xml", "Primeros Auxilios", "<html><body><h1>Primeros auxilios</h1><p>Limpia la herida y prepara un vendaje seco.</p></body></html>"],
+          ["Agua_Segura", "application/xhtml+xml", "Agua Segura", "<html><body><p>Hierve agua antes de almacenarla.</p></body></html>"]
+        ]
+      },
+      {
+        id: "mini-text-zim",
+        file: "mini-text.zim",
+        title: "Mini Text ZIM",
+        entry: "Radio_Notes",
+        query: "antenna",
+        items: [
+          ["Radio_Notes", "text/plain", "Radio Notes", "Build a field antenna and keep spare coax dry."],
+          ["Workshop_Checklist", "text/plain", "Workshop Checklist", "Store blades, gloves, and repair manuals together."]
+        ]
+      }
+    ];
     const db = openState(root);
-    upsertSource(db, source, { status: "downloaded", local_path: "raw/zim/mini.zim" });
-    const indexed = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id, sourceConfig: source });
-    expect(indexed.zim).toBe(true);
-    expect(indexed.pages).toBe(2);
-    expect(indexed.chunks).toBeGreaterThanOrEqual(2);
-    expect(db.prepare("SELECT status FROM sources WHERE id=?").get(source.id).status).toBe("indexed");
-    const results = search(db, "tinder", 5);
-    expect(results[0].source_id).toBe(source.id);
-    expect(results[0].path).toBe("raw/zim/mini.zim#Fire_Safety");
-    db.close();
+    try {
+      for (const fixture of fixtures) {
+        const zimPath = path.join(root, "raw/zim", fixture.file);
+        await fs.mkdir(path.dirname(zimPath), { recursive: true });
+        const creator = new Creator()
+          .configNbWorkers(1)
+          .configIndexing(true, fixture.id.includes("xhtml") ? "es" : "en")
+          .startZimCreation(zimPath);
+        for (const [zimPathname, mimetype, title, body] of fixture.items) {
+          await creator.addItem(new StringItem(zimPathname, mimetype, title, { FRONT_ARTICLE: 1, COMPRESS: 1 }, body));
+        }
+        creator.setMainPath(fixture.items[0][0]);
+        await creator.finishZimCreation();
+
+        const source = {
+          id: fixture.id,
+          title: fixture.title,
+          type: "zim",
+          license: "CC0",
+          url: `https://example.test/${fixture.file}`,
+          expected_size_bytes: 1024,
+          runtime: ["kiwix", "index", "search"]
+        };
+        upsertSource(db, source, { status: "downloaded", local_path: path.join("raw/zim", fixture.file) });
+        const indexed = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id, sourceConfig: source });
+        expect(indexed.zim).toBe(true);
+        expect(indexed.pages).toBe(2);
+        expect(indexed.chunks).toBeGreaterThanOrEqual(2);
+        expect(db.prepare("SELECT status FROM sources WHERE id=?").get(source.id).status).toBe("indexed");
+        const results = search(db, fixture.query, 5);
+        expect(results[0].source_id).toBe(source.id);
+        expect(results[0].path).toBe(`${path.join("raw/zim", fixture.file)}#${fixture.entry}`);
+      }
+    } finally {
+      db.close();
+    }
   });
 
   it("downloads profile sources with bounded parallelism", async () => {

@@ -25,6 +25,7 @@ pub fn run() {
                 .current_dir(catalog_root)
                 .env("PORT", "8787")
                 .env("SCA_PACKAGED", "1")
+                .env("SCA_RESOURCE_DIR", resource_dir.to_string_lossy().to_string())
                 .env("SCA_SIDECAR_DIR", resource_dir.join("..").join("bin").to_string_lossy().to_string())
                 .spawn()?;
             std::mem::forget(child);

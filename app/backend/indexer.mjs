@@ -346,9 +346,16 @@ async function extractZipToDir(zipFile, outDir) {
   }
 }
 
-async function loadLibzim() {
+export async function loadLibzim() {
+  const errors = [];
   // Try ESM import first (works in dev where node_modules is intact).
-  try { return await import("@openzim/libzim"); } catch {}
+  if (process.env.SCA_FORCE_LIBZIM_FALLBACK !== "1") {
+    try {
+      return await import("@openzim/libzim");
+    } catch (error) {
+      errors.push(`bare import failed: ${String(error.message ?? error)}`);
+    }
+  }
 
   // In the Tauri bundle, dist/index.js is an ES module that uses
   // `import bindings from "bindings"` — Node.js 22.x cannot require() ESM
@@ -357,23 +364,72 @@ async function loadLibzim() {
   // Load zim_binding.node directly by absolute path instead: native .node
   // files are always loaded as CJS regardless of the surrounding module type.
   const backendDir = path.dirname(fileURLToPath(import.meta.url));
-  const searchBases = [
+  const searchBases = uniquePaths([
+    ...splitSearchRoots(process.env.SCA_LIBZIM_SEARCH_ROOTS),
+    process.env.SCA_RESOURCE_DIR,
+    process.env.SCA_PACKAGED_ROOT,
+    process.env.SCA_SIDECAR_DIR ? path.join(process.env.SCA_SIDECAR_DIR, "..") : "",
     path.join(backendDir, ".."),     // Resources/ in Tauri bundle
     path.join(backendDir, "../.."),  // project root in dev fallback
     process.cwd(),
-  ];
-  for (const base of searchBases) {
-    const nodeFile = path.join(base, "node_modules/@openzim/libzim/build/Release/zim_binding.node");
+    path.join(process.cwd(), ".."),
+    path.join(process.cwd(), "_up_"),
+    path.join(process.cwd(), "_up_/_up_")
+  ]);
+
+  const candidates = uniquePaths(searchBases.flatMap((base) => [
+    path.join(base, "node_modules/@openzim/libzim/build/Release/zim_binding.node"),
+    path.join(base, "_up_/node_modules/@openzim/libzim/build/Release/zim_binding.node"),
+    path.join(base, "_up_/_up_/node_modules/@openzim/libzim/build/Release/zim_binding.node")
+  ]));
+
+  for (const nodeFile of candidates) {
     // Skip missing or empty placeholder files (CI creates 0-byte stubs when build is skipped).
     const isReal = await fs.stat(nodeFile).then((s) => s.size > 0, () => false);
     if (!isReal) continue;
+    const libError = await missingSiblingLibzim(nodeFile);
+    if (libError) {
+      errors.push(libError);
+      continue;
+    }
     try {
       return createRequire(import.meta.url)(nodeFile);
-    } catch {
-      // Wrong-platform or corrupted binary; try the next base.
+    } catch (error) {
+      errors.push(`${nodeFile}: ${String(error.message ?? error)}`);
     }
   }
-  throw new Error("@openzim/libzim could not be loaded. ZIM files will remain openable but cannot be full-text indexed.");
+  throw new Error(`@openzim/libzim could not be loaded. Checked ${candidates.length} native binding paths. ${errors.join(" | ") || "No usable zim_binding.node was found."}`);
+}
+
+function splitSearchRoots(value) {
+  return String(value ?? "").split(path.delimiter).map((item) => item.trim()).filter(Boolean);
+}
+
+function uniquePaths(values) {
+  const seen = new Set();
+  const out = [];
+  for (const value of values.filter(Boolean)) {
+    const resolved = path.resolve(value);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    out.push(resolved);
+  }
+  return out;
+}
+
+async function missingSiblingLibzim(nodeFile) {
+  const releaseDir = path.dirname(nodeFile);
+  const required = process.platform === "darwin"
+    ? ["libzim.9.dylib"]
+    : process.platform === "linux"
+      ? ["libzim.so.9"]
+      : [];
+  for (const name of required) {
+    const file = path.join(releaseDir, name);
+    const stat = await fs.stat(file).catch(() => null);
+    if (!stat?.isFile() || stat.size === 0) return `${nodeFile}: missing required sibling ${name}`;
+  }
+  return "";
 }
 
 function readableZimItem(entry) {
