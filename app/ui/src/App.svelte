@@ -190,7 +190,6 @@
       refreshState().catch(() => {});
     }, 1000) : 0;
     try {
-      if (shouldPoll) await refreshState();
       await fn();
       await load();
     } catch (err) {

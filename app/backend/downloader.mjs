@@ -2,6 +2,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
+import zlib from "node:zlib";
 import { execFile } from "node:child_process";
 import { once } from "node:events";
 import { Readable } from "node:stream";
@@ -136,16 +137,73 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
   try {
     db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
       .run(0, Number(source.expected_size_bytes ?? 0), "downloading", now(), source.id);
-    await execFileAsync("git", ["clone", "--depth", "1", source.url, cloneDir], { maxBuffer: 20 * 1024 * 1024 });
+    const gitBin = await findGitBin();
+    if (!gitBin) throw new Error("git is not installed. Install git (https://git-scm.com) and retry.");
+    await execFileAsync(gitBin, ["clone", "--depth", "1", source.url, cloneDir], { maxBuffer: 20 * 1024 * 1024 });
     await fsp.rm(path.join(cloneDir, ".git"), { recursive: true, force: true });
     if (signal?.aborted) throw new Error("Download paused");
-    await execFileAsync("zip", ["-qr", tmpPath, "."], { cwd: cloneDir, maxBuffer: 20 * 1024 * 1024 });
+    await zipDirectoryToFile(cloneDir, tmpPath);
     const size = (await fsp.stat(tmpPath)).size;
     db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
       .run(size, size, "downloading", now(), source.id);
   } finally {
     await fsp.rm(cloneDir, { recursive: true, force: true });
   }
+}
+
+async function findGitBin() {
+  const candidates = process.platform === "win32"
+    ? ["git", "C:\\Program Files\\Git\\bin\\git.exe", "C:\\Program Files (x86)\\Git\\bin\\git.exe"]
+    : ["/usr/bin/git", "/usr/local/bin/git", "/opt/homebrew/bin/git", "/opt/local/bin/git", "git"];
+  for (const bin of candidates) {
+    try { await execFileAsync(bin, ["--version"], { timeout: 4000 }); return bin; } catch { /* try next */ }
+  }
+  return null;
+}
+
+async function zipDirectoryToFile(srcDir, destPath) {
+  const files = [];
+  const collectFiles = async (dir) => {
+    for (const entry of await fsp.readdir(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { await collectFiles(full); continue; }
+      const relPath = path.relative(srcDir, full).split(path.sep).join("/");
+      files.push({ name: relPath, data: await fsp.readFile(full) });
+    }
+  };
+  await collectFiles(srcDir);
+  const locals = [], chunks = [];
+  let pos = 0;
+  for (const { name, data } of files) {
+    const nb = Buffer.from(name, "utf8");
+    const comp = zlib.deflateRawSync(data, { level: 6 });
+    const useComp = comp.length < data.length;
+    const fd = useComp ? comp : data;
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4);
+    lh.writeUInt16LE(0, 6); lh.writeUInt16LE(useComp ? 8 : 0, 8);
+    lh.writeUInt32LE(0, 10); lh.writeUInt32LE(0, 14);
+    lh.writeUInt32LE(fd.length, 18); lh.writeUInt32LE(data.length, 22);
+    lh.writeUInt16LE(nb.length, 26); lh.writeUInt16LE(0, 28);
+    locals.push({ offset: pos, nb, cs: fd.length, us: data.length });
+    chunks.push(lh, nb, fd);
+    pos += 30 + nb.length + fd.length;
+  }
+  const cdStart = pos;
+  for (let i = 0; i < files.length; i++) {
+    const { nb, offset, cs, us } = locals[i];
+    const cd = Buffer.alloc(46);
+    cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(0x0014, 4); cd.writeUInt16LE(20, 6);
+    cd.writeUInt32LE(0, 16); cd.writeUInt32LE(cs, 20); cd.writeUInt32LE(us, 24);
+    cd.writeUInt16LE(nb.length, 28); cd.writeUInt32LE(offset, 42);
+    chunks.push(cd, nb); pos += 46 + nb.length;
+  }
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10); eocd.writeUInt32LE(pos - cdStart, 12);
+  eocd.writeUInt32LE(cdStart, 16);
+  chunks.push(eocd);
+  await fsp.writeFile(destPath, Buffer.concat(chunks));
 }
 
 async function transferToPartial({ db, source, tmpPath, existingBytes, expected, diskBudgetBytes, fetchImpl, signal }) {
