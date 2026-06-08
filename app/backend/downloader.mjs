@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
 import crypto from "node:crypto";
 import zlib from "node:zlib";
 import { execFile } from "node:child_process";
@@ -132,7 +133,9 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
 async function cloneGitArchive({ db, source, tmpPath, signal }) {
   if (signal?.aborted) throw new Error("Download paused");
   const cloneDir = `${tmpPath}.git-worktree`;
-  const commandCwd = path.dirname(tmpPath);
+  const outputDir = path.dirname(tmpPath);
+  await fsp.mkdir(outputDir, { recursive: true });
+  const commandCwd = await stableExternalCommandCwd();
   await fsp.rm(cloneDir, { recursive: true, force: true });
   await fsp.rm(tmpPath, { force: true });
   try {
@@ -140,7 +143,7 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
       .run(0, Number(source.expected_size_bytes ?? 0), "downloading", now(), source.id);
     const gitBin = await findGitBin(commandCwd);
     if (!gitBin) throw new Error("git is not installed. Install git (https://git-scm.com) and retry.");
-    await execFileAsync(gitBin, ["clone", "--depth", "1", source.url, cloneDir], { cwd: commandCwd, maxBuffer: 20 * 1024 * 1024 });
+    await execFileSafe(gitBin, ["clone", "--depth", "1", source.url, cloneDir], { cwd: commandCwd, maxBuffer: 20 * 1024 * 1024 });
     await fsp.rm(path.join(cloneDir, ".git"), { recursive: true, force: true });
     if (signal?.aborted) throw new Error("Download paused");
     await zipDirectoryToFile(cloneDir, tmpPath);
@@ -157,9 +160,36 @@ async function findGitBin(cwd) {
     ? ["git", "C:\\Program Files\\Git\\bin\\git.exe", "C:\\Program Files (x86)\\Git\\bin\\git.exe"]
     : ["/usr/bin/git", "/usr/local/bin/git", "/opt/homebrew/bin/git", "/opt/local/bin/git", "git"];
   for (const bin of candidates) {
-    try { await execFileAsync(bin, ["--version"], { cwd, timeout: 4000 }); return bin; } catch { /* try next */ }
+    try { await execFileSafe(bin, ["--version"], { cwd, timeout: 4000 }); return bin; } catch { /* try next */ }
   }
   return null;
+}
+
+async function stableExternalCommandCwd() {
+  const candidates = [
+    process.env.SCA_EXTERNAL_COMMAND_CWD,
+    os.tmpdir(),
+    path.dirname(process.execPath),
+    path.parse(os.tmpdir()).root
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      await fsp.mkdir(candidate, { recursive: true });
+      const real = await fsp.realpath(candidate);
+      const stat = await fsp.stat(real);
+      if (stat.isDirectory()) return real;
+    } catch {
+      /* try next */
+    }
+  }
+  return path.parse(os.tmpdir()).root;
+}
+
+async function execFileSafe(command, args, options = {}) {
+  const cwd = options.cwd ?? await stableExternalCommandCwd();
+  await fsp.mkdir(cwd, { recursive: true });
+  const env = { ...process.env, ...options.env, PWD: cwd };
+  return execFileAsync(command, args, { ...options, cwd, env });
 }
 
 async function zipDirectoryToFile(srcDir, destPath) {

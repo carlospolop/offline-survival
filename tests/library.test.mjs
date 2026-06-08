@@ -531,8 +531,10 @@ describe("library workflows", () => {
     };
     const db = openState(root);
     upsertSource(db, source);
+    const originalPwd = process.env.PWD;
     try {
       process.chdir(deletedCwd);
+      process.env.PWD = deletedCwd;
       await fs.rm(deletedCwd, { recursive: true, force: true });
       const result = await downloadSource({
         db,
@@ -543,6 +545,8 @@ describe("library workflows", () => {
       expect(result.path).toBe(path.join("raw/repos", "tiny-wiki.zip"));
       expect(result.size).toBeGreaterThan(0);
     } finally {
+      if (originalPwd === undefined) delete process.env.PWD;
+      else process.env.PWD = originalPwd;
       process.chdir(originalCwd);
       db.close();
     }
