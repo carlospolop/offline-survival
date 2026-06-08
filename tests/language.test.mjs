@@ -75,7 +75,7 @@ describe("language selectors", () => {
     select.dispatchEvent(new Event("change", { bubbles: true }));
     expect(document.documentElement.lang).toBe("es");
     expect(localStorage.getItem("offline-survival-ui-language")).toBe("es");
-    expect(document.querySelector("[data-i18n='downloadLatest']").textContent).toBe("Descargar ultima version");
+    expect(document.querySelector("[data-i18n='downloadLatest']").textContent).toBe("Descargar última versión");
     expect(document.querySelector("[data-i18n='heroTitle']").textContent).toContain("internet");
 
     select.value = "en";
