@@ -52,6 +52,26 @@ describe("catalog", () => {
     expect(catalog.sources.filter((source) => !source.language)).toHaveLength(0);
   });
 
+  it("keeps profile source sets aligned with the selected content language", async () => {
+    const catalog = await loadCatalog();
+    const sources = new Map(catalog.sources.map((source) => [source.id, source]));
+    const expectedSourceLanguages = {
+      en: ["en"],
+      es: ["es"],
+      both: ["en", "es"]
+    };
+
+    for (const profile of catalog.profiles) {
+      const allowed = expectedSourceLanguages[profile.language];
+      expect(allowed, `${profile.id} has unsupported language ${profile.language}`).toBeTruthy();
+      for (const sourceId of profile.sourceIds) {
+        const source = sources.get(sourceId);
+        expect(source, `${profile.id} references missing source ${sourceId}`).toBeTruthy();
+        expect(allowed, `${profile.id} includes ${sourceId}:${source.language}`).toContain(source.language);
+      }
+    }
+  });
+
   it("uses source type extensions for extensionless URLs", () => {
     expect(artifactName({ id: "page", type: "html", url: "https://example.com/" })).toBe("page-page.html");
     expect(artifactName({ id: "manual", type: "pdf", url: "https://example.com/download" })).toBe("manual.pdf");
