@@ -56,6 +56,240 @@
   let extraSelections: Record<string, boolean> = {};
   let extraIndexOnImport = true;
   let extraImportResult: any = null;
+  let uiLanguage = initialUiLanguage();
+
+  const uiText: Record<string, Record<string, string>> = {
+    en: {
+      appLanguage: "App language",
+      english: "English",
+      spanish: "Spanish",
+      bilingual: "Bilingual",
+      englishProfile: "English profile",
+      spanishProfile: "Spanish profile",
+      bilingualProfile: "Bilingual profile",
+      baseProfile: "Base profile",
+      addsTo: "Adds to {title}",
+      easyInstall: "Easy Install",
+      downloaded: "Downloaded",
+      recommendedSetup: "Recommended setup",
+      recommendationExplain: "Largest profile within 40% total / 20% free disk",
+      recommendationTitle: "Recommended setup is the largest profile whose prepared disk estimate is no more than 40% of total disk and 20% of currently free disk.",
+      noProfileFits: "No profile fits",
+      recommendationCap: "Recommendation cap",
+      freeSpace: "Free space",
+      libraryPath: "Library path",
+      setLibrary: "Set Library",
+      stopKiwix: "Stop Kiwix",
+      startKiwix: "Start Kiwix",
+      cleanSources: "Clean Sources",
+      dashboard: "Dashboard",
+      downloads: "Downloads",
+      search: "Search",
+      extraKnowledge: "Extra Knowledge",
+      localAi: "Local AI",
+      share: "Share",
+      settings: "Settings",
+      working: "Working: {busy}",
+      easyInstallIntro: "Select one or more profiles. Easy Install downloads them, prepares/extracts downloaded sources, indexes searchable content, and can install recommended Local AI.",
+      preparedDisk: "prepared disk",
+      download: "download",
+      sources: "sources",
+      installRecommendedAi: "Install recommended Local AI",
+      installRecommendedAiHelp: "Installs Ollama and every model recommended for this PC.",
+      profilesSelected: "{count} profiles selected",
+      preparedDiskEstimate: "{size} prepared disk estimate",
+      compressedDownload: "{size} compressed download",
+      localAiIncluded: "Local AI included",
+      localAiSkipped: "Local AI skipped",
+      installing: "Installing",
+      startEasyInstall: "Start Easy Install",
+      localAiSetup: "Local AI setup",
+      profiles: "Profiles",
+      filterProfileSources: "Filter profile sources",
+      profilesHelp: "Profiles are ordered from smallest to largest. Each card shows only the sources that profile adds beyond the profile before it; downloading a profile still downloads everything needed for that full tier.",
+      catalogSources: "catalog sources",
+      indexedDocuments: "indexed documents",
+      uniqueBlobs: "unique blobs",
+      servicesRunning: "services running",
+      cpuThreads: "CPU threads",
+      aiNone: "none",
+      loadingProfiles: "Loading Profiles",
+      loadingProfilesHelp: "Reading the local catalog and library state.",
+      profilesCouldNotLoad: "Profiles Could Not Load",
+      backendNotResponding: "The local backend is not responding, so the dashboard cannot show the profile catalog yet.",
+      retryLoadingProfiles: "Retry Loading Profiles",
+      noProfilesFound: "No Profiles Found",
+      noProfilesFoundHelp: "The source catalog loaded, but it did not contain any configured profiles.",
+      refreshCatalog: "Refresh Catalog",
+      downloadFullProfile: "Download Full Profile",
+      profileDownloaded: "Profile Downloaded",
+      addonSourcesShown: "{count} add-on sources shown",
+      preparedAddonDisk: "{size} prepared add-on disk",
+      totalSourcesFullProfile: "{count} total sources in full profile",
+      preparedFullProfile: "{size} prepared full profile",
+      fullProfileProgress: "Full profile progress",
+      progressSummary: "{done} complete · {active} active or queued · {failed} paused or failed · up to 4 downloads run in parallel",
+      addonSource: "Add-on source",
+      type: "Type",
+      preparedDiskColumn: "Prepared disk",
+      status: "Status",
+      actions: "Actions",
+      notDownloaded: "not downloaded",
+      verify: "Verify",
+      open: "Open",
+      pause: "Pause",
+      retry: "Retry",
+      noActionNeeded: "No action needed",
+      source: "Source",
+      progress: "Progress",
+      total: "Total",
+      checkFiles: "Check Files",
+      checkFilesHelp: "Compare the database with files on disk and mark missing or repaired downloads.",
+      removePartialFiles: "Remove Partial Files",
+      removePartialFilesHelp: "Delete unfinished .part files left by paused or interrupted downloads.",
+      recoveryScan: "Recovery scan",
+      chooseFolder: "Choose Folder",
+      scanFolder: "Scan Folder",
+      indexImported: "Index Imported",
+      searchIndexed: "Search indexed practical content",
+      allSearchable: "All searchable resources",
+      allLicenses: "All licenses",
+      semantic: "Semantic",
+      recommendedLocalAiSetup: "Recommended Local AI Setup",
+      installAllRecommended: "Install All Recommended",
+      installingAllRecommended: "Installing All Recommended",
+      aiService: "AI Service",
+      refresh: "Refresh",
+      models: "Models",
+      refreshModels: "Refresh Models",
+      askOllama: "Ask Ollama",
+      sharePackage: "Generate Share Package",
+      generatingSharePackage: "Generating Share Package",
+      updates: "Updates",
+      localhostOnly: "Localhost Only",
+      logs: "Logs",
+      refreshLogs: "Refresh Logs",
+      destructiveAction: "Destructive action",
+      confirmation: "Confirmation",
+      cancel: "Cancel",
+      continue: "Continue"
+    },
+    es: {
+      appLanguage: "Idioma de la app",
+      english: "Ingles",
+      spanish: "Espanol",
+      bilingual: "Bilingue",
+      englishProfile: "Perfil en ingles",
+      spanishProfile: "Perfil en espanol",
+      bilingualProfile: "Perfil bilingue",
+      baseProfile: "Perfil base",
+      addsTo: "Anade a {title}",
+      easyInstall: "Instalacion facil",
+      downloaded: "Descargado",
+      recommendedSetup: "Configuracion recomendada",
+      recommendationExplain: "Perfil mayor dentro del 40% del disco / 20% libre",
+      recommendationTitle: "La configuracion recomendada es el perfil mayor cuya estimacion preparada no supera el 40% del disco total ni el 20% del espacio libre actual.",
+      noProfileFits: "Ningun perfil encaja",
+      recommendationCap: "Limite recomendado",
+      freeSpace: "Espacio libre",
+      libraryPath: "Ruta de biblioteca",
+      setLibrary: "Guardar biblioteca",
+      stopKiwix: "Parar Kiwix",
+      startKiwix: "Iniciar Kiwix",
+      cleanSources: "Limpiar fuentes",
+      dashboard: "Panel",
+      downloads: "Descargas",
+      search: "Buscar",
+      extraKnowledge: "Conocimiento extra",
+      localAi: "IA local",
+      share: "Compartir",
+      settings: "Ajustes",
+      working: "Trabajando: {busy}",
+      easyInstallIntro: "Selecciona uno o mas perfiles. La instalacion facil los descarga, prepara o extrae las fuentes descargadas, indexa el contenido buscable y puede instalar la IA local recomendada.",
+      preparedDisk: "disco preparado",
+      download: "descarga",
+      sources: "fuentes",
+      installRecommendedAi: "Instalar IA local recomendada",
+      installRecommendedAiHelp: "Instala Ollama y todos los modelos recomendados para este PC.",
+      profilesSelected: "{count} perfiles seleccionados",
+      preparedDiskEstimate: "{size} estimados preparados",
+      compressedDownload: "{size} de descarga comprimida",
+      localAiIncluded: "IA local incluida",
+      localAiSkipped: "IA local omitida",
+      installing: "Instalando",
+      startEasyInstall: "Iniciar instalacion facil",
+      localAiSetup: "Configuracion de IA local",
+      profiles: "Perfiles",
+      filterProfileSources: "Filtrar fuentes del perfil",
+      profilesHelp: "Los perfiles estan ordenados de menor a mayor. Cada tarjeta muestra solo las fuentes que ese perfil anade respecto al perfil anterior; descargar un perfil sigue descargando todo lo necesario para ese nivel completo.",
+      catalogSources: "fuentes del catalogo",
+      indexedDocuments: "documentos indexados",
+      uniqueBlobs: "bloques unicos",
+      servicesRunning: "servicios activos",
+      cpuThreads: "hilos de CPU",
+      aiNone: "ninguna",
+      loadingProfiles: "Cargando perfiles",
+      loadingProfilesHelp: "Leyendo el catalogo local y el estado de la biblioteca.",
+      profilesCouldNotLoad: "No se pudieron cargar los perfiles",
+      backendNotResponding: "El backend local no responde, asi que el panel aun no puede mostrar el catalogo de perfiles.",
+      retryLoadingProfiles: "Reintentar carga",
+      noProfilesFound: "No se encontraron perfiles",
+      noProfilesFoundHelp: "El catalogo de fuentes cargo, pero no contiene perfiles configurados.",
+      refreshCatalog: "Actualizar catalogo",
+      downloadFullProfile: "Descargar perfil completo",
+      profileDownloaded: "Perfil descargado",
+      addonSourcesShown: "{count} fuentes anadidas mostradas",
+      preparedAddonDisk: "{size} de disco anadido preparado",
+      totalSourcesFullProfile: "{count} fuentes totales en el perfil",
+      preparedFullProfile: "{size} perfil preparado",
+      fullProfileProgress: "Progreso del perfil completo",
+      progressSummary: "{done} completas · {active} activas o en cola · {failed} pausadas o fallidas · hasta 4 descargas en paralelo",
+      addonSource: "Fuente anadida",
+      type: "Tipo",
+      preparedDiskColumn: "Disco preparado",
+      status: "Estado",
+      actions: "Acciones",
+      notDownloaded: "no descargado",
+      verify: "Verificar",
+      open: "Abrir",
+      pause: "Pausar",
+      retry: "Reintentar",
+      noActionNeeded: "Sin accion necesaria",
+      source: "Fuente",
+      progress: "Progreso",
+      total: "Total",
+      checkFiles: "Comprobar archivos",
+      checkFilesHelp: "Compara la base de datos con los archivos del disco y marca descargas perdidas o reparadas.",
+      removePartialFiles: "Eliminar parciales",
+      removePartialFilesHelp: "Borra archivos .part inacabados de descargas pausadas o interrumpidas.",
+      recoveryScan: "Escaneo de recuperacion",
+      chooseFolder: "Elegir carpeta",
+      scanFolder: "Escanear carpeta",
+      indexImported: "Indexar importados",
+      searchIndexed: "Buscar contenido practico indexado",
+      allSearchable: "Todos los recursos buscables",
+      allLicenses: "Todas las licencias",
+      semantic: "Semantica",
+      recommendedLocalAiSetup: "Configuracion de IA local recomendada",
+      installAllRecommended: "Instalar todo lo recomendado",
+      installingAllRecommended: "Instalando lo recomendado",
+      aiService: "Servicio de IA",
+      refresh: "Actualizar",
+      models: "Modelos",
+      refreshModels: "Actualizar modelos",
+      askOllama: "Preguntar a Ollama",
+      sharePackage: "Generar paquete",
+      generatingSharePackage: "Generando paquete",
+      updates: "Actualizaciones",
+      localhostOnly: "Solo localhost",
+      logs: "Registros",
+      refreshLogs: "Actualizar registros",
+      destructiveAction: "Accion destructiva",
+      confirmation: "Confirmacion",
+      cancel: "Cancelar",
+      continue: "Continuar"
+    }
+  };
 
   $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
   $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
@@ -145,12 +379,34 @@
   $: if (activeTab === "settings") startLogsPolling();
   $: if (activeTab !== "settings") stopLogsPolling();
 
-  onMount(load);
+  onMount(() => {
+    setUiLanguage(uiLanguage);
+    load();
+  });
   onDestroy(() => {
     stopLogsPolling();
     for (const timer of verifyFeedbackTimers.values()) window.clearTimeout(timer);
     if (maintenanceFeedbackTimer) window.clearTimeout(maintenanceFeedbackTimer);
   });
+
+  function initialUiLanguage() {
+    if (typeof window === "undefined") return "en";
+    const saved = window.localStorage.getItem("offline-survival-ui-language");
+    return saved === "es" ? "es" : "en";
+  }
+
+  function setUiLanguage(language: string) {
+    uiLanguage = language === "es" ? "es" : "en";
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("offline-survival-ui-language", uiLanguage);
+      document.documentElement.lang = uiLanguage;
+    }
+  }
+
+  function t(key: string, vars: Record<string, string | number> = {}) {
+    const template = uiText[uiLanguage]?.[key] ?? uiText.en[key] ?? key;
+    return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+  }
 
   function keepShareProfileValid(options: Array<{ id: string }>, current: string) {
     if (!options.length) return;
@@ -189,15 +445,17 @@
     const poller = shouldPoll ? window.setInterval(() => {
       refreshState().catch(() => {});
     }, 1000) : 0;
+    let fnError = "";
     try {
       await fn();
-      await load();
     } catch (err) {
-      error = String((err as Error).message ?? err);
+      fnError = String((err as Error).message ?? err);
     } finally {
       if (poller) window.clearInterval(poller);
       busy = "";
     }
+    await load();
+    if (fnError) error = fnError;
   }
 
   async function setLibrary() {
@@ -652,6 +910,22 @@
     return sources;
   }
 
+  function profileSubtitle(profile: Profile, index: number) {
+    const labels: Record<string, string> = {
+      en: t("english"),
+      es: t("spanish"),
+      both: t("bilingual")
+    };
+    const language = labels[String(profile.language ?? "")];
+    if (profile.variant === "english") return t("englishProfile");
+    if (profile.variant === "spanish") return t("spanishProfile");
+    if (profile.variant === "bilingual") return t("bilingualProfile");
+    const variant = profile.variant ? `${String(profile.variant).charAt(0).toUpperCase()}${String(profile.variant).slice(1)}` : "";
+    if (language && variant && language !== variant) return `${language} · ${variant} profile`;
+    if (language) return `${language} profile`;
+    return index === 0 ? t("baseProfile") : t("addsTo", { title: catalog.profiles[index - 1]?.title ?? "" });
+  }
+
   function sourceProgressInfo(source: Source) {
     const local = sourceState.get(source.id);
     const downloadRow = downloadState.get(source.id);
@@ -762,7 +1036,7 @@
 
   function recommendedInstallSummary() {
     const parts = recommendedAiModels.map((model) => `${model.title} (${gb(model.expected_size_bytes)})`);
-    return parts.join(" + ") || "Calculating recommended models automatically.";
+    return parts.join(" + ") || (uiLanguage === "es" ? "Calculando modelos recomendados automaticamente." : "Calculating recommended models automatically.");
   }
 
   function preparedSize(source: Source) {
@@ -794,14 +1068,14 @@
   function easyInstallProgressLine(progress: any) {
     if (!progress) return "";
     if (progress.phase === "download") {
-      const bytes = progress.totalBytes ? `${gb(progress.currentBytes ?? 0)} / ${gb(progress.totalBytes)}` : "total size unknown";
-      const counts = progress.sourceCount ? `${progress.done ?? 0}/${progress.sourceCount} complete` : "";
+      const bytes = progress.totalBytes ? `${gb(progress.currentBytes ?? 0)} / ${gb(progress.totalBytes)}` : (uiLanguage === "es" ? "tamano total desconocido" : "total size unknown");
+      const counts = progress.sourceCount ? `${progress.done ?? 0}/${progress.sourceCount} ${uiLanguage === "es" ? "completas" : "complete"}` : "";
       const active = progress.active ? ` · ${progress.active} active` : "";
-      return `Downloading profile sources with up to 4 parallel downloads · ${bytes}${counts ? ` · ${counts}` : ""}${active}`;
+      return `${uiLanguage === "es" ? "Descargando fuentes del perfil con hasta 4 descargas paralelas" : "Downloading profile sources with up to 4 parallel downloads"} · ${bytes}${counts ? ` · ${counts}` : ""}${active}`;
     }
-    if (progress.phase === "prepare") return "Extracting archives and preparing downloaded files for offline use.";
-    if (progress.phase === "index") return "Building local search and Local AI context indexes.";
-    if (progress.phase === "ai") return "Installing Ollama and recommended models; see the Local AI progress panel for model download details.";
+    if (progress.phase === "prepare") return uiLanguage === "es" ? "Extrayendo archivos y preparando descargas para uso offline." : "Extracting archives and preparing downloaded files for offline use.";
+    if (progress.phase === "index") return uiLanguage === "es" ? "Creando indices de busqueda local y contexto de IA local." : "Building local search and Local AI context indexes.";
+    if (progress.phase === "ai") return uiLanguage === "es" ? "Instalando Ollama y modelos recomendados; mira el panel de IA local para detalles." : "Installing Ollama and recommended models; see the Local AI progress panel for model download details.";
     return progress.detail ?? "";
   }
 
@@ -838,33 +1112,40 @@
 <main>
   <aside>
     <h1>Offline Survival</h1>
-    <button class="easyInstallButton" type="button" class:active={activeTab === "easy"} on:click={openEasyInstall}>Easy Install</button>
+    <label class="languageControl">
+      {t("appLanguage")}
+      <select bind:value={uiLanguage} on:change={(event) => setUiLanguage(event.currentTarget.value)}>
+        <option value="en">{t("english")}</option>
+        <option value="es">{t("spanish")}</option>
+      </select>
+    </label>
+    <button class="easyInstallButton" type="button" class:active={activeTab === "easy"} data-badge={uiLanguage === "es" ? "Recomendado" : "Recommended"} on:click={openEasyInstall}>{t("easyInstall")}</button>
     <div class="meter">
-      <span>Downloaded</span>
+      <span>{t("downloaded")}</span>
       <strong>{gb(downloadedBytes)}</strong>
     </div>
     {#if system}
-      <div class="meter explainMeter" title="Recommended setup is the largest profile whose prepared disk estimate is no more than 40% of total disk and 20% of currently free disk.">
+      <div class="meter explainMeter" title={t("recommendationTitle")}>
         <span>
-          Recommended setup
-          <small>Largest profile within 40% total / 20% free disk</small>
+          {t("recommendedSetup")}
+          <small>{t("recommendationExplain")}</small>
         </span>
-        <strong>{recommendedSetupProfile?.title ?? "No profile fits"}</strong>
+        <strong>{recommendedSetupProfile?.title ?? t("noProfileFits")}</strong>
       </div>
       <div class="meter">
-        <span>Recommendation cap</span>
+        <span>{t("recommendationCap")}</span>
         <strong>{gb(system.recommendationLimitBytes ?? 0)}</strong>
       </div>
       <div class="meter">
-        <span>Free space</span>
+        <span>{t("freeSpace")}</span>
         <strong>{gb(system.freeSpaceBytes)}</strong>
       </div>
     {/if}
     <label>
-      Library path
+      {t("libraryPath")}
       <input bind:value={libraryPath} />
     </label>
-    <button on:click={setLibrary} disabled={!!busy}>Set Library</button>
+    <button on:click={setLibrary} disabled={!!busy}>{t("setLibrary")}</button>
     <div class="sidebarService">
       <div>
         <span>Kiwix</span>
@@ -872,33 +1153,33 @@
         <small>{kiwixService.url}</small>
       </div>
       {#if kiwixService.status === "running"}
-        <button type="button" on:click={() => stop("kiwix")} disabled={!!busy}>Stop Kiwix</button>
+        <button type="button" on:click={() => stop("kiwix")} disabled={!!busy}>{t("stopKiwix")}</button>
       {:else}
-        <button type="button" on:click={startKiwix} disabled={!!busy || kiwixService.status === "missing"}>Start Kiwix</button>
+        <button type="button" on:click={startKiwix} disabled={!!busy || kiwixService.status === "missing"}>{t("startKiwix")}</button>
       {/if}
     </div>
-    <button type="button" class="dangerAction" on:click={cleanSources} disabled={!!busy}>Clean Sources</button>
+    <button type="button" class="dangerAction" on:click={cleanSources} disabled={!!busy}>{t("cleanSources")}</button>
   </aside>
 
   <section class="workspace">
     <nav class="tabs" aria-label="Application sections">
-      <button type="button" class:active={activeTab === "dashboard"} on:click={() => activeTab = "dashboard"}>Dashboard</button>
-      <button type="button" class:active={activeTab === "downloads"} on:click={() => activeTab = "downloads"}>Downloads</button>
-      <button type="button" class:active={activeTab === "search"} on:click={() => activeTab = "search"}>Search</button>
-      <button type="button" class:active={activeTab === "extra"} on:click={() => activeTab = "extra"}>Extra Knowledge</button>
-      <button type="button" class:active={activeTab === "ai"} on:click={() => activeTab = "ai"}>Local AI</button>
-      <button type="button" class:active={activeTab === "share"} on:click={() => activeTab = "share"}>Share</button>
-      <button type="button" class:active={activeTab === "settings"} on:click={() => activeTab = "settings"}>Settings</button>
+      <button type="button" class:active={activeTab === "dashboard"} on:click={() => activeTab = "dashboard"}>{t("dashboard")}</button>
+      <button type="button" class:active={activeTab === "downloads"} on:click={() => activeTab = "downloads"}>{t("downloads")}</button>
+      <button type="button" class:active={activeTab === "search"} on:click={() => activeTab = "search"}>{t("search")}</button>
+      <button type="button" class:active={activeTab === "extra"} on:click={() => activeTab = "extra"}>{t("extraKnowledge")}</button>
+      <button type="button" class:active={activeTab === "ai"} on:click={() => activeTab = "ai"}>{t("localAi")}</button>
+      <button type="button" class:active={activeTab === "share"} on:click={() => activeTab = "share"}>{t("share")}</button>
+      <button type="button" class:active={activeTab === "settings"} on:click={() => activeTab = "settings"}>{t("settings")}</button>
     </nav>
     {#if error}<div class="alert">{error}</div>{/if}
-    {#if busy}<div class="busy">Working: {busy}</div>{/if}
+    {#if busy}<div class="busy">{t("working", { busy })}</div>{/if}
 
     {#if activeTab === "easy"}
     <section id="easy-install" class="band">
       <div class="sectionHeader">
         <div>
-          <h2>Easy Install</h2>
-          <small>Select one or more profiles. Easy Install downloads them, prepares/extracts downloaded sources, indexes searchable content, and can install recommended Local AI.</small>
+          <h2>{t("easyInstall")}</h2>
+          <small>{t("easyInstallIntro")}</small>
         </div>
       </div>
       <div class="serviceGrid">
@@ -908,7 +1189,7 @@
               <input type="checkbox" checked={Boolean(easyProfileSelections[profile.id])} on:change={(event) => toggleEasyProfile(profile.id, event.currentTarget.checked)} />
               <span>
                 <strong>{profile.title}</strong>
-                <small>{gb(profile.preparedSizeBytes ?? profile.expectedSizeBytes)} prepared disk · {gb(profile.expectedSizeBytes)} download · {profile.sourceIds.length} sources</small>
+                <small>{gb(profile.preparedSizeBytes ?? profile.expectedSizeBytes)} {t("preparedDisk")} · {gb(profile.expectedSizeBytes)} {t("download")} · {profile.sourceIds.length} {t("sources")}</small>
               </span>
             </label>
             <small>{profile.description}</small>
@@ -918,22 +1199,22 @@
           <label class="checkRow">
             <input type="checkbox" bind:checked={easyInstallAi} />
             <span>
-              <strong>Install recommended Local AI</strong>
+              <strong>{t("installRecommendedAi")}</strong>
               <small>{recommendedInstallSummary()}</small>
             </span>
           </label>
-          <small>Installs Ollama and every model recommended for this PC.</small>
+          <small>{t("installRecommendedAiHelp")}</small>
         </article>
       </div>
       <div class="stats">
-        <span>{selectedEasyProfiles.length} profiles selected</span>
-        <span>{gb(selectedEasyPreparedBytes)} prepared disk estimate</span>
-        <span>{gb(selectedEasyDownloadBytes)} compressed download</span>
-        <span>{easyInstallAi ? "Local AI included" : "Local AI skipped"}</span>
+        <span>{t("profilesSelected", { count: selectedEasyProfiles.length })}</span>
+        <span>{t("preparedDiskEstimate", { size: gb(selectedEasyPreparedBytes) })}</span>
+        <span>{t("compressedDownload", { size: gb(selectedEasyDownloadBytes) })}</span>
+        <span>{easyInstallAi ? t("localAiIncluded") : t("localAiSkipped")}</span>
       </div>
       <div class="centerAction">
         <button class="primaryAction startEasyInstallButton" type="button" on:click={easyInstall} disabled={!!busy || (!selectedEasyProfiles.length && !easyInstallAi)}>
-          {busy === "easy-install" ? "Installing" : "Start Easy Install"}
+          {busy === "easy-install" ? t("installing") : t("startEasyInstall")}
         </button>
       </div>
       {#if easyInstallProgress}
@@ -950,7 +1231,7 @@
       {#if showEasyAiProgress}
         <div class="progressPanel aiProgress">
           <div class="progressHeader">
-            <strong>{aiInstallProgress.item ?? "Local AI setup"}</strong>
+            <strong>{aiInstallProgress.item ?? t("localAiSetup")}</strong>
             <span>{aiInstallProgress.phase ?? aiInstallProgress.status}</span>
           </div>
           <progress max="100" value={aiInstallProgress.percent ?? 0}></progress>
@@ -964,44 +1245,44 @@
     {#if activeTab === "dashboard"}
     <section class="band">
       <div class="sectionHeader">
-        <h2>Profiles</h2>
-        <input placeholder="Filter profile sources" bind:value={filter} />
+        <h2>{t("profiles")}</h2>
+        <input placeholder={t("filterProfileSources")} bind:value={filter} />
       </div>
-      <p>Profiles are ordered from smallest to largest. Each card shows only the sources that profile adds beyond the profile before it; downloading a profile still downloads everything needed for that full tier.</p>
+      <p>{t("profilesHelp")}</p>
       <div class="stats">
-        <span>{catalog.profiles.length} profiles</span>
-        <span>{catalog.sources.length} catalog sources</span>
-        <span>{state.documents.length} indexed documents</span>
-        <span>{state.blobs.length} unique blobs</span>
-        <span>{state.services.filter((service) => service.status === "running").length} services running</span>
+        <span>{catalog.profiles.length} {t("profiles").toLowerCase()}</span>
+        <span>{catalog.sources.length} {t("catalogSources")}</span>
+        <span>{state.documents.length} {t("indexedDocuments")}</span>
+        <span>{state.blobs.length} {t("uniqueBlobs")}</span>
+        <span>{state.services.filter((service) => service.status === "running").length} {t("servicesRunning")}</span>
       </div>
       {#if system}
         <div class="stats">
           <span>{system.platform}/{system.arch}</span>
-          <span>{system.cpuCount} CPU threads</span>
+          <span>{system.cpuCount} {t("cpuThreads")}</span>
           <span>{gb(system.totalMemBytes)} RAM</span>
-          <span>AI: {system.aiRecommendation.join(", ") || "none"}</span>
+          <span>AI: {system.aiRecommendation.join(", ") || t("aiNone")}</span>
         </div>
       {/if}
     </section>
 
     {#if loadingCatalog}
       <section class="band emptyState">
-        <h2>Loading Profiles</h2>
-        <p>Reading the local catalog and library state.</p>
+        <h2>{t("loadingProfiles")}</h2>
+        <p>{t("loadingProfilesHelp")}</p>
       </section>
     {:else if catalogError}
       <section class="band emptyState">
-        <h2>Profiles Could Not Load</h2>
-        <p>The local backend is not responding, so the dashboard cannot show the profile catalog yet.</p>
+        <h2>{t("profilesCouldNotLoad")}</h2>
+        <p>{t("backendNotResponding")}</p>
         <small>{catalogError}</small>
-        <button type="button" on:click={load}>Retry Loading Profiles</button>
+        <button type="button" on:click={load}>{t("retryLoadingProfiles")}</button>
       </section>
     {:else if catalog.profiles.length === 0}
       <section class="band emptyState">
-        <h2>No Profiles Found</h2>
-        <p>The source catalog loaded, but it did not contain any configured profiles.</p>
-        <button type="button" on:click={refreshCatalog}>Refresh Catalog</button>
+        <h2>{t("noProfilesFound")}</h2>
+        <p>{t("noProfilesFoundHelp")}</p>
+        <button type="button" on:click={refreshCatalog}>{t("refreshCatalog")}</button>
       </section>
     {:else}
     {#each catalog.profiles as profile, index}
@@ -1012,33 +1293,33 @@
         <div class="sectionHeader">
           <div>
             <h2>{profile.title}</h2>
-            <small>{index === 0 ? "Base profile" : `Adds to ${catalog.profiles[index - 1]?.title}`}</small>
+            <small>{profileSubtitle(profile, index)}</small>
           </div>
           <span class="tooltipHost" title={downloadProfileTooltip(profile)}>
             <button aria-label={downloadProfileTooltip(profile)} on:click={() => downloadProfile(profile)} disabled={!hasDownloadableSources || (profileDownloadBusy && busy !== `profile-${profile.id}`)}>
-              {hasDownloadableSources ? "Download Full Profile" : "Profile Downloaded"}
+              {hasDownloadableSources ? t("downloadFullProfile") : t("profileDownloaded")}
             </button>
           </span>
         </div>
         <p>{profile.description}</p>
         <div class="stats">
-          <span>{added.length} add-on sources shown</span>
-          <span>{gb(profile.addedPreparedSizeBytes ?? profile.addedExpectedSizeBytes ?? 0)} prepared add-on disk</span>
-          <span>{profile.sourceIds.length} total sources in full profile</span>
-          <span>{gb(profile.preparedSizeBytes ?? profile.expectedSizeBytes)} prepared full profile</span>
-          <span>{gb(profile.expectedSizeBytes)} compressed download</span>
+          <span>{t("addonSourcesShown", { count: added.length })}</span>
+          <span>{t("preparedAddonDisk", { size: gb(profile.addedPreparedSizeBytes ?? profile.addedExpectedSizeBytes ?? 0) })}</span>
+          <span>{t("totalSourcesFullProfile", { count: profile.sourceIds.length })}</span>
+          <span>{t("preparedFullProfile", { size: gb(profile.preparedSizeBytes ?? profile.expectedSizeBytes) })}</span>
+          <span>{t("compressedDownload", { size: gb(profile.expectedSizeBytes) })}</span>
         </div>
         <div class="progressPanel">
           <div class="progressHeader">
-            <strong>Full profile progress</strong>
+            <strong>{t("fullProfileProgress")}</strong>
             <span>{progress.progress}% · {gb(progress.received)} / {gb(progress.total)}</span>
           </div>
           <progress max="100" value={progress.progress}></progress>
-          <small>{progress.done} complete · {progress.active} active or queued · {progress.failed} paused or failed · up to 4 downloads run in parallel</small>
+          <small>{t("progressSummary", { done: progress.done, active: progress.active, failed: progress.failed })}</small>
         </div>
         <div class="table">
           <div class="row head">
-            <span>Add-on source</span><span>Type</span><span>Prepared disk</span><span>Status</span><span>Actions</span>
+            <span>{t("addonSource")}</span><span>{t("type")}</span><span>{t("preparedDiskColumn")}</span><span>{t("status")}</span><span>{t("actions")}</span>
           </div>
           {#each added as source}
             {@const info = sourceProgressInfo(source)}
@@ -1049,7 +1330,7 @@
             <div class="row">
               <span>
                 <strong>{source.title}</strong>
-                <small>{source.category} · {source.license} · {info.local?.local_path ?? "not downloaded"}</small>
+                <small>{source.category} · {source.license} · {info.local?.local_path ?? t("notDownloaded")}</small>
               </span>
               <span>{source.type}</span>
               <span>{gb(preparedSize(source))}</span>
@@ -1065,20 +1346,20 @@
               </span>
               <span class="actions">
                 {#if downloaded}
-                  <small>Downloaded</small>
+                  <small>{t("downloaded")}</small>
                 {:else}
                   <span class="tooltipHost" title={downloadTooltip(source)}>
-                    <button aria-label={downloadTooltip(source)} on:click={() => download(source.id)} disabled={profileDownloadBusy || sourceBusy || sourceDownloading}>Download</button>
+                    <button aria-label={downloadTooltip(source)} on:click={() => download(source.id)} disabled={profileDownloadBusy || sourceBusy || sourceDownloading}>{t("download")}</button>
                   </span>
                 {/if}
                 <span class="tooltipHost" title={verifyTooltip(source)}>
-                  <button aria-label={verifyTooltip(source)} on:click={() => verify(source.id)} disabled={!info.local?.local_path || sourceBusy || sourceDownloading}>Verify</button>
+                  <button aria-label={verifyTooltip(source)} on:click={() => verify(source.id)} disabled={!info.local?.local_path || sourceBusy || sourceDownloading}>{t("verify")}</button>
                 </span>
                 <span class="tooltipHost" title={indexTooltip(source)}>
                   <button aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={!info.local?.local_path || sourceBusy || sourceDownloading}>{indexActionLabel(source.id)}</button>
                 </span>
                 <span class="tooltipHost" title={openTooltip(source)}>
-                  <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || sourceBusy}>Open</button>
+                  <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || sourceBusy}>{t("open")}</button>
                 </span>
                 {#if busy === `index-${source.id}`}
                   <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
@@ -1102,24 +1383,24 @@
     {#if activeTab === "downloads"}
     <section id="downloads" class="band">
       <div class="sectionHeader">
-        <h2>Downloads</h2>
+        <h2>{t("downloads")}</h2>
         <div class="maintenanceActions">
           <span>
-            <button on:click={reconcile} disabled={!!busy}>Check Files</button>
-            <small>Compare the database with files on disk and mark missing or repaired downloads.</small>
+            <button on:click={reconcile} disabled={!!busy}>{t("checkFiles")}</button>
+            <small>{t("checkFilesHelp")}</small>
             {#if maintenanceFeedback}
               <small class="inlineFeedback" class:ok={maintenanceFeedback.ok} class:bad={!maintenanceFeedback.ok}>{maintenanceFeedback.message}</small>
             {/if}
           </span>
           <span>
-            <button on:click={cleanupPartials} disabled={!!busy}>Remove Partial Files</button>
-            <small>Delete unfinished .part files left by paused or interrupted downloads.</small>
+            <button on:click={cleanupPartials} disabled={!!busy}>{t("removePartialFiles")}</button>
+            <small>{t("removePartialFilesHelp")}</small>
           </span>
         </div>
       </div>
       <div class="table">
         <div class="row head">
-          <span>Source</span><span>Status</span><span>Progress</span><span>Total</span><span>Actions</span>
+          <span>{t("source")}</span><span>{t("status")}</span><span>{t("progress")}</span><span>{t("total")}</span><span>{t("actions")}</span>
         </div>
         {#each state.downloads as downloadRow}
           {@const canPause = ["queued", "downloading", "resuming"].includes(String(downloadRow.status))}
@@ -1145,11 +1426,11 @@
             <span>{gb(downloadRow.total_bytes)}</span>
             <span class="actions">
               {#if canPause}
-                <button on:click={() => pause(downloadRow.source_id)} disabled={pauseBusy}>Pause</button>
+                <button on:click={() => pause(downloadRow.source_id)} disabled={pauseBusy}>{t("pause")}</button>
               {:else if canRetry}
-                <button on:click={() => retry(downloadRow.source_id)} disabled={retryBusy}>Retry</button>
+                <button on:click={() => retry(downloadRow.source_id)} disabled={retryBusy}>{t("retry")}</button>
               {:else}
-                <small>No action needed</small>
+                <small>{t("noActionNeeded")}</small>
               {/if}
             </span>
           </div>
@@ -1157,7 +1438,7 @@
       </div>
       {#if recovery}
         <article class="answer">
-          <strong>Recovery scan</strong>
+          <strong>{t("recoveryScan")}</strong>
           <small>{recovery.repaired.length} repaired · {recovery.missing.length} missing · {recovery.partials.length} partials</small>
         </article>
       {/if}
@@ -1168,17 +1449,17 @@
     <section id="extra-knowledge" class="band">
       <div class="sectionHeader">
         <div>
-          <h2>Extra Knowledge</h2>
+          <h2>{t("extraKnowledge")}</h2>
           <small>Add local PDFs, EPUBs, text/Markdown/HTML/CSV/JSON files, and ZIM files from another folder.</small>
         </div>
         <span class="actions">
-          <button type="button" on:click={indexImportedExtraFiles} disabled={!!busy || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>Index Imported</button>
+          <button type="button" on:click={indexImportedExtraFiles} disabled={!!busy || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>{t("indexImported")}</button>
         </span>
       </div>
       <div class="pathPicker">
         <input placeholder="/home/you/Documents/offline-notes" bind:value={extraFolderPath} />
-        <button type="button" on:click={pickExtraFolder} disabled={!!busy}>Choose Folder</button>
-        <button type="button" on:click={scanExtraFolder} disabled={!!busy || !extraFolderPath.trim()}>Scan Folder</button>
+        <button type="button" on:click={pickExtraFolder} disabled={!!busy}>{t("chooseFolder")}</button>
+        <button type="button" on:click={scanExtraFolder} disabled={!!busy || !extraFolderPath.trim()}>{t("scanFolder")}</button>
       </div>
       {#if extraScan}
         <div class="stats">
@@ -1250,7 +1531,7 @@
     {#if activeTab === "search"}
     <section id="search" class="band">
       <div class="sectionHeader">
-        <h2>Search</h2>
+        <h2>{t("search")}</h2>
         <span class="actions">
           <span class="tooltipHost" title="Index all downloaded sources that are not indexed yet. This uses built-in text extraction and does not require an embedding model.">
             <button type="button" on:click={indexAllDownloaded} disabled={!!busy || !indexableDownloadedSources.length}>
@@ -1259,21 +1540,21 @@
           </span>
         </span>
         <form on:submit|preventDefault={searchNow}>
-          <input placeholder="Search indexed practical content" bind:value={query} />
+          <input placeholder={t("searchIndexed")} bind:value={query} />
           <select bind:value={searchSource}>
-            <option value="">All searchable resources</option>
+            <option value="">{t("allSearchable")}</option>
             {#each searchableSources as source}
               <option value={source.id}>{source.title}</option>
             {/each}
           </select>
           <select bind:value={searchLicense}>
-            <option value="">All licenses</option>
+            <option value="">{t("allLicenses")}</option>
             {#each licenseOptions as license}
               <option value={license}>{license}</option>
             {/each}
           </select>
-          <button>Search</button>
-          <button type="button" on:click={semanticSearchNow}>Semantic</button>
+          <button>{t("search")}</button>
+          <button type="button" on:click={semanticSearchNow}>{t("semantic")}</button>
         </form>
       </div>
       <div class="resourceGrid">
@@ -1365,11 +1646,11 @@
     <section id="ai-recommended-setup" class="band">
       <div class="sectionHeader">
         <div>
-          <h2>Recommended Local AI Setup</h2>
+          <h2>{t("recommendedLocalAiSetup")}</h2>
           <small>Installs the app-managed Ollama runtime if needed, starts it locally, and downloads every model recommended for this PC.</small>
         </div>
         <button class="primaryAction" on:click={installRecommendedAi} disabled={loadingCatalog || (!!busy && busy !== "easy-install")}>
-          {busy === "ai-install" ? "Installing All Recommended" : "Install All Recommended"}
+          {busy === "ai-install" ? t("installingAllRecommended") : t("installAllRecommended")}
         </button>
       </div>
       <div class="stats">
@@ -1400,8 +1681,8 @@
 
     <section id="ai-service" class="band">
       <div class="sectionHeader">
-        <h2>AI Service</h2>
-        <button on:click={refreshServices}>Refresh</button>
+        <h2>{t("aiService")}</h2>
+        <button on:click={refreshServices}>{t("refresh")}</button>
       </div>
       <div class="serviceGrid">
         {#each aiServiceCards as service}
@@ -1438,8 +1719,8 @@
 
     <section id="models" class="band">
       <div class="sectionHeader">
-        <h2>Models</h2>
-        <button on:click={refreshModels}>Refresh Models</button>
+        <h2>{t("models")}</h2>
+        <button on:click={refreshModels}>{t("refreshModels")}</button>
       </div>
       {#if recommendedChatModel || recommendedEmbeddingModel}
         <div class="recommendationPanel">
@@ -1489,7 +1770,7 @@
 
     <section id="ai" class="band">
       <div class="sectionHeader">
-        <h2>Local AI</h2>
+        <h2>{t("localAi")}</h2>
         <span class="actions">
           <span>{indexedSources.length} indexed resources available</span>
           <button type="button" on:click={indexAllDownloaded} disabled={!!busy || !indexableDownloadedSources.length}>
@@ -1506,7 +1787,7 @@
           {/each}
         </select>
         <textarea placeholder="Ask against indexed local documents" bind:value={question}></textarea>
-        <button disabled={!!busy || !question.trim()}>Ask Ollama</button>
+        <button disabled={!!busy || !question.trim()}>{t("askOllama")}</button>
       </form>
       {#if answer}
         <article class="answer">
@@ -1522,7 +1803,7 @@
     {#if activeTab === "share"}
     <section id="share" class="band">
       <div class="sectionHeader">
-        <h2>Share</h2>
+        <h2>{t("share")}</h2>
       </div>
       <p>Share creates one compressed package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.</p>
       <article class="recommendedSetup">
@@ -1544,7 +1825,7 @@
             </select>
             <button type="button" on:click={pickShareAppsFolder} disabled={!!busy}>App Bundle Folder</button>
             <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy || !shareProfile}>
-              {busy === "share-package" ? "Generating Share Package" : "Generate Share Package"}
+              {busy === "share-package" ? t("generatingSharePackage") : t("sharePackage")}
             </button>
           </span>
         {/if}
@@ -1607,11 +1888,11 @@
     {#if activeTab === "settings"}
     <section id="settings" class="band">
       <div class="sectionHeader">
-        <h2>Settings</h2>
+        <h2>{t("settings")}</h2>
         <span class="actions">
-          <button on:click={updatesStatus} disabled={!!busy}>Updates</button>
-          <button on:click={refreshCatalog} disabled={!!busy}>Refresh Catalog</button>
-          <button on:click={keepLocalhostOnly} disabled={!!busy}>Localhost Only</button>
+          <button on:click={updatesStatus} disabled={!!busy}>{t("updates")}</button>
+          <button on:click={refreshCatalog} disabled={!!busy}>{t("refreshCatalog")}</button>
+          <button on:click={keepLocalhostOnly} disabled={!!busy}>{t("localhostOnly")}</button>
         </span>
       </div>
       {#if updates}
@@ -1632,8 +1913,8 @@
 
     <section id="logs" class="band">
       <div class="sectionHeader">
-        <h2>Logs</h2>
-        <button on:click={loadLogs} disabled={!!busy}>Refresh Logs</button>
+        <h2>{t("logs")}</h2>
+        <button on:click={loadLogs} disabled={!!busy}>{t("refreshLogs")}</button>
       </div>
       <div class="results">
         {#each logs as log}
@@ -1654,7 +1935,7 @@
     <div role="dialog" aria-modal="true" class:dangerModal={confirmDialog.tone === "danger"} class="confirmModal" aria-labelledby="confirm-title" on:click|stopPropagation>
       <div class="modalHeader">
         <div>
-          <span class="modalKicker">{confirmDialog.tone === "danger" ? "Destructive action" : "Confirmation"}</span>
+          <span class="modalKicker">{confirmDialog.tone === "danger" ? t("destructiveAction") : t("confirmation")}</span>
           <h2 id="confirm-title">{confirmDialog.title}</h2>
         </div>
       </div>
@@ -1675,9 +1956,9 @@
         </div>
       {/if}
       <div class="modalActions">
-        <button type="button" on:click={() => answerConfirm(false)}>{confirmDialog.cancelLabel ?? "Cancel"}</button>
+        <button type="button" on:click={() => answerConfirm(false)}>{confirmDialog.cancelLabel ?? t("cancel")}</button>
         <button type="button" class:dangerAction={confirmDialog.tone === "danger"} class:primaryAction={confirmDialog.tone !== "danger"} on:click={() => answerConfirm(true)}>
-          {confirmDialog.confirmLabel ?? "Continue"}
+          {confirmDialog.confirmLabel ?? t("continue")}
         </button>
       </div>
     </div>

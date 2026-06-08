@@ -364,8 +364,13 @@ async function loadLibzim() {
   ];
   for (const base of searchBases) {
     const nodeFile = path.join(base, "node_modules/@openzim/libzim/build/Release/zim_binding.node");
-    if (await fs.access(nodeFile).then(() => true, () => false)) {
+    // Skip missing or empty placeholder files (CI creates 0-byte stubs when build is skipped).
+    const isReal = await fs.stat(nodeFile).then((s) => s.size > 0, () => false);
+    if (!isReal) continue;
+    try {
       return createRequire(import.meta.url)(nodeFile);
+    } catch {
+      // Wrong-platform or corrupted binary; try the next base.
     }
   }
   throw new Error("@openzim/libzim could not be loaded. ZIM files will remain openable but cannot be full-text indexed.");
