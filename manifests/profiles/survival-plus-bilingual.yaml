@@ -1,0 +1,14 @@
+id: survival-plus-bilingual
+title: Survival Plus Bilingual
+language: both
+variant: bilingual
+description: English and Spanish laptop or USB-SSD archive. Combines Survival Plus with Survival Plus ES, keeping English gap-fillers while adding Spanish Wikipedia, medicine, repair, and travel sources.
+target_size_gb: [35, 70]
+disk_budget_gb: 80
+includes:
+  - survival-plus
+  - survival-plus-es
+models:
+  recommended:
+    - qwen3-8b
+    - bge-m3

@@ -1,0 +1,14 @@
+id: civilization-core-bilingual
+title: Civilization Core Bilingual
+language: both
+variant: bilingual
+description: English and Spanish community knowledge-station profile. Combines Civilization Core with Civilization Core ES for broader bilingual repair, education, language, public health, and reconstruction coverage.
+target_size_gb: [155, 320]
+disk_budget_gb: 330
+includes:
+  - civilization-core
+  - civilization-core-es
+models:
+  recommended:
+    - qwen3-8b
+    - bge-m3

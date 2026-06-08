@@ -11,7 +11,7 @@ let root;
 
 beforeAll(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), "sca-http-"));
-  child = spawn(process.execPath, ["app/backend/server.mjs"], {
+  child = spawn(process.execPath, ["--experimental-sqlite", "app/backend/server.mjs"], {
     cwd: process.cwd(),
     env: { ...process.env, PORT: String(port), SCA_LIBRARY_ROOT: root, SCA_NO_OPEN: "1" },
     stdio: "ignore"
@@ -35,7 +35,7 @@ afterAll(async () => {
 describe("HTTP API", () => {
   it("serves catalog, system, adapters, license report, and integrity", async () => {
     const catalog = await (await fetch(`http://127.0.0.1:${port}/api/catalog`)).json();
-    expect(catalog.profiles).toHaveLength(5);
+    expect(catalog.profiles).toHaveLength(15);
     const system = await (await fetch(`http://127.0.0.1:${port}/api/system`)).json();
     expect(system.freeSpaceBytes).toBeGreaterThan(0);
     const adapters = await (await fetch(`http://127.0.0.1:${port}/api/adapters/refresh`)).json();
@@ -111,7 +111,7 @@ describe("HTTP API", () => {
     expect(cleaned.status).toBe("cleaned");
 
     const state = await (await fetch(`http://127.0.0.1:${port}/api/state`)).json();
-    expect(state.sources).toHaveLength(34);
+    expect(state.sources).toHaveLength(52);
     expect(state.sources.some((source) => source.id === imported.imported[0].id)).toBe(false);
     expect(state.sources.every((source) => !source.local_path && source.status === "missing")).toBe(true);
     expect(state.downloads).toHaveLength(0);
@@ -139,7 +139,7 @@ describe("HTTP API", () => {
     expect(refreshed.mode).toBe("local-manifest-snapshot");
 
     const after = await (await fetch(`http://127.0.0.1:${port}/api/state`)).json();
-    expect(after.sources).toHaveLength(34);
+    expect(after.sources).toHaveLength(52);
     expect(after.sources.some((source) => source.id === "stale-source-from-old-manifest")).toBe(false);
   });
 });

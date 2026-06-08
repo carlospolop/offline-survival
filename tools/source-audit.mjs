@@ -34,7 +34,9 @@ for (const source of catalog.sources) {
     result.probe = await rangeProbe(source.url);
     const shouldFull = mode === "full" || (mode === "small" && Number(source.expected_size_bytes ?? 0) <= maxFullBytes);
     if (!shouldFull) {
-      result.full = `skipped: expected ${source.expected_size_bytes} bytes exceeds max-full-bytes ${maxFullBytes}`;
+      result.full = mode === "probe"
+        ? "skipped: probe mode"
+        : `skipped: expected ${source.expected_size_bytes} bytes exceeds max-full-bytes ${maxFullBytes}`;
       result.cleanup = "not-needed";
       results.push(result);
       console.log(`  probe ok; full skipped`);

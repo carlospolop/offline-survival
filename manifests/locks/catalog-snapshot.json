@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-04T08:56:17.047Z",
+  "generated_at": "2026-06-08T15:38:45.390Z",
   "profiles": [
     {
       "id": "survival-essential",
@@ -8,10 +8,34 @@
       "expected_size_bytes": 3601679256
     },
     {
+      "id": "survival-essential-es",
+      "title": "Survival Essential ES",
+      "source_count": 5,
+      "expected_size_bytes": 29564682
+    },
+    {
+      "id": "survival-essential-bilingual",
+      "title": "Survival Essential Bilingual",
+      "source_count": 10,
+      "expected_size_bytes": 3631243938
+    },
+    {
       "id": "survival-plus",
       "title": "Survival Plus",
       "source_count": 13,
       "expected_size_bytes": 30157889052
+    },
+    {
+      "id": "survival-plus-es",
+      "title": "Survival Plus ES",
+      "source_count": 9,
+      "expected_size_bytes": 5034022238
+    },
+    {
+      "id": "survival-plus-bilingual",
+      "title": "Survival Plus Bilingual",
+      "source_count": 22,
+      "expected_size_bytes": 35191911290
     },
     {
       "id": "civilization-core",
@@ -20,16 +44,52 @@
       "expected_size_bytes": 54998184767
     },
     {
+      "id": "civilization-core-es",
+      "title": "Civilization Core ES",
+      "source_count": 11,
+      "expected_size_bytes": 5707376968
+    },
+    {
+      "id": "civilization-core-bilingual",
+      "title": "Civilization Core Bilingual",
+      "source_count": 38,
+      "expected_size_bytes": 60705561735
+    },
+    {
       "id": "civilization-rebuild",
       "title": "Civilization Rebuild",
       "source_count": 32,
       "expected_size_bytes": 83550805154
     },
     {
+      "id": "civilization-rebuild-es",
+      "title": "Civilization Rebuild ES",
+      "source_count": 17,
+      "expected_size_bytes": 8810197050
+    },
+    {
+      "id": "civilization-rebuild-bilingual",
+      "title": "Civilization Rebuild Bilingual",
+      "source_count": 49,
+      "expected_size_bytes": 92361002204
+    },
+    {
       "id": "civilization-max",
       "title": "Civilization Max",
       "source_count": 34,
       "expected_size_bytes": 149088282174
+    },
+    {
+      "id": "civilization-max-es",
+      "title": "Civilization Max ES",
+      "source_count": 18,
+      "expected_size_bytes": 20903840561
+    },
+    {
+      "id": "civilization-max-bilingual",
+      "title": "Civilization Max Bilingual",
+      "source_count": 52,
+      "expected_size_bytes": 169992122735
     }
   ],
   "sources": [
@@ -303,6 +363,150 @@
       "type": "zim",
       "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_top1m_maxi_2026-04.zim",
       "expected_size_bytes": 49385355700,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "vikidia-es-zim",
+      "title": "Vikidia Spanish No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-03.zim",
+      "expected_size_bytes": 13569687,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "who-basic-emergency-care-es",
+      "title": "WHO Basic Emergency Care Spanish Flyer",
+      "type": "pdf",
+      "url": "https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec_flyer_final_es.pdf?sfvrsn=d50c1e47_1",
+      "expected_size_bytes": 6854788,
+      "license": "CC-BY-NC-SA-3.0-IGO"
+    },
+    {
+      "id": "who-bec-quick-cards-es",
+      "title": "WHO BEC Quick Cards Spanish",
+      "type": "pdf",
+      "url": "https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec-quick-cards/becp-edu30-pdf-sp-frst.pdf",
+      "expected_size_bytes": 217441,
+      "license": "CC-BY-NC-SA-3.0-IGO"
+    },
+    {
+      "id": "cert-basic-training-es",
+      "title": "CERT Basic Training Spanish",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2019.CERT_.Basic_.PM_.FINAL_.Spanish.508c.pdf",
+      "expected_size_bytes": 8829561,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "cdc-build-emergency-kit-es",
+      "title": "CDC Build Emergency Kit Spanish",
+      "type": "html",
+      "url": "https://www.cdc.gov/es/disasters/psa/build-emergency-kit.html",
+      "expected_size_bytes": 93205,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "wikipedia-es-top-zim",
+      "title": "Wikipedia Spanish Top No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-04.zim",
+      "expected_size_bytes": 1128822337,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikipedia-es-medicine-zim",
+      "title": "Wikipedia Spanish Medicine No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-04.zim",
+      "expected_size_bytes": 157097761,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "ifixit-es-zim",
+      "title": "iFixit Spanish ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/ifixit/ifixit_es_all_2026-03.zim",
+      "expected_size_bytes": 3680870250,
+      "license": "CC-BY-NC-SA-3.0"
+    },
+    {
+      "id": "wikivoyage-es-zim",
+      "title": "Wikivoyage Spanish No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-03.zim",
+      "expected_size_bytes": 37667208,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikibooks-es-zim",
+      "title": "Wikibooks Spanish No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikibooks/wikibooks_es_all_nopic_2025-10.zim",
+      "expected_size_bytes": 112043538,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wiktionary-es-zim",
+      "title": "Wiktionary Spanish No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-03.zim",
+      "expected_size_bytes": 561311192,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikisource-es-zim",
+      "title": "Wikisource Spanish No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-04.zim",
+      "expected_size_bytes": 763595002,
+      "license": "mixed-free"
+    },
+    {
+      "id": "wikipedia-es-history-zim",
+      "title": "Wikipedia Spanish History No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-04.zim",
+      "expected_size_bytes": 184839013,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikipedia-es-mathematics-zim",
+      "title": "Wikipedia Spanish Mathematics No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-04.zim",
+      "expected_size_bytes": 106635933,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikipedia-es-physics-zim",
+      "title": "Wikipedia Spanish Physics No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-04.zim",
+      "expected_size_bytes": 90512771,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "wikipedia-es-computer-zim",
+      "title": "Wikipedia Spanish Computing No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-04.zim",
+      "expected_size_bytes": 97131347,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "project-gutenberg-es-zim",
+      "title": "Project Gutenberg Spanish ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/gutenberg/gutenberg_es_all_2026-01.zim",
+      "expected_size_bytes": 1860106016,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "wikipedia-es-all-nopic-zim",
+      "title": "Wikipedia Spanish All No Images ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-05.zim",
+      "expected_size_bytes": 12093643511,
       "license": "CC-BY-SA-4.0"
     }
   ]

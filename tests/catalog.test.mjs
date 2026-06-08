@@ -15,13 +15,23 @@ describe("catalog", () => {
     const catalog = await loadCatalog();
     expect(catalog.profiles.map((profile) => profile.id)).toEqual([
       "survival-essential",
+      "survival-essential-es",
+      "survival-essential-bilingual",
       "survival-plus",
+      "survival-plus-es",
+      "survival-plus-bilingual",
       "civilization-core",
+      "civilization-core-es",
+      "civilization-core-bilingual",
       "civilization-rebuild",
-      "civilization-max"
+      "civilization-rebuild-es",
+      "civilization-rebuild-bilingual",
+      "civilization-max",
+      "civilization-max-es",
+      "civilization-max-bilingual"
     ]);
     expect(catalog.profiles[0].description).toMatch(/Small emergency archive/);
-    expect(catalog.profiles.at(-1).description).toMatch(/Deep preservation profile/);
+    expect(catalog.profiles.at(-1).description).toMatch(/deep preservation profile/i);
   });
 
   it("keeps every profile within its declared budget", async () => {
@@ -29,6 +39,17 @@ describe("catalog", () => {
     for (const profile of catalog.profiles) {
       expect(profile.expectedSizeBytes).toBeLessThanOrEqual(profile.disk_budget_gb * 1_000_000_000);
     }
+  });
+
+  it("includes English, Spanish, and bilingual profile families", async () => {
+    const catalog = await loadCatalog();
+    const byLanguage = (language) => catalog.profiles.filter((profile) => profile.language === language);
+    expect(byLanguage("en")).toHaveLength(5);
+    expect(byLanguage("es")).toHaveLength(5);
+    expect(byLanguage("both")).toHaveLength(5);
+    expect(catalog.sources.filter((source) => source.language === "en")).toHaveLength(34);
+    expect(catalog.sources.filter((source) => source.language === "es")).toHaveLength(18);
+    expect(catalog.sources.filter((source) => !source.language)).toHaveLength(0);
   });
 
   it("uses source type extensions for extensionless URLs", () => {

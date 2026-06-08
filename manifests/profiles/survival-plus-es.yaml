@@ -1,0 +1,18 @@
+id: survival-plus-es
+title: Survival Plus ES
+language: es
+variant: spanish
+description: Spanish laptop or USB-SSD archive that extends Survival Essential ES with compact Spanish Wikipedia, Spanish medicine reference, iFixit repair procedures, and Spanish Wikivoyage travel/geography.
+target_size_gb: [4, 8]
+disk_budget_gb: 10
+includes:
+  - survival-essential-es
+sources:
+  - wikipedia-es-top-zim
+  - wikipedia-es-medicine-zim
+  - ifixit-es-zim
+  - wikivoyage-es-zim
+models:
+  recommended:
+    - qwen3-8b
+    - bge-m3

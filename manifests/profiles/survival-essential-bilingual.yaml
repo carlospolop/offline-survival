@@ -1,0 +1,13 @@
+id: survival-essential-bilingual
+title: Survival Essential Bilingual
+language: both
+variant: bilingual
+description: English and Spanish small emergency archive. Combines Survival Essential with Survival Essential ES for households or teams that need both languages offline.
+target_size_gb: [5, 16]
+disk_budget_gb: 20
+includes:
+  - survival-essential
+  - survival-essential-es
+models:
+  optional:
+    - bge-m3

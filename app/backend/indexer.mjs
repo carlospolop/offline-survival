@@ -464,9 +464,36 @@ export function search(db, query, limit = 20, filters = {}) {
   try {
     return filterResults(db, db.prepare(sql).all(q.replace(/"/g, ""), Math.max(limit * 4, limit)), filters).slice(0, limit);
   } catch {
-    const like = `%${q}%`;
-    return filterResults(db, db.prepare("SELECT source_id, title, substr(body, 1, 240) AS snippet, path, 0 AS rank FROM fts WHERE body LIKE ? LIMIT ?").all(like, Math.max(limit * 4, limit)), filters).slice(0, limit);
+    return filterResults(db, fallbackSearchRows(db, q, Math.max(limit * 4, limit)), filters).slice(0, limit);
   }
+}
+
+function fallbackSearchRows(db, query, limit) {
+  const terms = query.split(/\s+/).map((term) => term.trim()).filter(Boolean).slice(0, 12);
+  if (!terms.length) return [];
+  const where = terms.map(() => "(body LIKE ? OR title LIKE ? OR path LIKE ?)").join(" OR ");
+  const args = terms.flatMap((term) => {
+    const like = `%${term}%`;
+    return [like, like, like];
+  });
+  const candidates = db.prepare(`
+    SELECT source_id, title, body, path
+    FROM fts
+    WHERE ${where}
+    LIMIT ?
+  `).all(...args, Math.max(limit * 8, limit));
+  const loweredTerms = terms.map((term) => term.toLowerCase());
+  const minimumMatches = terms.length > 1 ? 2 : 1;
+  return candidates
+    .map((row) => {
+      const haystack = `${row.title}\n${row.path}\n${row.body}`.toLowerCase();
+      const score = loweredTerms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
+      return { source_id: row.source_id, title: row.title, snippet: row.body.slice(0, 240), path: row.path, rank: -score, score };
+    })
+    .filter((row) => row.score >= minimumMatches)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ score, ...row }) => row);
 }
 
 function filterResults(db, rows, filters) {
@@ -536,7 +563,7 @@ function hash(text) {
 
 async function extractPdfText(file) {
   const PDFParse = await loadPdfParse();
-  if (!PDFParse) return "";
+  if (!PDFParse) throw new Error("pdf-parse could not be loaded; PDF indexing dependencies are missing from the app bundle.");
   const data = await fs.readFile(file);
   const parser = new PDFParse({ data });
   try {

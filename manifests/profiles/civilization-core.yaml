@@ -1,5 +1,7 @@
 id: civilization-core
 title: Civilization Core
+language: en
+variant: english
 description: Community knowledge-station profile for a 512GB-class SSD. Adds Wikibooks, Wiktionary, CDC public health, Appropedia, Open Source Ecology, OpenStreetMap, energy, repair, electronics, microcontrollers, engineering, 3D printing, woodworking, construction, and bicycle maintenance for practical reconstruction.
 target_size_gb: [150, 300]
 disk_budget_gb: 300

@@ -1,0 +1,15 @@
+id: civilization-max-bilingual
+title: Civilization Max Bilingual
+language: both
+variant: bilingual
+description: English and Spanish deep preservation profile. Combines Civilization Max with Civilization Max ES for large bilingual archive drives and long-term replication.
+target_size_gb: [1018, 2040]
+disk_budget_gb: 2050
+includes:
+  - civilization-max
+  - civilization-max-es
+models:
+  optional:
+    - llama3_1-8b
+    - mistral-small-24b
+    - qwen3-8b

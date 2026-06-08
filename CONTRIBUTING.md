@@ -91,6 +91,7 @@ Optional but encouraged:
 - `sha256`: checksum for stable files.
 - `expected_extracted_size_bytes`: useful for ZIP/Git archives.
 - `artifact_name`: stable local filename when the URL is not enough.
+- `language`: BCP-47-style language code such as `en`, `es`, or `multi`.
 
 Example PDF source:
 
@@ -160,6 +161,74 @@ Use this rule of thumb:
 
 Avoid adding huge sources to small profiles unless they are clearly worth the disk cost.
 
+## Adding New Languages
+
+Language support is profile-driven. Add real downloadable sources for the new language, then add language-specific profiles and, when useful, bilingual profiles that include both the existing English profile and the new language profile.
+
+Use stable source IDs that end with the language code before the format suffix:
+
+- `wikipedia-es-top-zim`
+- `wikibooks-es-zim`
+- `who-basic-emergency-care-es`
+- `project-gutenberg-es-zim`
+
+Add `language` to each new source:
+
+```yaml
+    language: es
+```
+
+Use direct downloadable artifacts only. ZIMs, PDFs, ZIP archives, HTML files, and Git archives are supported. Do not add a search page, publication landing page, category page, or wiki homepage as if it were an offline snapshot unless the downloader has a real artifact URL or a purpose-built snapshot step.
+
+For every new language, create profiles in [manifests/profiles](manifests/profiles) using this pattern:
+
+- `survival-essential-<lang>`
+- `survival-plus-<lang>`
+- `civilization-core-<lang>`
+- `civilization-rebuild-<lang>`
+- `civilization-max-<lang>`
+
+For bilingual packs, create profiles that include both language profiles:
+
+```yaml
+id: survival-plus-bilingual
+title: Survival Plus Bilingual
+language: both
+variant: bilingual
+includes:
+  - survival-plus
+  - survival-plus-es
+```
+
+When adding profiles, update the `profileOrder` list in [app/backend/catalog.mjs](app/backend/catalog.mjs) and the profile-order expectation in [tests/catalog.test.mjs](tests/catalog.test.mjs). This keeps the app display predictable.
+
+Choose language equivalents conservatively:
+
+- Prefer official translated ZIMs from Kiwix/OpenZIM for Wikimedia-family sources.
+- Prefer official WHO, PAHO, Red Cross, government, or standards-body PDFs for medical, emergency, and public-health material.
+- Keep English fallbacks in bilingual profiles for categories where the new language does not have a strong equivalent, especially emergency quick references, engineering Q&A, maker documentation, and textbook-scale STEM libraries.
+- Do not use machine-translated copies as canonical sources unless the publisher explicitly provides them.
+- Use exact upstream `Content-Length` values for `expected_size_bytes` when available.
+
+Test every new source before opening a PR:
+
+```bash
+npm run lint:manifests
+
+# Probe just the new sources without downloading giant files.
+node --experimental-sqlite tools/source-audit.mjs \
+  --mode=probe \
+  --only=wikipedia-es-top-zim,wikipedia-es-medicine-zim
+
+# Download and open small files where practical.
+node --experimental-sqlite tools/source-audit.mjs \
+  --mode=small \
+  --max-full-bytes=250000000 \
+  --only=vikidia-es-zim,who-basic-emergency-care-es
+```
+
+Keep downloaded test data outside the repository, and include the audit result summary in the PR.
+
 ## Source Quality Rules
 
 Accepted sources should be:
@@ -212,4 +281,3 @@ Before submitting, check:
 - [ ] I updated docs or screenshots if the user workflow changed.
 - [ ] For new sources, I documented license, attribution, expected size, source URL, and profile placement.
 - [ ] For new features, I added or updated focused tests where behavior changed.
-

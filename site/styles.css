@@ -67,6 +67,25 @@ img {
   font-weight: 800;
 }
 
+.languageSelect {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.languageSelect select {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  font: inherit;
+  min-height: 32px;
+  padding: 4px 8px;
+}
+
 .heroGrid,
 .section,
 .strip,

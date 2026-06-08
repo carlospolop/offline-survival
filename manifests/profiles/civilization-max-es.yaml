@@ -1,0 +1,15 @@
+id: civilization-max-es
+title: Civilization Max ES
+language: es
+variant: spanish
+description: Large Spanish archive profile. Adds complete Spanish Wikipedia without images on top of Civilization Rebuild ES for broad Spanish-language reference and long-term preservation.
+target_size_gb: [18, 40]
+disk_budget_gb: 50
+includes:
+  - civilization-rebuild-es
+sources:
+  - wikipedia-es-all-nopic-zim
+models:
+  optional:
+    - gemma3-4b
+    - qwen3-8b

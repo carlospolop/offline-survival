@@ -1,0 +1,562 @@
+
+Spanish Offline Knowledge Strategy for offline-survival
+Executive summary
+The current offline-survival repository is already organized around five manifest-driven profiles — survival-essential, survival-plus, civilization-core, civilization-rebuild, and civilization-max — with target size bands that range from roughly 12–15 GB for the smallest profile to 180–260 GB for the largest. Its source catalog is declarative: each resource has an id, type, category, license, url, expected_size_bytes, and profile-group membership, while profiles compose those groups into installable packs. That architecture is a very good fit for adding parallel Spanish manifests or a --lang {en,es,both} resolver layer. 
+
+The strongest Spanish-language substitutions are the direct Kiwix Spanish editions: Spanish Wikipedia subsets and full dumps, Wikibooks, Wiktionary, Wikivoyage, Wikisource, iFixit, and even Vikidia as the best “simple encyclopedia” replacement for simplewiki. These are the cleanest equivalents because they preserve the repo’s existing offline-reading workflow, licensing posture, and searchable ZIM format. In contrast, the weakest areas in Spanish are WikEM-like point-of-care emergency references, Stack Exchange-style practical Q&A, and OpenStax/LibreTexts-style STEM textbook bundles. For those, the best Spanish answer is usually official PDF packs from WHO/OPS, Red Cross, Protección Civil, FAO, and selected Spanish-language wiki snapshots — or a bilingual manifest that keeps the English source as an explicit fallback. 
+
+For a practical Spanish-first build that still fits comfortably under the user’s earlier 50 GB constraint, the best balance is a core-50-es pack centered on wikipedia_es_top_nopic, wikipedia_es_medicine_nopic, ifixit_es_all, wiktionary_es_all_nopic, wikibooks_es_all_nopic, wikivoyage_es_all_nopic, wikisource_es_all_nopic, vikidia_es_all_nopic, and a compact PDF layer from WHO, Cruz Roja, Protección Civil, CERT/Ready.gov, and FAO/INTA/INIA-style agriculture manuals. A Spanish-first build like that is well under 10 GB before models, and still leaves room for a local chat model plus embeddings. 
+
+For local chat over Spanish and bilingual content, the best balance in Ollama today is qwen3:8b as the main assistant and bge-m3 as the default embedding model. qwen3:8b is a 5.2 GB Q4 model, Apache 2.0 licensed, and explicitly supports 100+ languages and dialects. bge-m3 is a 1.2 GB multilingual embedding model with support for 100+ languages and an 8K context window. If you want a more compact multilingual embedder from the same ecosystem, qwen3-embedding:0.6b is 639 MB; if you want a lightweight multimodal fallback, gemma3:4b is 3.3 GB, supports 140+ languages, and provides a long 128K context window. 
+
+The key design recommendation is therefore not “Spanish-only everywhere.” It is Spanish-first, bilingual where necessary: use Spanish ZIMs and official Spanish PDFs wherever a good equivalent exists, and reserve English only for the categories where Spanish coverage is still materially weaker. That gives the repo a clean --lang es path without sacrificing the “restart civilization” objective. 
+
+Current repo structure and English payloads
+The repo’s five profiles are layered. survival-essential pulls the basic survival and medical core plus general-knowledge-lite; survival-plus extends that with repair, agriculture, food, and travel; civilization-core adds foundational textbooks and a smaller public-domain library; civilization-rebuild adds engineering/making and extended textbook/public-domain layers; and civilization-max adds the large “maxi” Wikipedia tier on top of rebuild. 
+
+Within those profiles, the English resources currently declared in the repo catalog include: survivalmanual-wiki, survivalmanual-ebook, simplewiki-zim, who-basic-emergency-care, wikem-zim, wikipedia-top1m-zim, wikipedia-medicine-zim, ifixit-zim, openstax-biology-2e, fao-small-agriculture-pack, wikivoyage-zim, gardening-stackexchange-zim, cooking-stackexchange-zim, wikibooks-zim, wiktionary-zim, appropedia-snapshot, energypedia-zim, open-source-ecology, cdc-public-health-pack, openstreetmap-wiki-zim, diy-stackexchange-zim, woodworking-stackexchange-zim, electronics-stackexchange-zim, arduino-stackexchange-zim, engineering-stackexchange-zim, 3dprinting-stackexchange-zim, bicycles-stackexchange-zim, wikisource-zim, libretexts-core-science, libretexts-physics, libretexts-chemistry, project-gutenberg-small, project-gutenberg-large, and wikipedia-top1m-maxi. 
+
+The important implementation detail is that the source schema does not yet encode language or variant selection. That means Spanish support should be added in one of two ways: either as parallel source IDs such as wikipedia-es-top-zim, wikibooks-es-zim, ifixit-es-zim, and so on; or through a language-aware resolver that maps a neutral logical ID like wikipedia-top-zim to wikipedia_en_top_nopic_* or wikipedia_es_top_nopic_* depending on --lang. The first option is simplest to audit and lock; the second is cleaner for long-term maintenance. 
+
+English profiles and payloads
+Profile	Declared target band	English resources it resolves to
+survival-essential	~12–15 GB	survivalmanual-wiki, survivalmanual-ebook, simplewiki-zim, who-basic-emergency-care, wikem-zim, wikipedia-top1m-zim, wikipedia-medicine-zim 
+survival-plus	~18–25 GB	survival-essential plus ifixit-zim, openstax-biology-2e, fao-small-agriculture-pack, wikivoyage-zim, gardening-stackexchange-zim, cooking-stackexchange-zim 
+civilization-core	~40–60 GB	survival-plus plus wikibooks-zim, wiktionary-zim, appropedia-snapshot, energypedia-zim, open-source-ecology, cdc-public-health-pack 
+civilization-rebuild	~120–180 GB	civilization-core plus openstreetmap-wiki-zim, diy-stackexchange-zim, woodworking-stackexchange-zim, electronics-stackexchange-zim, arduino-stackexchange-zim, engineering-stackexchange-zim, 3dprinting-stackexchange-zim, bicycles-stackexchange-zim, wikisource-zim, libretexts-core-science, libretexts-physics, libretexts-chemistry, project-gutenberg-large 
+civilization-max	~180–260 GB	civilization-rebuild plus wikipedia-top1m-maxi 
+
+Spanish equivalents and gap analysis
+The best Spanish substitutions fall into three buckets. First are direct offline equivalents — especially Kiwix ZIMs — where you should swap English for Spanish one-for-one. Second are official Spanish PDF/manual packs, which are better than community translations for medicine, emergency response, and civil defense. Third are content-gap categories, where a good Spanish offline corpus does not cleanly exist, so the right answer is either a curated Spanish snapshot or an intentional English fallback in --lang both. 
+
+English-to-Spanish comparison
+English item in repo	Best Spanish equivalent	Format	Current size seen	License / rights note	Quality judgement
+simplewiki-zim	vikidia_es_all_nopic_2026-03.zim	ZIM	~13 MB	Vikidia/Kiwix distribution; offline-friendly	Best replacement for “simple encyclopedia”; much better fit than trying to force a non-existent Simple Spanish Wikipedia. 
+wikipedia-top1m-zim	wikipedia_es_top_nopic_2026-04.zim	ZIM	~1.1 GB	Wikimedia/Kiwix	Direct substitute; highest-value general Spanish knowledge pack per GB. 
+wikipedia-medicine-zim	wikipedia_es_medicine_nopic_2026-04.zim	ZIM	~150 MB	Wikimedia/Kiwix	Direct substitute; excellent for compact medical offline coverage. 
+wikipedia-top1m-maxi	wikipedia_es_all_nopic_2026-04.zim or wikipedia_es_all_maxi_2026-04.zim	ZIM	~9.5 GB nopic / ~39 GB maxi	Wikimedia/Kiwix	Direct substitute; for Spanish-first “full encyclopedia” builds. 
+wikibooks-zim	wikibooks_es_all_nopic_2025-10.zim	ZIM	~107 MB	Wikimedia/Kiwix	Direct substitute, though visibly smaller than English and more uneven in technical depth. 
+wiktionary-zim	wiktionary_es_all_nopic_2026-03.zim	ZIM	~535 MB	Wikimedia/Kiwix	Direct substitute; high utility for offline language lookup and bilingual retrieval. 
+wikivoyage-zim	wikivoyage_es_all_nopic_2026-03.zim	ZIM	~36 MB	Wikimedia/Kiwix	Direct substitute for travel and place-level practical notes. 
+wikisource-zim	wikisource_es_all_nopic_2026-04.zim	ZIM	~728 MB	Wikimedia/Kiwix	Direct substitute and especially valuable for Spanish public-domain humanities. 
+ifixit-zim	ifixit_es_all_2026-03.zim	ZIM	~3.4 GB	iFixit/Kiwix	Direct substitute and one of the strongest Spanish practical-repair corpora available offline. 
+who-basic-emergency-care	WHO Atención Básica de Emergencias flyer + BEC Spanish page + BEC quick cards	PDF + web/PDF	very small	WHO content under CC BY-NC-SA 3.0 IGO	Better than a casual translation because it is official WHO Spanish material. 
+wikem-zim	No like-for-like Spanish WikEM found; use WHO BEC Spanish + Wikipedia Medicina ES + Cruz Roja first aid + CERT	Mixed	—	official WHO / Red Cross / FEMA-style materials	Gap. Spanish emergency quick-reference exists, but not as a single open Spanish WikEM-style ZIM. 
+survivalmanual-wiki	Protección Civil guides + Cruz Roja emergency-kit / first-aid PDFs + selective wilderness/field pages in Spanish	PDF + web snapshot	small	government / Red Cross official rights	Gap. Official Spanish preparedness content is safer and more reusable than ad-hoc translated survival manuals. 
+survivalmanual-ebook	Same as above; optional community Spanish survival manual only as a secondary extra	PDF	small	mixed	Use official sources first; community repos can be added later, but should not be the canonical Spanish replacement. 
+openstax-biology-2e	Spanish OER landscape is fragmented; best practical replacement is wikibooks_es + FAO/OPS/agency manuals + bilingual fallback to English LibreTexts where needed	ZIM + PDFs	—	mixed open/OER	Gap. No single Spanish offline package in the reviewed sources matched the maintainability of the English textbook bundle. 
+fao-small-agriculture-pack	FAO Spanish docs + INTA/INIA/ministerial agriculture manuals in Spanish	PDF pack	variable	FAO defaults to CC BY-NC-SA 3.0 IGO for open publications	Direct thematic replacement, but should be a curated pack rather than a single mirror. 
+gardening-stackexchange-zim	FAO Spanish agriculture manuals + wikibooks_es + Appropedia ES gardening/appropriate-tech pages	PDF + ZIM + snapshot	variable	mixed; verify page-level licenses for community wikis	Gap. Best solved by curated Spanish manuals, not Q&A clones. 
+cooking-stackexchange-zim	wikibooks_es cooking content + Spanish public-domain recipe/food texts if curated later	ZIM + HTML/PDF	~107 MB + extras	Wikimedia/public-domain mix	Partial. Adequate for offline basics, but not as broad as English Q&A. 
+appropedia-snapshot	Spanish Appropedia pages and categories	HTML snapshot / extraction	custom	Appropedia states the site is open and uses open licenses; verify page-level mix before packaging	Good supplement, especially for sustainable tech and water/sanitation. 
+energypedia-zim	Spanish Energypedia category/pages and Spanish PDFs	HTML snapshot + PDFs	custom	mixed page/file licensing; verify page/file tags	Good supplement for rural energy and solar irrigation, but requires extraction rather than direct Spanish ZIM. 
+open-source-ecology	Open Source Ecology Spanish wiki pages	HTML snapshot	custom	OSE site content is CC BY-SA 4.0	Good supplement for civilization-rebuild content, especially compressed-earth block and machine notes. 
+cdc-public-health-pack	PAHO/WHO Spanish emergency-health publications	PDF pack	variable	PAHO and WHO publish under CC BY-NC-SA 3.0 IGO	Best official replacement, and a better legal fit for Spanish than machine-translated CDC packets. 
+openstreetmap-wiki-zim	Spanish OSM wiki namespace snapshot if curated; otherwise keep English in --lang both	HTML snapshot	custom	mixed wiki content	Gap. I did not positively confirm a maintained Spanish OSM ZIM equivalent in the reviewed materials.
+diy-stackexchange-zim	ifixit_es_all + Appropedia ES + OSE ES	ZIM + snapshots	~3.4 GB + custom	mixed	Best practical replacement in Spanish, though not a Q&A corpus. 
+woodworking-stackexchange-zim	No strong direct Spanish corpus found; use bilingual mode or curated manuals later	—	—	—	Gap. Keep English fallback for now.
+electronics-stackexchange-zim	No strong direct Spanish offline equivalent found in reviewed sources	—	—	—	Gap. Keep English fallback for now.
+arduino-stackexchange-zim	No strong direct Spanish offline equivalent found in reviewed sources	—	—	—	Gap. Keep English fallback for now.
+engineering-stackexchange-zim	No strong direct Spanish offline equivalent found in reviewed sources	—	—	—	Gap. Keep English fallback for now.
+3dprinting-stackexchange-zim	No strong Spanish offline equivalent found; OSE/Appropedia help only partially	HTML snapshot	custom	mixed	Gap. Keep English fallback for now. 
+bicycles-stackexchange-zim	Appropedia ES bicycle-tool pages + iFixit ES where available	mixed	custom	mixed	Partial only. 
+libretexts-core-science	No single Spanish offline equivalent confirmed; use Spanish Wikipedia topic ZIMs plus optional English fallback	ZIM + bilingual fallback	topic packs are small	mixed	Gap. Spanish topic ZIMs reduce the gap, but do not replace textbook depth. 
+libretexts-physics	wikipedia_es_physics_nopic_2026-04.zim plus Spanish manuals where available	ZIM + PDFs	~86 MB	Wikimedia / mixed	Partial. Good compact coverage, weaker than a textbook corpus. 
+libretexts-chemistry	No equally strong Spanish corpus confirmed; best answer is bilingual fallback + Spanish Wikipedia topical coverage when useful	mixed	—	—	Gap.
+project-gutenberg-small / large	Project Gutenberg Spanish online corpus + Biblioteca Virtual Miguel de Cervantes curated mirror	EPUB/HTML/PDF snapshot	custom	PG public-domain corpus; Cervantes rights vary by record	Best Spanish literature/humanities replacement, but requires selective mirroring rather than drop-in ZIM certainty. 
+
+Highest-value Spanish resources to prioritize
+The following Spanish resources are the best additions to the repo, in priority order, because they are either direct offline equivalents or unusually strong official Spanish corpora: wikipedia_es_top_nopic, wikipedia_es_medicine_nopic, ifixit_es_all, wiktionary_es_all_nopic, wikibooks_es_all_nopic, wikisource_es_all_nopic, wikivoyage_es_all_nopic, vikidia_es_all_nopic, WHO BEC Spanish page and flyer, WHO BEC Spanish quick cards, Cruz Roja emergency-kit checklist, Cruz Roja first-aid guidance, Ready.gov CERT participant manual in Spanish, Protección Civil flood-risk guide, Protección Civil operational-response guide, Protección Civil emergency communications guide, Appropedia Spanish pages, Energypedia Spanish category/pages, OSE Spanish wiki pages, Project Gutenberg Spanish browse/results, and the Biblioteca Virtual Miguel de Cervantes catalog and downloadable HTML/PDF texts. That gives you well over the requested twenty high-value Spanish resources across encyclopedia, travel, dictionary, medical, emergency, agriculture, repair, energy, maker, and literature domains. 
+
+Manifest design for Spanish packs
+The most maintainable approach is to create parallel Spanish source IDs and then define Spanish profiles such as core-50-es and civilization-lite-es. That aligns with the existing source/profile schema cleanly and avoids overloading the current schema with a partially-implemented language abstraction. 
+
+The following snippets use direct URLs derived from the official Kiwix, WHO, Cruz Roja, Protección Civil, Ready.gov, Project Gutenberg, Cervantes, Appropedia, Energypedia, and OSE sources cited in this report. For community snapshots, the size is an engineering estimate for the packaged output, not an upstream published exact size. 
+
+core-50-es
+yaml
+Copy
+pack: core-50-es
+items:
+  - id: vikidia-es
+    category: encyclopedia
+    format: zim
+    url: "https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-03.zim"
+    expected_size_gb: 0.013
+    license: "Kiwix/Vikidia distribution"
+    "target path": "content/zim/es/vikidia/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: wikipedia-es-top
+    category: encyclopedia
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-04.zim"
+    expected_size_gb: 1.1
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: false
+    rag_index: false
+    priority: highest
+
+  - id: wikipedia-es-medicine
+    category: medicine
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-04.zim"
+    expected_size_gb: 0.15
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: true
+    rag_index: true
+    priority: highest
+
+  - id: wikibooks-es
+    category: textbooks
+    format: zim
+    url: "https://download.kiwix.org/zim/wikibooks/wikibooks_es_all_nopic_2025-10.zim"
+    expected_size_gb: 0.107
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikibooks/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: wiktionary-es
+    category: language
+    format: zim
+    url: "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-03.zim"
+    expected_size_gb: 0.535
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wiktionary/"
+    extract_text: false
+    rag_index: false
+    priority: high
+
+  - id: wikivoyage-es
+    category: travel
+    format: zim
+    url: "https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-03.zim"
+    expected_size_gb: 0.036
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikivoyage/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: wikisource-es
+    category: literature
+    format: zim
+    url: "https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-04.zim"
+    expected_size_gb: 0.728
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikisource/"
+    extract_text: false
+    rag_index: false
+    priority: medium
+
+  - id: ifixit-es
+    category: repair
+    format: zim
+    url: "https://download.kiwix.org/zim/ifixit/ifixit_es_all_2026-03.zim"
+    expected_size_gb: 3.4
+    license: "iFixit/Kiwix"
+    "target path": "content/zim/es/ifixit/"
+    extract_text: false
+    rag_index: false
+    priority: highest
+
+  - id: who-bec-es
+    category: emergency-medicine
+    format: pdf
+    url: "https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec_flyer_final_es.pdf?sfvrsn=d50c1e47_1"
+    expected_size_gb: 0.003
+    license: "CC BY-NC-SA 3.0 IGO"
+    "target path": "content/pdf/es/who/"
+    extract_text: true
+    rag_index: true
+    priority: highest
+
+  - id: who-bec-quickcards-es
+    category: emergency-medicine
+    format: pdf
+    url: "https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec-quick-cards/becp-edu30-pdf-sp-frst.pdf"
+    expected_size_gb: 0.002
+    license: "CC BY-NC-SA 3.0 IGO"
+    "target path": "content/pdf/es/who/"
+    extract_text: true
+    rag_index: true
+    priority: highest
+
+  - id: cruz-roja-kit-es
+    category: disaster-preparedness
+    format: pdf
+    url: "https://www2.cruzroja.es/documents/5640665/3292747578/3.%2BChecklist%2Bkit%2B-%2BCruz%2BRoja.pdf/d3788ba7-50a9-6936-175a-02d55fc20423?t=1752739759515"
+    expected_size_gb: 0.001
+    license: "Cruz Roja Spain publication"
+    "target path": "content/pdf/es/cruz-roja/"
+    extract_text: true
+    rag_index: true
+    priority: highest
+
+  - id: cert-manual-es
+    category: disaster-response
+    format: pdf
+    url: "https://www.ready.gov/sites/default/files/2019.CERT_.Basic_.PM_.FINAL_.Spanish.508c.pdf"
+    expected_size_gb: 0.02
+    license: "U.S. government publication"
+    "target path": "content/pdf/es/cert/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: proteccion-civil-inundaciones-es
+    category: civil-defense
+    format: pdf
+    url: "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf"
+    expected_size_gb: 0.01
+    license: "Government of Spain publication"
+    "target path": "content/pdf/es/proteccion-civil/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: appropedia-es-curated
+    category: appropriate-technology
+    format: html
+    url: "https://www.appropedia.org/Welcome_to_Appropedia/es"
+    expected_size_gb: 0.20
+    license: "Appropedia open-license mix; verify page-level"
+    "target path": "content/websnap/es/appropedia/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: ose-es-curated
+    category: maker
+    format: html
+    url: "https://wiki.opensourceecology.org/wiki/Open_Source_Ecology/es"
+    expected_size_gb: 0.10
+    license: "CC BY-SA 4.0"
+    "target path": "content/websnap/es/ose/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+civilization-lite-es
+yaml
+Copy
+pack: civilization-lite-es
+items:
+  - id: wikipedia-es-all
+    category: encyclopedia
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-04.zim"
+    expected_size_gb: 9.5
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: false
+    rag_index: false
+    priority: highest
+
+  - id: wikipedia-es-history
+    category: history
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-04.zim"
+    expected_size_gb: 0.176
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: wikipedia-es-mathematics
+    category: mathematics
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-04.zim"
+    expected_size_gb: 0.102
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: wikipedia-es-physics
+    category: physics
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-04.zim"
+    expected_size_gb: 0.086
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: wikipedia-es-computer
+    category: computing
+    format: zim
+    url: "https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-04.zim"
+    expected_size_gb: 0.093
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikipedia/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: ifixit-es
+    category: repair
+    format: zim
+    url: "https://download.kiwix.org/zim/ifixit/ifixit_es_all_2026-03.zim"
+    expected_size_gb: 3.4
+    license: "iFixit/Kiwix"
+    "target path": "content/zim/es/ifixit/"
+    extract_text: false
+    rag_index: false
+    priority: highest
+
+  - id: wikibooks-es
+    category: textbooks
+    format: zim
+    url: "https://download.kiwix.org/zim/wikibooks/wikibooks_es_all_nopic_2025-10.zim"
+    expected_size_gb: 0.107
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikibooks/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: wiktionary-es
+    category: language
+    format: zim
+    url: "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-03.zim"
+    expected_size_gb: 0.535
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wiktionary/"
+    extract_text: false
+    rag_index: false
+    priority: high
+
+  - id: wikivoyage-es
+    category: travel
+    format: zim
+    url: "https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-03.zim"
+    expected_size_gb: 0.036
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikivoyage/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: wikisource-es
+    category: literature
+    format: zim
+    url: "https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-04.zim"
+    expected_size_gb: 0.728
+    license: "Wikimedia/Kiwix"
+    "target path": "content/zim/es/wikisource/"
+    extract_text: false
+    rag_index: false
+    priority: medium
+
+  - id: energypedia-es-curated
+    category: energy
+    format: html
+    url: "https://energypedia.info/wiki/Category:Spanish"
+    expected_size_gb: 0.20
+    license: "Mixed page/file licenses; verify page-level"
+    "target path": "content/websnap/es/energypedia/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: appropedia-es-curated
+    category: appropriate-technology
+    format: html
+    url: "https://www.appropedia.org/Welcome_to_Appropedia/es"
+    expected_size_gb: 0.30
+    license: "Appropedia open-license mix; verify page-level"
+    "target path": "content/websnap/es/appropedia/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: ose-es-curated
+    category: maker
+    format: html
+    url: "https://wiki.opensourceecology.org/wiki/Open_Source_Ecology/es"
+    expected_size_gb: 0.10
+    license: "CC BY-SA 4.0"
+    "target path": "content/websnap/es/ose/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: gutenberg-es-curated
+    category: public-domain-library
+    format: html
+    url: "https://www.gutenberg.org/browse/languages/es"
+    expected_size_gb: 1.5
+    license: "Public-domain texts via Project Gutenberg"
+    "target path": "content/websnap/es/gutenberg/"
+    extract_text: true
+    rag_index: true
+    priority: medium
+
+  - id: cervantes-curated
+    category: hispanic-library
+    format: html
+    url: "https://www.cervantesvirtual.com/"
+    expected_size_gb: 2.0
+    license: "Mixed public-domain/authorized records; preserve source metadata"
+    "target path": "content/websnap/es/cervantes/"
+    extract_text: true
+    rag_index: true
+    priority: high
+
+  - id: preparedness-pdf-pack-es
+    category: civil-defense
+    format: pdf
+    url: "https://www.proteccioncivil.es/documentacion/publicaciones"
+    expected_size_gb: 0.10
+    license: "Government / Red Cross / WHO mixed"
+    "target path": "content/pdf/es/preparedness/"
+    extract_text: true
+    rag_index: true
+    priority: high
+A sensible working assumption is that core-50-es comes in around 7–9 GB before models, while civilization-lite-es stays comfortably below 20 GB if you keep the library snapshots curated instead of doing indiscriminate full-site harvests. Once you add qwen3:8b and bge-m3, you are still far below the user’s 50 GB target. 
+
+Local retrieval and Ollama strategy
+The indexing design should stay hybrid. Use Kiwix as the native browser/search layer for ZIMs, because it is already the right tool for Wikipedia-family content and avoids exploding disk usage by extracting everything. Then build a sidecar retrieval index only for: Spanish PDFs, small ZIMs you want to expose directly to chat, and curated HTML snapshots such as Appropedia ES, Energypedia ES, OSE ES, Gutenberg ES selections, and Cervantes selections. In practice, a good stack is: FTS5 for lexical recall, sqlite-vec for dense retrieval against chunk embeddings, and Kiwix for direct browsing/open-on-citation behavior. The important practical rule is to not pre-extract giant ZIMs unless you specifically need them in RAG; otherwise disk usage grows much faster than the source archive itself.
+
+The best default Spanish retrieval stack in Ollama is:
+
+Role	Recommended model	Why
+Main chat model	qwen3:8b	Best overall multilingual balance in Ollama for local hardware: 8.19B params, 5.2 GB Q4, Apache 2.0, 100+ languages. 
+Default embedder	bge-m3	1.2 GB, 8K context, multilingual, retrieval-oriented, 100+ languages. 
+Compact embedder	qwen3-embedding:0.6b	639 MB, multilingual, useful when storage or RAM is tight. 
+Higher-quality embedder	qwen3-embedding:4b	2.5 GB, stronger multilingual retrieval if you can afford the size. 
+Lightweight fallback / vision option	gemma3:4b	3.3 GB, 128K context, 140+ languages, useful if you want image-aware local help. 
+
+For Spanish content, the retrieval policy should be:
+
+Search Spanish-first corpora first.
+If the Spanish hit quality is thin and --lang both is enabled, fan out to English gap-fillers.
+Prefer official PDFs/manuals over community wiki pages for medical or emergency topics.
+Prefer repair/how-to corpora like iFixit ES over generic encyclopedic text for troubleshooting.
+Keep a source-family weight in ranking: WHO/OPS/FAO/Protección Civil/Cruz Roja above community wiki pages, and curated topical ZIMs above giant general encyclopedias.
+Download and verification examples
+bash
+Copy
+# Kiwix Spanish core
+aria2c -x8 -s8 -d content/zim/es/wikipedia \
+  "https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-04.zim"
+
+aria2c -x8 -s8 -d content/zim/es/wikipedia \
+  "https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-04.zim"
+
+aria2c -x8 -s8 -d content/zim/es/ifixit \
+  "https://download.kiwix.org/zim/ifixit/ifixit_es_all_2026-03.zim"
+
+# Official Spanish PDF layer
+curl -L \
+  "https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec_flyer_final_es.pdf?sfvrsn=d50c1e47_1" \
+  -o content/pdf/es/who/bec_flyer_final_es.pdf
+
+curl -L \
+  "https://www.ready.gov/sites/default/files/2019.CERT_.Basic_.PM_.FINAL_.Spanish.508c.pdf" \
+  -o content/pdf/es/cert/cert-basic-es.pdf
+
+curl -L \
+  "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf" \
+  -o content/pdf/es/proteccion-civil/guia-inundaciones-es.pdf
+
+# Generate and store local hashes
+find content -type f -print0 | sort -z | xargs -0 sha256sum > manifests/locks/es-pack.sha256
+
+# Pull local models
+ollama pull qwen3:8b
+ollama pull bge-m3
+Checksum policy should be simple and strict: for official static files, record a local SHA-256 after download and lock it in the repo; for Kiwix ZIMs, lock both the exact filename and a local SHA-256; for curated snapshots, version them by crawl date + seed URL set + generated SHA-256. That gives you reproducibility even when the upstream site does not prominently publish a SHA-256.
+
+Implementation notes and limitations
+The top-level tools/ directory visible in the current repo snapshot contains utilities such as catalog-refresh.mjs, checksum-release.mjs, manifest-lint.mjs, source-audit.mjs, and zim-probe.mjs, but no obvious standalone public “installer” entrypoint is visible there. That means the right documentation change is to show --lang es as an extension to the manifest resolver, not as a promise tied to a specific script name that may not exist yet or may be implemented elsewhere in the app layer. 
+
+A practical CLI contract would look like this:
+
+bash
+Copy
+# Spanish only
+./install.sh --profile core-50 --lang es --with-llm qwen3:8b --with-embedding bge-m3
+
+# English only
+./install.sh --profile survival-essential --lang en
+
+# Bilingual
+./install.sh --profile civilization-lite --lang both --with-llm qwen3:8b
+The resolver behavior should be:
+
+text
+Copy
+logical source id          lang=en -> english source
+logical source id          lang=es -> spanish source if available else gap/error
+logical source id          lang=both -> spanish source + english fallback if category marked gap-prone
+The categories that should default to lang=both when the user wants “restart civilization” completeness are the ones with the clearest Spanish gaps from this review: WikEM-like emergency reference, Stack Exchange engineering/maker Q&A, and textbook-scale STEM libraries.
+
+Sample resolver logic
+python
+Copy
+def resolve_source(logical_id: str, lang: str) -> list[str]:
+    mapping = {
+        "simple-encyclopedia": {"en": "simplewiki-zim", "es": "vikidia-es"},
+        "general-knowledge-top": {"en": "wikipedia-top1m-zim", "es": "wikipedia-es-top"},
+        "repair-manuals": {"en": "ifixit-zim", "es": "ifixit-es"},
+        "medical-quickref": {"en": "wikem-zim", "es": "who-bec-es"},  # intentional non-1:1 substitute
+    }
+
+    if lang == "both":
+        hits = []
+        if "es" in mapping.get(logical_id, {}):
+            hits.append(mapping[logical_id]["es"])
+        if "en" in mapping.get(logical_id, {}):
+            hits.append(mapping[logical_id]["en"])
+        return hits
+
+    if lang in mapping.get(logical_id, {}):
+        return [mapping[logical_id][lang]]
+
+    return [mapping[logical_id]["en"]]
+Mermaid implementation timeline
+mermaid
+Copy
+timeline
+    title Spanish support rollout for offline-survival
+    section Manifest layer
+      Audit current source IDs : Done in repo review
+      Add parallel *-es source IDs : Week 1
+      Add core-50-es and civilization-lite-es profiles : Week 1
+    section Downloader
+      Add --lang en|es|both option : Week 2
+      Add lockfile generation for Spanish packs : Week 2
+      Add bilingual fallback policy for gap categories : Week 2
+    section Content
+      Add direct Kiwix ES ZIMs : Week 2
+      Add WHO/Cruz Roja/Protección Civil PDF pack : Week 2
+      Add curated Appropedia/Energypedia/OSE snapshots : Week 3
+      Add Gutenberg ES / Cervantes selectors : Week 3
+    section Retrieval
+      Keep Kiwix as ZIM browser : Week 3
+      Build FTS5 + sqlite-vec sidecar index : Week 4
+      Wire Ollama qwen3:8b + bge-m3 defaults : Week 4
+    section Release
+      Publish README examples and profile docs : Week 4
+      Publish public lockfile and checksums : Week 4
+Open questions and limitations
+A few areas remain intentionally conservative rather than over-claimed. I did not positively confirm a current, maintainable Spanish Project Gutenberg ZIM in the Kiwix mirrors I reviewed, so I recommend a curated Gutenberg ES mirror instead of promising a drop-in ZIM. I also did not find a like-for-like Spanish replacement for WikEM, the maker/engineering Stack Exchange layers, or the English LibreTexts/OpenStax-style STEM bundles. For those categories, the best repo design is explicitly bilingual rather than pretending Spanish parity exists today. Finally, community wiki sources such as Appropedia and Energypedia are extremely valuable, but they need page-level license verification during packaging, because the reviewed pages show open-license intent and mixed file-level tags rather than one single globally uniform packaging rule. 
+
+The most robust final architecture, then, is:
+
+--lang es for a clean Spanish-first offline pack.
+--lang both for the full “survival + restart civilization” goal.
+Kiwix ZIMs for large reference libraries.
+Official Spanish PDFs for medicine and emergency response.
+Curated HTML snapshots for Spanish community-tech and literature corpora.
+qwen3:8b + bge-m3 as the default local chat stack. 

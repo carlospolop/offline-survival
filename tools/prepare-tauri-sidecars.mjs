@@ -50,17 +50,28 @@ function hostTriple() {
 async function ensureLibzimResourcePaths() {
   const releaseDir = path.resolve("node_modules/@openzim/libzim/build/Release");
   await fs.mkdir(releaseDir, { recursive: true });
-  // Each platform runner only has its own shared library; create empty placeholders
-  // for the others so all listed Tauri resources can be found at bundle time.
-  await ensureFile(path.join(releaseDir, "zim_binding.node"));
-  await ensureFile(path.join(releaseDir, "libzim.so.9")); // Linux
-  await ensureFile(path.join(releaseDir, "libzim.9.dylib")); // macOS
+  await requireRealFile(path.join(releaseDir, "zim_binding.node"), "@openzim/libzim native binding");
+  if (target.includes("linux")) {
+    await requireRealFile(path.join(releaseDir, "libzim.so.9"), "Linux libzim shared library");
+    await ensurePlaceholder(path.join(releaseDir, "libzim.9.dylib"));
+  } else if (target.includes("darwin") || target.includes("apple")) {
+    await requireRealFile(path.join(releaseDir, "libzim.9.dylib"), "macOS libzim shared library");
+    await ensurePlaceholder(path.join(releaseDir, "libzim.so.9"));
+  } else {
+    throw new Error(`@openzim/libzim does not provide bundled ZIM indexing binaries for target ${target}. Add a supported bundled ZIM extractor before building this target.`);
+  }
 }
 
-async function ensureFile(file) {
+async function requireRealFile(file, label) {
+  const stat = await fs.stat(file).catch(() => null);
+  if (stat?.isFile() && stat.size > 0) return;
+  throw new Error(`${label} is missing or empty: ${file}`);
+}
+
+async function ensurePlaceholder(file) {
   try {
     const stat = await fs.stat(file);
-    if (stat.isFile()) return;
+    if (stat.isFile() && stat.size > 0) return;
   } catch {
     // Create the placeholder below.
   }

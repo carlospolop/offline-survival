@@ -1,0 +1,16 @@
+id: survival-essential-es
+title: Survival Essential ES
+language: es
+variant: spanish
+description: Small Spanish emergency archive for limited disks. Includes easy-reading Spanish encyclopedia coverage, WHO emergency-care material in Spanish, CERT disaster response training in Spanish, and CDC emergency-kit guidance in Spanish.
+target_size_gb: [0.02, 0.05]
+disk_budget_gb: 1
+sources:
+  - vikidia-es-zim
+  - who-basic-emergency-care-es
+  - who-bec-quick-cards-es
+  - cert-basic-training-es
+  - cdc-build-emergency-kit-es
+models:
+  optional:
+    - bge-m3

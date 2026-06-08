@@ -1,5 +1,7 @@
 id: civilization-rebuild
 title: Civilization Rebuild
+language: en
+variant: english
 description: Workstation-scale archive for a 1TB-class drive. Adds Wikisource, LibreTexts core science, and a Project Gutenberg starter set for deeper education, engineering, science, medicine, agriculture, appropriate technology, governance, and cultural continuity.
 target_size_gb: [400, 800]
 disk_budget_gb: 800

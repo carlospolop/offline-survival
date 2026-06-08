@@ -132,14 +132,15 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
 async function cloneGitArchive({ db, source, tmpPath, signal }) {
   if (signal?.aborted) throw new Error("Download paused");
   const cloneDir = `${tmpPath}.git-worktree`;
+  const commandCwd = path.dirname(tmpPath);
   await fsp.rm(cloneDir, { recursive: true, force: true });
   await fsp.rm(tmpPath, { force: true });
   try {
     db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
       .run(0, Number(source.expected_size_bytes ?? 0), "downloading", now(), source.id);
-    const gitBin = await findGitBin();
+    const gitBin = await findGitBin(commandCwd);
     if (!gitBin) throw new Error("git is not installed. Install git (https://git-scm.com) and retry.");
-    await execFileAsync(gitBin, ["clone", "--depth", "1", source.url, cloneDir], { maxBuffer: 20 * 1024 * 1024 });
+    await execFileAsync(gitBin, ["clone", "--depth", "1", source.url, cloneDir], { cwd: commandCwd, maxBuffer: 20 * 1024 * 1024 });
     await fsp.rm(path.join(cloneDir, ".git"), { recursive: true, force: true });
     if (signal?.aborted) throw new Error("Download paused");
     await zipDirectoryToFile(cloneDir, tmpPath);
@@ -151,12 +152,12 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
   }
 }
 
-async function findGitBin() {
+async function findGitBin(cwd) {
   const candidates = process.platform === "win32"
     ? ["git", "C:\\Program Files\\Git\\bin\\git.exe", "C:\\Program Files (x86)\\Git\\bin\\git.exe"]
     : ["/usr/bin/git", "/usr/local/bin/git", "/opt/homebrew/bin/git", "/opt/local/bin/git", "git"];
   for (const bin of candidates) {
-    try { await execFileAsync(bin, ["--version"], { timeout: 4000 }); return bin; } catch { /* try next */ }
+    try { await execFileAsync(bin, ["--version"], { cwd, timeout: 4000 }); return bin; } catch { /* try next */ }
   }
   return null;
 }

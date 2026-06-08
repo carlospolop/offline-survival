@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Creator, StringItem } from "@openzim/libzim";
 import { ensureLibrary, openState, removeSourcesNotInCatalog, upsertSource } from "../app/backend/state.mjs";
@@ -11,6 +13,7 @@ import { buildSharePackage } from "../app/backend/release.mjs";
 import { systemInfo } from "../app/backend/system.mjs";
 import { importExtraKnowledgeFiles, scanExtraKnowledgeFolder } from "../app/backend/extraKnowledge.mjs";
 
+const execFileAsync = promisify(execFile);
 let root;
 
 beforeEach(async () => {
@@ -300,13 +303,15 @@ describe("library workflows", () => {
   it("imports local extra knowledge files and makes them searchable", async () => {
     const folder = await fs.mkdtemp(path.join(os.tmpdir(), "sca-extra-"));
     await fs.writeFile(path.join(folder, "radio-notes.md"), "# Radio\nKeep a hand-crank radio dry.");
+    await fs.writeFile(path.join(folder, "local-reader.zim"), Buffer.alloc(128));
     await fs.writeFile(path.join(folder, "ignore.bin"), Buffer.from([0, 1, 2]));
     const scan = await scanExtraKnowledgeFolder({ folderPath: folder });
-    expect(scan.files.map((file) => file.relativePath)).toEqual(["radio-notes.md"]);
+    expect(scan.files.map((file) => file.relativePath)).toEqual(["local-reader.zim", "radio-notes.md"]);
+    expect(scan.files.find((file) => file.relativePath === "local-reader.zim").indexable).toBe(true);
 
     const db = openState(root);
     try {
-      const result = await importExtraKnowledgeFiles({ db, libraryRoot: root, files: scan.files.map((file) => file.path), index: true });
+      const result = await importExtraKnowledgeFiles({ db, libraryRoot: root, files: scan.files.filter((file) => file.extension === ".md").map((file) => file.path), index: true });
       expect(result.imported).toHaveLength(1);
       expect(result.indexed[0].chunks).toBeGreaterThan(0);
       expect(search(db, "radio")[0].source_id).toBe(result.imported[0].id);
@@ -495,5 +500,51 @@ describe("library workflows", () => {
     expect(calls).toEqual(["", "bytes=6-"]);
     expect(await fs.readFile(path.join(root, result.path), "utf8")).toBe("hello offline!");
     db.close();
+  });
+
+  it("clones git archives even when the process cwd has been removed", async () => {
+    try {
+      await execFileAsync("git", ["--version"], { cwd: root });
+    } catch {
+      return;
+    }
+    const originalCwd = process.cwd();
+    const deletedCwd = await fs.mkdtemp(path.join(os.tmpdir(), "sca-deleted-cwd-"));
+    const repo = path.join(root, "fixtures", "tiny-wiki");
+    await fs.mkdir(repo, { recursive: true });
+    await fs.writeFile(path.join(repo, "Home.md"), "# Tiny wiki\n\nWater first.\n");
+    await execFileAsync("git", ["init"], { cwd: repo });
+    await execFileAsync("git", ["add", "Home.md"], { cwd: repo });
+    await execFileAsync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "Initial wiki"], { cwd: repo });
+
+    const source = {
+      id: "git-archive-source",
+      title: "Git Archive Source",
+      type: "repo-archive",
+      license: "CC0",
+      url: repo,
+      artifact_name: "tiny-wiki.zip",
+      expected_size_bytes: 1024,
+      download: { action: "git_archive" },
+      runtime: ["index"],
+      profiles: ["survival-essential"]
+    };
+    const db = openState(root);
+    upsertSource(db, source);
+    try {
+      process.chdir(deletedCwd);
+      await fs.rm(deletedCwd, { recursive: true, force: true });
+      const result = await downloadSource({
+        db,
+        libraryRoot: root,
+        source,
+        diskBudgetBytes: 1024 * 1024
+      });
+      expect(result.path).toBe(path.join("raw/repos", "tiny-wiki.zip"));
+      expect(result.size).toBeGreaterThan(0);
+    } finally {
+      process.chdir(originalCwd);
+      db.close();
+    }
   });
 });

@@ -1,5 +1,7 @@
 id: survival-essential
 title: Survival Essential
+language: en
+variant: english
 description: Small emergency archive for limited disks. Includes SurvivalManual, the printable SurvivalManual ebook, Simple English Wikipedia for basic reference, and WHO Basic Emergency Care. Best for water, shelter, food, first aid, sanitation, and offline search without requiring AI.
 target_size_gb: [5, 15]
 disk_budget_gb: 15

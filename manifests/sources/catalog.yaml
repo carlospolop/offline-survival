@@ -4,7 +4,14 @@ sources:
     description: Offline survival guide based on the public-domain US Army survival manual.
     type: repo-archive
     category: survival
-    tags: [survival/water, survival/fire, survival/shelter, survival/food, first-aid]
+    tags:
+      [
+        survival/water,
+        survival/fire,
+        survival/shelter,
+        survival/food,
+        first-aid
+      ]
     license: public-domain-derived
     attribution: ligi/SurvivalManual contributors; based on US Army FM 3-05.70.
     url: https://github.com/ligi/SurvivalManual.wiki.git
@@ -15,18 +22,26 @@ sources:
     sha256: null
     download:
       action: git_archive
-    runtime: [browse, index, search, ai]
+    runtime: [ browse, index, search, ai ]
     open:
       action: extract_serve
       label: Extract Markdown wiki and open it in a local browser tab.
       entry: .
-    profiles: [survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles:
+      [
+        survival-essential,
+        survival-plus,
+        civilization-core,
+        civilization-rebuild,
+        civilization-max
+      ]
+    language: en
   - id: survivalmanual-ebook
     title: SurvivalManual ebook
     description: Printable/e-reader oriented SurvivalManual build.
     type: repo-archive
     category: survival
-    tags: [survival, first-aid]
+    tags: [ survival, first-aid ]
     license: public-domain-derived
     attribution: inferno986return/SurvivalManual-ebook contributors.
     url: https://github.com/inferno986return/SurvivalManual-ebook/archive/refs/heads/main.zip
@@ -36,18 +51,26 @@ sources:
     expected_size_bytes: 76335718
     expected_extracted_size_bytes: 95000000
     sha256: null
-    runtime: [browse, index, search, ai]
+    runtime: [ browse, index, search, ai ]
     open:
       action: extract_open
       label: Extract the ebook archive and open the EPUB file.
       entry: SurvivalManual-ebook-main/e-book/LigiSurvivalManual.epub
-    profiles: [survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles:
+      [
+        survival-essential,
+        survival-plus,
+        civilization-core,
+        civilization-rebuild,
+        civilization-max
+      ]
+    language: en
   - id: simplewiki-zim
     title: Simple English Wikipedia ZIM
     description: Easy-reading encyclopedia package for education and broad reference.
     type: zim
     category: science-education
-    tags: [reference, education]
+    tags: [ reference, education ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikipedia/wikipedia_en_simple_all_maxi_2026-05.zim
@@ -57,538 +80,1005 @@ sources:
     source_url: https://library.kiwix.org/
     expected_size_bytes: 3466409738
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles:
+      [
+        survival-essential,
+        survival-plus,
+        civilization-core,
+        civilization-rebuild,
+        civilization-max
+      ]
+    language: en
   - id: who-basic-emergency-care
     title: WHO Basic Emergency Care
-    description: Emergency care training material for first-contact providers in limited-resource settings.
+    description: Emergency care training material for first-contact providers in
+      limited-resource settings.
     type: pdf
     category: medicine
-    tags: [medicine/emergency-care, medicine/public-health, first-aid]
+    tags: [ medicine/emergency-care, medicine/public-health, first-aid ]
     license: CC-BY-NC-SA-3.0-IGO
     attribution: World Health Organization.
     url: https://www.wiredhealthresources.net/presentations/1408/story_content/external_files/9789241513081-eng.pdf
     source_url: https://iris.who.int/handle/10665/275635
     expected_size_bytes: 4257552
     sha256: null
-    runtime: [open, index, search, ai]
+    runtime: [ open, index, search, ai ]
     open:
       action: direct_open
       label: Open the downloaded PDF with the system PDF viewer.
-    profiles: [survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles:
+      [
+        survival-essential,
+        survival-plus,
+        civilization-core,
+        civilization-rebuild,
+        civilization-max
+      ]
+    language: en
   - id: wikem-zim
     title: WikEM Emergency Medicine ZIM
     description: Compact emergency medicine reference for point-of-care lookup.
     type: zim
     category: medicine
-    tags: [medicine/emergency-care, first-aid, austere-medicine]
+    tags: [ medicine/emergency-care, first-aid, austere-medicine ]
     license: CC-BY-SA-4.0
     attribution: WikEM contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/other/wikem_en_all_maxi_2026-04.zim
     source_url: https://wikem.org/
     expected_size_bytes: 48676248
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles:
+      [
+        survival-essential,
+        survival-plus,
+        civilization-core,
+        civilization-rebuild,
+        civilization-max
+      ]
+    language: en
   - id: wikipedia-top1m-zim
     title: Wikipedia Top 1M No Images
     description: Broad English Wikipedia subset without images.
     type: zim
     category: science-education
-    tags: [reference, education]
+    tags: [ reference, education ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikipedia/wikipedia_en_top1m_nopic_2026-04.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 17134155148
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: wikipedia-medicine-zim
     title: Wikipedia Medicine ZIM
     description: Medical subset for offline reference.
     type: zim
     category: medicine
-    tags: [medicine, first-aid, public-health]
+    tags: [ medicine, first-aid, public-health ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikipedia/wikipedia_en_medicine_maxi_2026-04.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 2215520569
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: ifixit-zim
     title: iFixit ZIM
     description: Offline repair procedures for devices and tools.
     type: zim
     category: repair
-    tags: [repair/electronics, repair/appliances, tools]
+    tags: [ repair/electronics, repair/appliances, tools ]
     license: CC-BY-NC-SA-3.0
     attribution: iFixit contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/ifixit/ifixit_en_all_2025-12.zim
     source_url: https://www.ifixit.com/
     expected_size_bytes: 3570695757
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: openstax-biology-2e
     title: LibreTexts Biology ZIM
-    description: Offline biology textbook library including OpenStax-aligned general biology material.
+    description: Offline biology textbook library including OpenStax-aligned general
+      biology material.
     type: zim
     category: science-education
-    tags: [biology, education]
+    tags: [ biology, education ]
     license: mixed-free
     attribution: LibreTexts and OpenStax contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/libretexts/libretexts.org_en_bio_2025-01.zim
     source_url: https://bio.libretexts.org/
     expected_size_bytes: 2240946728
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: fao-small-agriculture-pack
     title: FAO Agriculture Starter Pack
     description: Curated agriculture, soil, irrigation, storage, and livestock references.
     type: pdf
     category: food-systems
-    tags: [food-systems/soil, food-systems/crops, food-systems/irrigation]
+    tags: [ food-systems/soil, food-systems/crops, food-systems/irrigation ]
     license: CC-BY-NC-SA-3.0-IGO
     attribution: Food and Agriculture Organization of the United Nations.
     url: https://openknowledge.fao.org/server/api/core/bitstreams/1c80295f-d03d-47c1-99e2-7f5a407b5ae8/content/i1680e00.pdf
     source_url: https://openknowledge.fao.org/
     expected_size_bytes: 769778
     sha256: null
-    runtime: [open, index, search, ai]
+    runtime: [ open, index, search, ai ]
     open:
       action: direct_open
       label: Open the downloaded PDF with the system PDF viewer.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: wikivoyage-zim
     title: Wikivoyage English No Images ZIM
-    description: Offline travel, geography, region, and route reference useful for movement planning.
+    description: Offline travel, geography, region, and route reference useful for
+      movement planning.
     type: zim
     category: geography
-    tags: [geography, travel, navigation]
+    tags: [ geography, travel, navigation ]
     license: CC-BY-SA-4.0
     attribution: Wikivoyage contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikivoyage/wikivoyage_en_all_nopic_2026-03.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 231621256
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: gardening-stackexchange-zim
     title: Gardening Stack Exchange ZIM
     description: Offline gardening, soil, composting, pest, seed, and plant care Q&A.
     type: zim
     category: food-systems
-    tags: [food-systems/gardening, food-systems/soil, composting]
+    tags: [ food-systems/gardening, food-systems/soil, composting ]
     license: CC-BY-SA-4.0
     attribution: Gardening Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-02.zim
     source_url: https://gardening.stackexchange.com/
     expected_size_bytes: 925329853
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: cooking-stackexchange-zim
     title: Cooking Stack Exchange ZIM
-    description: Offline cooking, food safety, storage, preservation, and ingredient substitution Q&A.
+    description: Offline cooking, food safety, storage, preservation, and ingredient
+      substitution Q&A.
     type: zim
     category: food-systems
-    tags: [food-systems/cooking, food-safety, preservation]
+    tags: [ food-systems/cooking, food-safety, preservation ]
     license: CC-BY-SA-4.0
     attribution: Cooking Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-02.zim
     source_url: https://cooking.stackexchange.com/
     expected_size_bytes: 237170707
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [survival-plus, civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: wikibooks-zim
     title: Wikibooks English ZIM
     description: Offline practical books and textbooks.
     type: zim
     category: science-education
-    tags: [education, reference]
+    tags: [ education, reference ]
     license: CC-BY-SA-4.0
     attribution: Wikibooks contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikibooks/wikibooks_en_all_nopic_2026-04.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 3507893616
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: wiktionary-zim
     title: Wiktionary English ZIM
     description: Offline dictionary and language reference.
     type: zim
     category: science-education
-    tags: [dictionary, language]
+    tags: [ dictionary, language ]
     license: CC-BY-SA-4.0
     attribution: Wiktionary contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-05.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 9123591835
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: appropedia-snapshot
     title: Appropedia Snapshot
     description: Appropriate technology and sustainability wiki snapshot.
     type: zim
     category: reconstruction
-    tags: [reconstruction/energy, reconstruction/materials, food-systems]
+    tags: [ reconstruction/energy, reconstruction/materials, food-systems ]
     license: CC-BY-SA-4.0
     attribution: Appropedia contributors.
     url: https://download.kiwix.org/zim/other/appropedia_en_all_maxi_2026-02.zim
     source_url: https://www.appropedia.org/
     expected_size_bytes: 581641351
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: energypedia-zim
     title: Energypedia English No Images ZIM
-    description: Practical renewable energy, off-grid power, cooking fuel, and energy access knowledge.
+    description: Practical renewable energy, off-grid power, cooking fuel, and
+      energy access knowledge.
     type: zim
     category: reconstruction
-    tags: [reconstruction/energy, off-grid-power, cooking-fuel]
+    tags: [ reconstruction/energy, off-grid-power, cooking-fuel ]
     license: CC-BY-SA-4.0
     attribution: Energypedia contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/other/energypedia_en_all_nopic_2025-12.zim
     source_url: https://energypedia.info/
     expected_size_bytes: 722154643
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: open-source-ecology
     title: Open Source Ecology
     description: Global Village Construction Set and open machine documentation ZIM archive.
     type: zim
     category: reconstruction
-    tags: [reconstruction/manufacturing, reconstruction/energy, repair/tools]
+    tags: [ reconstruction/manufacturing, reconstruction/energy, repair/tools ]
     license: CC-BY-SA-4.0
-    attribution: Open Source Ecology contributors; Christian Rupp archive via Internet Archive.
+    attribution: Open Source Ecology contributors; Christian Rupp archive via
+      Internet Archive.
     url: https://archive.org/download/osewiki_en_all_2019-08/osewiki_en_all_2019-08.zim
     source_url: https://www.opensourceecology.org/offline-wiki-zim-kiwix/
     expected_size_bytes: 2964551754
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: cdc-public-health-pack
     title: CDC Public Health Pack
     description: Public-domain U.S. public-health and emergency references where available.
     type: pdf
     category: medicine
-    tags: [medicine/public-health, sanitation, infection-control]
+    tags: [ medicine/public-health, sanitation, infection-control ]
     license: public-domain-us
     attribution: Centers for Disease Control and Prevention.
     url: https://stacks.cdc.gov/view/cdc/60062/cdc_60062_DS1.pdf
     source_url: https://stacks.cdc.gov/view/cdc/60062
     expected_size_bytes: 6691434
     sha256: null
-    runtime: [open, index, search, ai]
+    runtime: [ open, index, search, ai ]
     open:
       action: direct_open
       label: Open the downloaded PDF with the system PDF viewer.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: openstreetmap-wiki-zim
     title: OpenStreetMap Wiki No Images ZIM
-    description: Offline documentation for OpenStreetMap tagging, mapping practice, and geodata workflows.
+    description: Offline documentation for OpenStreetMap tagging, mapping practice,
+      and geodata workflows.
     type: zim
     category: geography
-    tags: [geography, maps, openstreetmap]
+    tags: [ geography, maps, openstreetmap ]
     license: CC-BY-SA-2.0
     attribution: OpenStreetMap Wiki contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_nopic_2026-04.zim
     source_url: https://wiki.openstreetmap.org/
     expected_size_bytes: 472074286
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: diy-stackexchange-zim
     title: DIY Stack Exchange ZIM
-    description: Offline home repair, construction, plumbing, electrical, and maintenance Q&A.
+    description: Offline home repair, construction, plumbing, electrical, and
+      maintenance Q&A.
     type: zim
     category: repair
-    tags: [repair/buildings, construction, maintenance]
+    tags: [ repair/buildings, construction, maintenance ]
     license: CC-BY-SA-4.0
     attribution: DIY Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/diy.stackexchange.com_en_all_2026-02.zim
     source_url: https://diy.stackexchange.com/
     expected_size_bytes: 2050957131
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: woodworking-stackexchange-zim
     title: Woodworking Stack Exchange ZIM
     description: Offline woodworking, joinery, tool, and workshop practice Q&A.
     type: zim
     category: repair
-    tags: [repair/tools, woodworking, construction]
+    tags: [ repair/tools, woodworking, construction ]
     license: CC-BY-SA-4.0
     attribution: Woodworking Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-02.zim
     source_url: https://woodworking.stackexchange.com/
     expected_size_bytes: 105105615
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: electronics-stackexchange-zim
     title: Electronics Stack Exchange ZIM
     description: Offline electronics design, diagnostics, power, sensors, and repair Q&A.
     type: zim
     category: repair
-    tags: [repair/electronics, electronics, power]
+    tags: [ repair/electronics, electronics, power ]
     license: CC-BY-SA-4.0
     attribution: Electronics Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/electronics.stackexchange.com_en_all_2026-02.zim
     source_url: https://electronics.stackexchange.com/
     expected_size_bytes: 4182459470
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: arduino-stackexchange-zim
     title: Arduino Stack Exchange ZIM
     description: Offline microcontroller, sensor, automation, and repair project Q&A.
     type: zim
     category: repair
-    tags: [repair/electronics, microcontrollers, automation]
+    tags: [ repair/electronics, microcontrollers, automation ]
     license: CC-BY-SA-4.0
     attribution: Arduino Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/arduino.stackexchange.com_en_all_2026-02.zim
     source_url: https://arduino.stackexchange.com/
     expected_size_bytes: 259237565
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: engineering-stackexchange-zim
     title: Engineering Stack Exchange ZIM
-    description: Offline practical engineering, mechanics, materials, systems, and design Q&A.
+    description: Offline practical engineering, mechanics, materials, systems, and
+      design Q&A.
     type: zim
     category: reconstruction
-    tags: [engineering, reconstruction/materials, reconstruction/manufacturing]
+    tags: [ engineering, reconstruction/materials, reconstruction/manufacturing ]
     license: CC-BY-SA-4.0
     attribution: Engineering Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/engineering.stackexchange.com_en_all_2026-02.zim
     source_url: https://engineering.stackexchange.com/
     expected_size_bytes: 254016088
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: 3dprinting-stackexchange-zim
     title: 3D Printing Stack Exchange ZIM
-    description: Offline additive manufacturing, printer repair, materials, calibration, and fabrication Q&A.
+    description: Offline additive manufacturing, printer repair, materials,
+      calibration, and fabrication Q&A.
     type: zim
     category: reconstruction
-    tags: [reconstruction/manufacturing, repair/tools, fabrication]
+    tags: [ reconstruction/manufacturing, repair/tools, fabrication ]
     license: CC-BY-SA-4.0
     attribution: 3D Printing Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-02.zim
     source_url: https://3dprinting.stackexchange.com/
     expected_size_bytes: 120411330
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: bicycles-stackexchange-zim
     title: Bicycles Stack Exchange ZIM
-    description: Offline bicycle maintenance, repair, cargo transport, parts, and field troubleshooting Q&A.
+    description: Offline bicycle maintenance, repair, cargo transport, parts, and
+      field troubleshooting Q&A.
     type: zim
     category: repair
-    tags: [transport, repair/tools, maintenance]
+    tags: [ transport, repair/tools, maintenance ]
     license: CC-BY-SA-4.0
     attribution: Bicycles Stack Exchange contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/stack_exchange/bicycles.stackexchange.com_en_all_2026-02.zim
     source_url: https://bicycles.stackexchange.com/
     expected_size_bytes: 489509597
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-core, civilization-rebuild, civilization-max]
+    profiles: [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
   - id: wikisource-zim
     title: Wikisource English ZIM
     description: Offline source texts and historical references.
     type: zim
     category: science-education
-    tags: [history, culture, reference]
+    tags: [ history, culture, reference ]
     license: mixed-free
     attribution: Wikisource contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-05.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 11824699968
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-rebuild, civilization-max]
+    profiles: [ civilization-rebuild, civilization-max ]
+    language: en
   - id: libretexts-core-science
     title: LibreTexts Math ZIM
     description: Offline LibreTexts mathematics textbook library.
     type: zim
     category: science-education
-    tags: [mathematics, education]
+    tags: [ mathematics, education ]
     license: mixed-free
     attribution: LibreTexts contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/libretexts/libretexts.org_en_math_2026-01.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 830646230
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-rebuild, civilization-max]
+    profiles: [ civilization-rebuild, civilization-max ]
+    language: en
   - id: libretexts-physics
     title: LibreTexts Physics ZIM
     description: Offline LibreTexts physics textbook library.
     type: zim
     category: science-education
-    tags: [physics, education]
+    tags: [ physics, education ]
     license: mixed-free
     attribution: LibreTexts contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/libretexts/libretexts.org_en_phys_2026-01.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 559554453
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-rebuild, civilization-max]
+    profiles: [ civilization-rebuild, civilization-max ]
+    language: en
   - id: libretexts-chemistry
     title: LibreTexts Chemistry ZIM
     description: Offline LibreTexts chemistry textbook library.
     type: zim
     category: science-education
-    tags: [chemistry, education]
+    tags: [ chemistry, education ]
     license: mixed-free
     attribution: LibreTexts contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/libretexts/libretexts.org_en_chem_2025-01.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 2182916266
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-rebuild, civilization-max]
+    profiles: [ civilization-rebuild, civilization-max ]
+    language: en
   - id: project-gutenberg-small
     title: Project Gutenberg Technology ZIM
-    description: Public-domain technology, engineering, and practical arts books from Project Gutenberg.
+    description: Public-domain technology, engineering, and practical arts books
+      from Project Gutenberg.
     type: zim
     category: science-education
-    tags: [technology, engineering, public-domain-books]
+    tags: [ technology, engineering, public-domain-books ]
     license: public-domain-us
     attribution: Project Gutenberg contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/gutenberg/gutenberg_en_lcc-t_2026-03.zim
     source_url: https://www.gutenberg.org/
     expected_size_bytes: 13154803470
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-rebuild, civilization-max]
+    profiles: [ civilization-rebuild, civilization-max ]
+    language: en
   - id: project-gutenberg-large
     title: Project Gutenberg English Literature ZIM
     description: Public-domain English literature package from Project Gutenberg.
     type: zim
     category: science-education
-    tags: [culture, literature, history]
+    tags: [ culture, literature, history ]
     license: public-domain-us
     attribution: Project Gutenberg contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/gutenberg/gutenberg_en_lcc-pr_2026-03.zim
     source_url: https://www.gutenberg.org/
     expected_size_bytes: 16152121320
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-max]
+    profiles: [ civilization-max ]
+    language: en
   - id: wikipedia-top1m-maxi
     title: Wikipedia Top 1M With Images
-    description: Rich English Wikipedia top-million article package with images for broad offline reference.
+    description: Rich English Wikipedia top-million article package with images for
+      broad offline reference.
     type: zim
     category: science-education
-    tags: [reference, education]
+    tags: [ reference, education ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
     url: https://download.kiwix.org/zim/wikipedia/wikipedia_en_top1m_maxi_2026-04.zim
     source_url: https://library.kiwix.org/
     expected_size_bytes: 49385355700
     sha256: null
-    runtime: [serve, browse, search]
+    runtime: [ serve, browse, search ]
     open:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
-    profiles: [civilization-max]
+    profiles: [ civilization-max ]
+    language: en
+  - id: vikidia-es-zim
+    title: Vikidia Spanish No Images ZIM
+    description: Easy-reading Spanish encyclopedia package for younger readers and
+      quick general reference.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ reference, education, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Vikidia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-03.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 13569687
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles:
+      [
+        survival-essential-es,
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: who-basic-emergency-care-es
+    title: WHO Basic Emergency Care Spanish Flyer
+    description: Spanish WHO emergency-care overview for first-contact providers in
+      limited-resource settings.
+    type: pdf
+    language: es
+    category: medicine
+    tags: [ medicine/emergency-care, medicine/public-health, first-aid, spanish ]
+    license: CC-BY-NC-SA-3.0-IGO
+    attribution: World Health Organization.
+    url: https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec_flyer_final_es.pdf?sfvrsn=d50c1e47_1
+    source_url: https://www.who.int/publications/i/item/basic-emergency-care-approach-to-the-acutely-ill-and-injured
+    artifact_name: who-basic-emergency-care-es.pdf
+    expected_size_bytes: 6854788
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [
+        survival-essential-es,
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: who-bec-quick-cards-es
+    title: WHO BEC Quick Cards Spanish
+    description: Spanish WHO Basic Emergency Care quick-card reference for rapid
+      emergency assessment and treatment.
+    type: pdf
+    language: es
+    category: medicine
+    tags: [ medicine/emergency-care, first-aid, triage, spanish ]
+    license: CC-BY-NC-SA-3.0-IGO
+    attribution: World Health Organization.
+    url: https://cdn.who.int/media/docs/default-source/integrated-health-services-%28ihs%29/csy/bec-quick-cards/becp-edu30-pdf-sp-frst.pdf
+    source_url: https://www.who.int/publications/i/item/basic-emergency-care-approach-to-the-acutely-ill-and-injured
+    artifact_name: who-bec-quick-cards-es.pdf
+    expected_size_bytes: 217441
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [
+        survival-essential-es,
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: cert-basic-training-es
+    title: CERT Basic Training Spanish
+    description: Spanish Community Emergency Response Team participant manual
+      covering disaster preparedness, fire safety, medical operations, search
+      and rescue, and team organization.
+    type: pdf
+    language: es
+    category: survival
+    tags: [ disaster-response, first-aid, preparedness, spanish ]
+    license: public-domain-us
+    attribution: Ready.gov and FEMA.
+    url: https://www.ready.gov/sites/default/files/2019.CERT_.Basic_.PM_.FINAL_.Spanish.508c.pdf
+    source_url: https://www.ready.gov/cert
+    artifact_name: cert-basic-training-es.pdf
+    expected_size_bytes: 8829561
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [
+        survival-essential-es,
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: cdc-build-emergency-kit-es
+    title: CDC Build Emergency Kit Spanish
+    description: Spanish CDC guidance on building an emergency kit with basic
+      supplies for household disaster preparedness.
+    type: html
+    language: es
+    category: survival
+    tags: [ preparedness, disaster-response, emergency-kit, spanish ]
+    license: public-domain-us
+    attribution: Centers for Disease Control and Prevention.
+    url: https://www.cdc.gov/es/disasters/psa/build-emergency-kit.html
+    source_url: https://www.cdc.gov/es/disasters/psa/build-emergency-kit.html
+    artifact_name: cdc-build-emergency-kit-es.html
+    expected_size_bytes: 93205
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded HTML page with the system browser.
+    profiles:
+      [
+        survival-essential-es,
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: wikipedia-es-top-zim
+    title: Wikipedia Spanish Top No Images ZIM
+    description: Broad Spanish Wikipedia subset without images for compact general
+      reference.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ reference, education, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 1128822337
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles:
+      [
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: wikipedia-es-medicine-zim
+    title: Wikipedia Spanish Medicine No Images ZIM
+    description: Spanish medical encyclopedia subset for offline health and
+      first-aid reference.
+    type: zim
+    language: es
+    category: medicine
+    tags: [ medicine, first-aid, public-health, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 157097761
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles:
+      [
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: ifixit-es-zim
+    title: iFixit Spanish ZIM
+    description: Spanish offline repair procedures for devices, appliances, tools,
+      and electronics.
+    type: zim
+    language: es
+    category: repair
+    tags: [ repair/electronics, repair/appliances, tools, spanish ]
+    license: CC-BY-NC-SA-3.0
+    attribution: iFixit contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/ifixit/ifixit_es_all_2026-03.zim
+    source_url: https://es.ifixit.com/
+    expected_size_bytes: 3680870250
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles:
+      [
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: wikivoyage-es-zim
+    title: Wikivoyage Spanish No Images ZIM
+    description: Spanish offline travel, geography, region, and route reference
+      useful for movement planning.
+    type: zim
+    language: es
+    category: geography
+    tags: [ geography, travel, navigation, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikivoyage contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-03.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 37667208
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles:
+      [
+        survival-plus-es,
+        civilization-core-es,
+        civilization-rebuild-es,
+        civilization-max-es
+      ]
+  - id: wikibooks-es-zim
+    title: Wikibooks Spanish No Images ZIM
+    description: Spanish offline practical books and textbooks from Wikibooks.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ education, reference, textbooks, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikibooks contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikibooks/wikibooks_es_all_nopic_2025-10.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 112043538
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+  - id: wiktionary-es-zim
+    title: Wiktionary Spanish No Images ZIM
+    description: Spanish offline dictionary and language reference.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ dictionary, language, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wiktionary contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-03.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 561311192
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+  - id: wikisource-es-zim
+    title: Wikisource Spanish No Images ZIM
+    description: Spanish offline source texts, literature, and historical references.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ history, culture, literature, spanish ]
+    license: mixed-free
+    attribution: Wikisource contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 763595002
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-rebuild-es, civilization-max-es ]
+  - id: wikipedia-es-history-zim
+    title: Wikipedia Spanish History No Images ZIM
+    description: Spanish Wikipedia history topic package for compact offline
+      humanities coverage.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ history, education, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 184839013
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-rebuild-es, civilization-max-es ]
+  - id: wikipedia-es-mathematics-zim
+    title: Wikipedia Spanish Mathematics No Images ZIM
+    description: Spanish Wikipedia mathematics topic package for compact offline
+      STEM reference.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ mathematics, education, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 106635933
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-rebuild-es, civilization-max-es ]
+  - id: wikipedia-es-physics-zim
+    title: Wikipedia Spanish Physics No Images ZIM
+    description: Spanish Wikipedia physics topic package for compact offline STEM reference.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ physics, education, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 90512771
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-rebuild-es, civilization-max-es ]
+  - id: wikipedia-es-computer-zim
+    title: Wikipedia Spanish Computing No Images ZIM
+    description: Spanish Wikipedia computing topic package for compact offline
+      computer and software reference.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ computing, education, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-04.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 97131347
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-rebuild-es, civilization-max-es ]
+  - id: project-gutenberg-es-zim
+    title: Project Gutenberg Spanish ZIM
+    description: Public-domain Spanish-language books from Project Gutenberg.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ culture, literature, public-domain-books, spanish ]
+    license: public-domain-us
+    attribution: Project Gutenberg contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/gutenberg/gutenberg_es_all_2026-01.zim
+    source_url: https://www.gutenberg.org/browse/languages/es
+    expected_size_bytes: 1860106016
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-rebuild-es, civilization-max-es ]
+  - id: wikipedia-es-all-nopic-zim
+    title: Wikipedia Spanish All No Images ZIM
+    description: Complete Spanish Wikipedia package without images for large offline
+      reference libraries.
+    type: zim
+    language: es
+    category: science-education
+    tags: [ reference, education, encyclopedia, spanish ]
+    license: CC-BY-SA-4.0
+    attribution: Wikimedia contributors via Kiwix/OpenZIM.
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-05.zim
+    source_url: https://library.kiwix.org/
+    expected_size_bytes: 12093643511
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: Start the local Kiwix server and open the ZIM library in a browser.
+    profiles: [ civilization-max-es ]
 models:
   - id: qwen3-8b
     title: Qwen3 8B

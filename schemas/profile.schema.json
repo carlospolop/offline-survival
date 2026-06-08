@@ -1,10 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["id", "title", "description", "target_size_gb", "disk_budget_gb"],
+  "required": ["id", "title", "language", "description", "target_size_gb", "disk_budget_gb"],
   "properties": {
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]+$" },
     "title": { "type": "string" },
+    "language": { "enum": ["en", "es", "both"] },
+    "variant": { "enum": ["english", "spanish", "bilingual"] },
     "description": { "type": "string" },
     "target_size_gb": {
       "type": "array",

@@ -669,7 +669,7 @@ function sourceConfigForRequest(db, catalog, sourceId) {
     type: row.type,
     category: "extra-knowledge",
     license: row.license,
-    runtime: row.type === "zim" ? ["reader"] : ["index", "search", "local-ai"],
+    runtime: row.type === "zim" ? ["reader", "index", "search", "local-ai"] : ["index", "search", "local-ai"],
     expected_size_bytes: row.expected_size_bytes,
     source_url: row.source_url
   };

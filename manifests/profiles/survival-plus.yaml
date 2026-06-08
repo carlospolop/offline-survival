@@ -1,5 +1,7 @@
 id: survival-plus
 title: Survival Plus
+language: en
+variant: english
 description: Laptop or USB-SSD archive that extends Survival Essential with broader Wikipedia reference material, Wikipedia Medicine, iFixit repair knowledge, biology, travel/geography, agriculture, gardening, cooking, food safety, and recommended local AI models for source-grounded questions.
 target_size_gb: [30, 60]
 disk_budget_gb: 60

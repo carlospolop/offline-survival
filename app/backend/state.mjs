@@ -141,12 +141,31 @@ export function migrate(db) {
       safety_class TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(source_id, title, body, path);
   `);
+  ensureSearchTable(db);
   addColumn(db, "sources", "review_status", "TEXT NOT NULL DEFAULT 'candidate'");
   addColumn(db, "sources", "license_status", "TEXT NOT NULL DEFAULT 'unverified'");
   addColumn(db, "sources", "duplicate_of", "TEXT");
   cleanupDuplicateDownloadRows(db);
+}
+
+function ensureSearchTable(db) {
+  try {
+    db.exec("CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(source_id, title, body, path)");
+    return;
+  } catch {
+    // Some bundled Node.js SQLite builds omit FTS5. Keep indexing and LIKE search
+    // working everywhere instead of failing database migration at startup.
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS fts (
+      source_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      path TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS fts_source_id_idx ON fts(source_id);
+  `);
 }
 
 function addColumn(db, table, column, definition) {

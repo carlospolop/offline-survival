@@ -1,0 +1,15 @@
+id: civilization-rebuild-bilingual
+title: Civilization Rebuild Bilingual
+language: both
+variant: bilingual
+description: English and Spanish workstation-scale archive. Combines Civilization Rebuild with Civilization Rebuild ES, keeping deep English STEM and maker sources while adding Spanish topical, literature, and reference material.
+target_size_gb: [410, 830]
+disk_budget_gb: 850
+includes:
+  - civilization-rebuild
+  - civilization-rebuild-es
+models:
+  optional:
+    - llama3_1-8b
+    - mistral-small-24b
+    - qwen3-8b

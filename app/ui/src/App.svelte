@@ -172,16 +172,181 @@
       destructiveAction: "Destructive action",
       confirmation: "Confirmation",
       cancel: "Cancel",
-      continue: "Continue"
+      continue: "Continue",
+      index: "Index",
+      reindex: "Re-index",
+      openButton: "Open",
+      installed: "Installed",
+      pull: "Pull",
+      pullRecommended: "Pull Recommended",
+      pullRecommendedChatModel: "Pull Recommended Chat Model",
+      pullRecommendedEmbedding: "Pull Recommended Embedding",
+      indexingLargeFiles: "Indexing... this may take several minutes for large files.",
+      downloadedTotalUnknown: "{size} downloaded · total unknown",
+      repairedMissingPartials: "{repaired} repaired · {missing} missing · {partials} partials",
+      noAddonSourcesMatch: "No add-on sources match the current filter.",
+      extraKnowledgeHelp: "Add local PDFs, EPUBs, text/Markdown/HTML/CSV/JSON files, and ZIM files from another folder.",
+      supportedFiles: "{count} supported files",
+      selectedFolderData: "{size} selected folder data",
+      unsupportedSkipped: "{count} unsupported skipped",
+      filesFound: "Files Found",
+      selectedImportHelp: "{count} selected · imported files are copied into the app library before indexing.",
+      selectAll: "Select All",
+      clear: "Clear",
+      indexAfterImport: "Index after import",
+      importSelected: "Import Selected",
+      noSupportedFiles: "No supported files found in this folder.",
+      importedFiles: "Imported {count} files",
+      indexedOrRegistered: "{count} indexed or registered for search/local AI context.",
+      importedLocalSources: "Imported Local Sources",
+      importedLocalSourcesHelp: "These local files are now part of the app library.",
+      importedLocalSourcesEmpty: "No extra local files imported yet.",
+      indexAllDownloadedTooltip: "Index all downloaded sources that are not indexed yet. This uses built-in text extraction and does not require an embedding model.",
+      indexDownloadedCount: "Index {count} Downloaded",
+      allDownloadedIndexed: "All Downloaded Indexed",
+      searchableResources: "Searchable Resources",
+      searchableResourcesReady: "Indexed sources that can be searched now.",
+      searchableResourcesEmpty: "No indexed resources yet. Open or index downloaded sources first.",
+      all: "All",
+      downloadingNow: "Downloading Now",
+      downloadingNowHelp: "These resources are still queued, downloading, or resuming. They cannot be opened or indexed until the download completes.",
+      noActiveDownloads: "No active downloads.",
+      downloadedNeedsIndex: "Downloaded Files Needing Open or Index",
+      downloadedNeedsIndexHelp: "These files are actually present on disk. Open prepares them for reading; Index adds prepared text to local search and Local AI context.",
+      openThenIndex: "Open this source to extract the configured content, then index it.",
+      indexBeforeSearch: "Index this source before it can be searched.",
+      noDownloadedNeedsIndex: "No fully downloaded files are waiting for Open or Index.",
+      openSearchResultTitle: "Open this result in the matched local resource",
+      clickToOpenMatch: "click to open match",
+      localAiInstallHelp: "Installs the app-managed Ollama runtime if needed, starts it locally, and downloads every model recommended for this PC.",
+      machineTierUnknown: "machine tier unknown",
+      localAiSetupInProgress: "Local AI setup is in progress.",
+      localAiBlockedByRam: "Local AI is blocked by the RAM safety guard.",
+      localAiRuntimeMissingHelp: "Use Install Recommended below to download and start the app-managed Ollama runtime.",
+      startupGuard: "Startup guard: {available} available RAM / {required} required for {model}.",
+      swapTooFull: "Swap is too full for a safe Local AI start.",
+      installChatModelFirst: "Install a chat model before starting Local AI.",
+      startOllama: "Start Ollama",
+      stop: "Stop",
+      noRunningServiceToStop: "No running service to stop.",
+      recommendedAiInstalled: "Recommended Local AI setup installed",
+      complete: "complete",
+      recommendedChatBadge: "Recommended chat model for this PC",
+      recommendedEmbeddingBadge: "Recommended embedding model",
+      recommendedChatForTier: "Recommended chat model for {tier}.",
+      recommendedEmbeddingHelp: "Recommended embedding model for search and Local AI context.",
+      engine: "Engine",
+      indexedResourcesAvailable: "{count} indexed resources available",
+      textIndexHelp: "The text index makes downloaded sources searchable without an embedding model. The embedding model is used after indexing for semantic matching: finding relevant passages by meaning for Local AI answers and semantic search, even when the exact words differ.",
+      allIndexedResources: "All indexed resources",
+      askPlaceholder: "Ask against indexed local documents",
+      shareHelp: "Share creates one compressed package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.",
+      generatePackageTitle: "Generate app + sources package",
+      generatePackageHelp: "The package includes app files from the extracted all-platforms release folder, downloaded files, prepared/opened files, and search indexes for the selected source set. Unrelated local content is left out.",
+      sourcesToShare: "Sources to share",
+      primaryOperatingSystem: "Primary operating system",
+      primaryLauncherLinux: "Primary launcher: Linux",
+      primaryLauncherWindows: "Primary launcher: Windows",
+      primaryLauncherMacos: "Primary launcher: macOS",
+      appBundleFolder: "App Bundle Folder",
+      appBundleFolderValue: "App bundle folder: {path}",
+      appBundleFolderHelp: "Optional: choose the extracted Offline-Survival-all-platforms folder before generating a mixed-OS package.",
+      sharePackageProgressTitle: "Share package",
+      shareProgressSources: "{current} / {total} sources · {percent}%",
+      noDownloadedSourcesReady: "No downloaded sources ready to share",
+      noDownloadedSourcesReadyHelp: "Download sources first. Share packages can only include sources already present on disk.",
+      sharePackageReady: "Share package ready",
+      profile: "Profile",
+      archive: "Archive",
+      folder: "Folder",
+      size: "Size",
+      checksum: "Checksum",
+      checksumFile: "Checksum file",
+      primaryLauncher: "Primary launcher",
+      includedAppFolders: "Included app folders",
+      updateChannels: "Update channels",
+      appUpdate: "App",
+      manifestsUpdate: "Manifests",
+      contentUpdate: "Content",
+      openServicesUpdate: "Open services",
+      modelsUpdate: "Models",
+      networkPolicy: "Network policy",
+      networkPolicyHelp: "Local services bind to 127.0.0.1. LAN sharing remains disabled in this v1 build.",
+      recommendedBadge: "Recommended",
+      loadBackendError: "Could not load the local app backend: {error}",
+      verificationPassed: "Verification passed",
+      verificationFailed: "Verification failed",
+      indexSourceTitle: "Index {title}",
+      reindexSourceTitle: "Re-index {title}",
+      indexRebuildBody: "The app will remove the current searchable index for this source, rebuild it from the downloaded file, and keep it available for Search and Local AI context. It will not download anything new.",
+      indexNewBody: "The app will read this downloaded source and add searchable text to the local index. It will not open the file and it will not download anything new.",
+      indexRemoveRowsStep: "Remove the existing searchable rows and generated index files for this source.",
+      indexReadStep: "Read the downloaded file from the local library.",
+      indexExtractStep: "Extract searchable text using the configured source reader.",
+      indexStoreStep: "Store the text in the local search database for Search and Local AI context.",
+      downloadedFileSize: "Downloaded file size",
+      indexLocation: "Index location",
+      localAppDatabase: "Local app database",
+      embeddingModelRequired: "Embedding model required",
+      embeddingNotRequired: "No. Embeddings are for semantic matching and Local AI retrieval quality after text is indexed.",
+      reindexSource: "Re-index Source",
+      indexSource: "Index Source",
+      indexOriginalOnlyError: "Could not build a full-text index for this source. It is registered for basic search only. {note}",
+      indexAllDownloadedTitle: "Index {count} Downloaded",
+      indexAllDownloadedBody: "The app will index every downloaded source that is not searchable yet. This makes them appear in Search and gives Local AI local context.",
+      indexFindDownloadedStep: "Find downloaded sources that are not indexed yet.",
+      indexResultsStep: "Store the results in the local search database.",
+      sourcesToIndex: "Sources to index",
+      downloadedDataToScan: "Downloaded data to scan",
+      indexDownloadedSources: "Index Downloaded Sources",
+      openSourceTitle: "Open {title}",
+      openSourceBody: "The app will prepare this source and then open the useful reader or file, not the raw downloaded archive.",
+      finalTarget: "Final target",
+      extraDiskNeededNow: "Extra disk needed now",
+      preparedSizeAfterOpen: "Prepared on-disk size after open",
+      openSource: "Open Source",
+      cleanSourcesBody: "This deletes downloaded sources, extracted/opened files, indexes, models, managed AI runtimes, partial downloads, and logs.",
+      catalog: "Catalog",
+      kept: "Kept",
+      libraryPayloads: "Library payloads",
+      deleted: "Deleted",
+      cleanEverything: "Clean Everything",
+      maintenanceCheckComplete: "Check complete: {repaired} repaired, {missing} missing, {partials} partials",
+      maintenanceCheckFailed: "Check failed",
+      embeddingReason: "Use this for semantic search and Local AI retrieval over indexed files.",
+      browseOnlyReason: "This is the smallest chat model in the catalog for this machine.",
+      survivalAiReason: "Best fit for this PC without needing a large workstation.",
+      coreAiReason: "Balanced local chat model for your available RAM.",
+      workstationReason: "Strong local chat model for this workstation tier.",
+      calculatingRecommendedModels: "Calculating recommended models automatically.",
+      etaLeft: "about {duration} left",
+      modelProgress: "{current} / {total} for this model · {percent}% overall",
+      overallProgress: "{current} / {total} overall",
+      totalSizeUnknown: "total size unknown",
+      completeCount: "complete",
+      activeCount: "{count} active",
+      easyDownloadLine: "Downloading profile sources with up to 4 parallel downloads",
+      easyPrepareLine: "Extracting archives and preparing downloaded files for offline use.",
+      easyIndexLine: "Building local search and Local AI context indexes.",
+      easyAiLine: "Installing Ollama and recommended models; see the Local AI progress panel for model download details.",
+      downloadProfileTooltip: "Download every source needed for {title}. Already downloaded sources are skipped, and up to 4 downloads run in parallel.",
+      downloadTooltip: "Download {title} into the local library so it can later be verified, opened, indexed, searched, and used by Local AI.",
+      verifyTooltip: "Verify {title} by checking the downloaded file on disk against its recorded size and checksum when one is available. This does not download new data.",
+      indexTooltip: "{verb} {title} by extracting searchable text into the local search database and Local AI retrieval context. This does not open the file for reading or download anything new.",
+      openZimTooltip: "Open {title} in the local Kiwix reader. This starts or reuses the localhost Kiwix server for downloaded ZIM files.",
+      openExtractServeTooltip: "Open {title} by extracting the configured content, serving it on localhost, and opening it in the browser.",
+      openExtractOpenTooltip: "Open {title} by extracting the archive and launching the configured file with the system viewer.",
+      openDirectTooltip: "Open {title} with the system default application for the downloaded file.",
+      thisPc: "this PC"
     },
     es: {
       appLanguage: "Idioma de la app",
-      english: "Ingles",
-      spanish: "Espanol",
-      bilingual: "Bilingue",
-      englishProfile: "Perfil en ingles",
-      spanishProfile: "Perfil en espanol",
-      bilingualProfile: "Perfil bilingue",
+      english: "Inglés",
+      spanish: "Español",
+      bilingual: "Bilingüe",
+      englishProfile: "Perfil en inglés",
+      spanishProfile: "Perfil en español",
+      bilingualProfile: "Perfil bilingüe",
       baseProfile: "Perfil base",
       addsTo: "Anade a {title}",
       easyInstall: "Instalacion facil",
@@ -287,7 +452,172 @@
       destructiveAction: "Accion destructiva",
       confirmation: "Confirmacion",
       cancel: "Cancelar",
-      continue: "Continuar"
+      continue: "Continuar",
+      index: "Indexar",
+      reindex: "Reindexar",
+      openButton: "Abrir",
+      installed: "Instalado",
+      pull: "Descargar",
+      pullRecommended: "Descargar recomendado",
+      pullRecommendedChatModel: "Descargar modelo de chat recomendado",
+      pullRecommendedEmbedding: "Descargar embeddings recomendados",
+      indexingLargeFiles: "Indexando... puede tardar varios minutos en archivos grandes.",
+      downloadedTotalUnknown: "{size} descargados · total desconocido",
+      repairedMissingPartials: "{repaired} reparados · {missing} perdidos · {partials} parciales",
+      noAddonSourcesMatch: "Ninguna fuente anadida coincide con el filtro actual.",
+      extraKnowledgeHelp: "Anade PDFs, EPUBs, texto/Markdown/HTML/CSV/JSON y archivos ZIM locales desde otra carpeta.",
+      supportedFiles: "{count} archivos compatibles",
+      selectedFolderData: "{size} de datos en la carpeta seleccionada",
+      unsupportedSkipped: "{count} no compatibles omitidos",
+      filesFound: "Archivos encontrados",
+      selectedImportHelp: "{count} seleccionados · los archivos importados se copian a la biblioteca antes de indexarlos.",
+      selectAll: "Seleccionar todo",
+      clear: "Limpiar",
+      indexAfterImport: "Indexar tras importar",
+      importSelected: "Importar seleccionados",
+      noSupportedFiles: "No se encontraron archivos compatibles en esta carpeta.",
+      importedFiles: "{count} archivos importados",
+      indexedOrRegistered: "{count} indexados o registrados para busqueda/contexto de IA local.",
+      importedLocalSources: "Fuentes locales importadas",
+      importedLocalSourcesHelp: "Estos archivos locales ya forman parte de la biblioteca.",
+      importedLocalSourcesEmpty: "Aun no hay archivos locales importados.",
+      indexAllDownloadedTooltip: "Indexa todas las fuentes descargadas que aun no estan indexadas. Usa extraccion de texto integrada y no requiere un modelo de embeddings.",
+      indexDownloadedCount: "Indexar {count} descargados",
+      allDownloadedIndexed: "Todos los descargados indexados",
+      searchableResources: "Recursos buscables",
+      searchableResourcesReady: "Fuentes indexadas que ya se pueden buscar.",
+      searchableResourcesEmpty: "Aun no hay recursos indexados. Abre o indexa fuentes descargadas primero.",
+      all: "Todos",
+      downloadingNow: "Descargando ahora",
+      downloadingNowHelp: "Estos recursos siguen en cola, descargandose o reanudandose. No pueden abrirse ni indexarse hasta que termine la descarga.",
+      noActiveDownloads: "No hay descargas activas.",
+      downloadedNeedsIndex: "Archivos descargados pendientes de abrir o indexar",
+      downloadedNeedsIndexHelp: "Estos archivos existen en disco. Abrir los prepara para lectura; Indexar anade texto preparado a la busqueda local y al contexto de IA local.",
+      openThenIndex: "Abre esta fuente para extraer el contenido configurado y luego indexala.",
+      indexBeforeSearch: "Indexa esta fuente antes de poder buscarla.",
+      noDownloadedNeedsIndex: "No hay archivos completamente descargados esperando apertura o indexacion.",
+      openSearchResultTitle: "Abrir este resultado en el recurso local coincidente",
+      clickToOpenMatch: "clic para abrir coincidencia",
+      localAiInstallHelp: "Instala el runtime Ollama gestionado por la app si hace falta, lo inicia localmente y descarga todos los modelos recomendados para este PC.",
+      machineTierUnknown: "nivel de maquina desconocido",
+      localAiSetupInProgress: "La configuracion de IA local esta en progreso.",
+      localAiBlockedByRam: "La IA local esta bloqueada por la proteccion de RAM.",
+      localAiRuntimeMissingHelp: "Usa Instalar todo lo recomendado para descargar e iniciar el runtime Ollama gestionado por la app.",
+      startupGuard: "Proteccion de arranque: {available} RAM disponible / {required} requerida para {model}.",
+      swapTooFull: "La swap esta demasiado llena para iniciar IA local con seguridad.",
+      installChatModelFirst: "Instala un modelo de chat antes de iniciar IA local.",
+      startOllama: "Iniciar Ollama",
+      stop: "Parar",
+      noRunningServiceToStop: "No hay servicio activo que parar.",
+      recommendedAiInstalled: "Configuracion de IA local recomendada instalada",
+      complete: "completo",
+      recommendedChatBadge: "Modelo de chat recomendado para este PC",
+      recommendedEmbeddingBadge: "Modelo de embeddings recomendado",
+      recommendedChatForTier: "Modelo de chat recomendado para {tier}.",
+      recommendedEmbeddingHelp: "Modelo de embeddings recomendado para busqueda y contexto de IA local.",
+      engine: "Motor",
+      indexedResourcesAvailable: "{count} recursos indexados disponibles",
+      textIndexHelp: "El indice de texto permite buscar fuentes descargadas sin modelo de embeddings. El modelo de embeddings se usa despues de indexar para coincidencia semantica: encontrar pasajes relevantes por significado para respuestas de IA local y busqueda semantica, incluso cuando las palabras exactas difieren.",
+      allIndexedResources: "Todos los recursos indexados",
+      askPlaceholder: "Pregunta contra documentos locales indexados",
+      shareHelp: "Compartir crea un paquete comprimido con las fuentes descargadas seleccionadas, datos de busqueda y archivos de app disponibles para Windows, macOS y Linux.",
+      generatePackageTitle: "Generar paquete app + fuentes",
+      generatePackageHelp: "El paquete incluye archivos de app de la carpeta extraida de todas las plataformas, archivos descargados, archivos preparados/abiertos e indices de busqueda del conjunto seleccionado. El contenido local no relacionado queda fuera.",
+      sourcesToShare: "Fuentes para compartir",
+      primaryOperatingSystem: "Sistema operativo principal",
+      primaryLauncherLinux: "Lanzador principal: Linux",
+      primaryLauncherWindows: "Lanzador principal: Windows",
+      primaryLauncherMacos: "Lanzador principal: macOS",
+      appBundleFolder: "Carpeta del paquete de app",
+      appBundleFolderValue: "Carpeta del paquete de app: {path}",
+      appBundleFolderHelp: "Opcional: elige la carpeta Offline-Survival-all-platforms extraida antes de generar un paquete mixto para varios sistemas.",
+      sharePackageProgressTitle: "Paquete compartido",
+      shareProgressSources: "{current} / {total} fuentes · {percent}%",
+      noDownloadedSourcesReady: "No hay fuentes descargadas listas para compartir",
+      noDownloadedSourcesReadyHelp: "Descarga fuentes primero. Los paquetes compartidos solo pueden incluir fuentes ya presentes en disco.",
+      sharePackageReady: "Paquete compartido listo",
+      profile: "Perfil",
+      archive: "Archivo",
+      folder: "Carpeta",
+      size: "Tamano",
+      checksum: "Checksum",
+      checksumFile: "Archivo checksum",
+      primaryLauncher: "Lanzador principal",
+      includedAppFolders: "Carpetas de app incluidas",
+      updateChannels: "Canales de actualizacion",
+      appUpdate: "App",
+      manifestsUpdate: "Manifiestos",
+      contentUpdate: "Contenido",
+      openServicesUpdate: "Servicios abiertos",
+      modelsUpdate: "Modelos",
+      networkPolicy: "Politica de red",
+      networkPolicyHelp: "Los servicios locales se enlazan a 127.0.0.1. Compartir por LAN sigue desactivado en esta version v1.",
+      recommendedBadge: "Recomendado",
+      loadBackendError: "No se pudo cargar el backend local de la app: {error}",
+      verificationPassed: "Verificacion correcta",
+      verificationFailed: "Verificacion fallida",
+      indexSourceTitle: "Indexar {title}",
+      reindexSourceTitle: "Reindexar {title}",
+      indexRebuildBody: "La app eliminara el indice buscable actual de esta fuente, lo reconstruira desde el archivo descargado y lo mantendra disponible para Busqueda y contexto de IA local. No descargara nada nuevo.",
+      indexNewBody: "La app leera esta fuente descargada y anadira texto buscable al indice local. No abrira el archivo ni descargara nada nuevo.",
+      indexRemoveRowsStep: "Eliminar filas buscables existentes y archivos de indice generados para esta fuente.",
+      indexReadStep: "Leer el archivo descargado desde la biblioteca local.",
+      indexExtractStep: "Extraer texto buscable con el lector configurado para la fuente.",
+      indexStoreStep: "Guardar el texto en la base de datos de busqueda local para Busqueda y contexto de IA local.",
+      downloadedFileSize: "Tamano del archivo descargado",
+      indexLocation: "Ubicacion del indice",
+      localAppDatabase: "Base de datos local de la app",
+      embeddingModelRequired: "Modelo de embeddings requerido",
+      embeddingNotRequired: "No. Los embeddings son para coincidencia semantica y mejor calidad de recuperacion de IA local despues de indexar el texto.",
+      reindexSource: "Reindexar fuente",
+      indexSource: "Indexar fuente",
+      indexOriginalOnlyError: "No se pudo crear un indice de texto completo para esta fuente. Queda registrada para busqueda basica. {note}",
+      indexAllDownloadedTitle: "Indexar {count} descargados",
+      indexAllDownloadedBody: "La app indexara cada fuente descargada que aun no sea buscable. Asi aparece en Busqueda y da contexto a la IA local.",
+      indexFindDownloadedStep: "Encontrar fuentes descargadas que aun no estan indexadas.",
+      indexResultsStep: "Guardar los resultados en la base de datos de busqueda local.",
+      sourcesToIndex: "Fuentes a indexar",
+      downloadedDataToScan: "Datos descargados a escanear",
+      indexDownloadedSources: "Indexar fuentes descargadas",
+      openSourceTitle: "Abrir {title}",
+      openSourceBody: "La app preparara esta fuente y luego abrira el lector o archivo util, no el archivo bruto descargado.",
+      finalTarget: "Destino final",
+      extraDiskNeededNow: "Disco extra necesario ahora",
+      preparedSizeAfterOpen: "Tamano preparado en disco tras abrir",
+      openSource: "Abrir fuente",
+      cleanSourcesBody: "Esto elimina fuentes descargadas, archivos extraidos/abiertos, indices, modelos, runtimes de IA gestionados, descargas parciales y registros.",
+      catalog: "Catalogo",
+      kept: "Conservado",
+      libraryPayloads: "Datos de biblioteca",
+      deleted: "Eliminado",
+      cleanEverything: "Limpiar todo",
+      maintenanceCheckComplete: "Comprobacion completa: {repaired} reparados, {missing} perdidos, {partials} parciales",
+      maintenanceCheckFailed: "Comprobacion fallida",
+      embeddingReason: "Usa esto para busqueda semantica y recuperacion de IA local sobre archivos indexados.",
+      browseOnlyReason: "Este es el modelo de chat mas pequeno del catalogo para esta maquina.",
+      survivalAiReason: "Mejor ajuste para este PC sin necesitar una workstation grande.",
+      coreAiReason: "Modelo de chat local equilibrado para tu RAM disponible.",
+      workstationReason: "Modelo de chat local potente para este nivel de workstation.",
+      calculatingRecommendedModels: "Calculando modelos recomendados automaticamente.",
+      etaLeft: "quedan aprox. {duration}",
+      modelProgress: "{current} / {total} para este modelo · {percent}% total",
+      overallProgress: "{current} / {total} total",
+      totalSizeUnknown: "tamano total desconocido",
+      completeCount: "completas",
+      activeCount: "{count} activas",
+      easyDownloadLine: "Descargando fuentes del perfil con hasta 4 descargas paralelas",
+      easyPrepareLine: "Extrayendo archivos y preparando descargas para uso offline.",
+      easyIndexLine: "Creando indices de busqueda local y contexto de IA local.",
+      easyAiLine: "Instalando Ollama y modelos recomendados; mira el panel de IA local para detalles.",
+      downloadProfileTooltip: "Descarga todas las fuentes necesarias para {title}. Las ya descargadas se omiten y hasta 4 descargas se ejecutan en paralelo.",
+      downloadTooltip: "Descarga {title} en la biblioteca local para poder verificarlo, abrirlo, indexarlo, buscarlo y usarlo con IA local.",
+      verifyTooltip: "Verifica {title} comprobando el archivo descargado en disco contra su tamano y checksum registrados cuando existan. No descarga datos nuevos.",
+      indexTooltip: "{verb} {title} extrayendo texto buscable a la base de datos de busqueda local y al contexto de IA local. No abre el archivo ni descarga nada nuevo.",
+      openZimTooltip: "Abre {title} en el lector Kiwix local. Inicia o reutiliza el servidor Kiwix localhost para archivos ZIM descargados.",
+      openExtractServeTooltip: "Abre {title} extrayendo el contenido configurado, sirviendolo en localhost y abriendolo en el navegador.",
+      openExtractOpenTooltip: "Abre {title} extrayendo el archivo y lanzando el archivo configurado con el visor del sistema.",
+      openDirectTooltip: "Abre {title} con la aplicacion predeterminada del sistema para el archivo descargado.",
+      thisPc: "este PC"
     }
   };
 
@@ -428,7 +758,7 @@
       await refreshModels();
     } catch (err) {
       catalogError = String((err as Error).message ?? err);
-      error = `Could not load the local app backend: ${catalogError}`;
+      error = t("loadBackendError", { error: catalogError });
     } finally {
       loadingCatalog = false;
     }
@@ -533,7 +863,7 @@
     await run(`verify-${sourceId}`, async () => {
       result = await api("/api/verify", { method: "POST", body: JSON.stringify({ sourceId }) });
     });
-    if (result) showVerifyFeedback(sourceId, result.ok, result.ok ? "Verification passed" : "Verification failed");
+    if (result) showVerifyFeedback(sourceId, result.ok, result.ok ? t("verificationPassed") : t("verificationFailed"));
   }
 
   function showVerifyFeedback(sourceId: string, ok: boolean, message: string) {
@@ -555,24 +885,22 @@
     const isReindex = fullyIndexedSourceIds.has(sourceId);
     const accepted = await requestConfirm({
       tone: "normal",
-      title: `${isReindex ? "Re-index" : "Index"} ${source?.title ?? sourceId}`,
-      body: isReindex
-        ? "The app will remove the current searchable index for this source, rebuild it from the downloaded file, and keep it available for Search and Local AI context. It will not download anything new."
-        : "The app will read this downloaded source and add searchable text to the local index. It will not open the file and it will not download anything new.",
+      title: t(isReindex ? "reindexSourceTitle" : "indexSourceTitle", { title: source?.title ?? sourceId }),
+      body: t(isReindex ? "indexRebuildBody" : "indexNewBody"),
       steps: [
-        ...(isReindex ? ["Remove the existing searchable rows and generated index files for this source."] : []),
-        "Read the downloaded file from the local library.",
-        "Extract searchable text using the configured source reader.",
-        "Store the text in the local search database for Search and Local AI context."
+        ...(isReindex ? [t("indexRemoveRowsStep")] : []),
+        t("indexReadStep"),
+        t("indexExtractStep"),
+        t("indexStoreStep")
       ],
       details: [
-        ["Source", source?.title ?? sourceId],
-        ["Downloaded file size", gb(Number(local?.size_bytes ?? source?.expected_size_bytes ?? 0))],
-        ["Index location", "Local app database"],
-        ["Embedding model required", "No. Embeddings are for semantic matching and Local AI retrieval quality after text is indexed."]
+        [t("source"), source?.title ?? sourceId],
+        [t("downloadedFileSize"), gb(Number(local?.size_bytes ?? source?.expected_size_bytes ?? 0))],
+        [t("indexLocation"), t("localAppDatabase")],
+        [t("embeddingModelRequired"), t("embeddingNotRequired")]
       ],
-      confirmLabel: isReindex ? "Re-index Source" : "Index Source",
-      cancelLabel: "Cancel"
+      confirmLabel: t(isReindex ? "reindexSource" : "indexSource"),
+      cancelLabel: t("cancel")
     });
     if (!accepted) return;
     let result: any = null;
@@ -580,7 +908,7 @@
       result = await api("/api/index", { method: "POST", body: JSON.stringify({ sourceId }) });
     });
     if (result?.originalOnly) {
-      error = `Could not build a full-text index for this source. It is registered for basic search only. ${result.note ?? ""}`.trim();
+      error = t("indexOriginalOnlyError", { note: result.note ?? "" }).trim();
     }
   }
 
@@ -588,21 +916,21 @@
     const sources = indexableDownloadedSources;
     const accepted = await requestConfirm({
       tone: "normal",
-      title: `Index ${sources.length} Downloaded`,
-      body: "The app will index every downloaded source that is not searchable yet. This makes them appear in Search and gives Local AI local context.",
+      title: t("indexAllDownloadedTitle", { count: sources.length }),
+      body: t("indexAllDownloadedBody"),
       steps: [
-        "Find downloaded sources that are not indexed yet.",
-        "Extract searchable text from each source.",
-        "Store the results in the local search database."
+        t("indexFindDownloadedStep"),
+        t("indexExtractStep"),
+        t("indexResultsStep")
       ],
       details: [
-        ["Sources to index", String(sources.length)],
-        ["Downloaded data to scan", gb(sources.reduce((sum, source) => sum + Number(source.size_bytes ?? sourceCatalog.get(source.id)?.expected_size_bytes ?? 0), 0))],
-        ["Index location", "Local app database"],
-        ["Embedding model required", "No. Embeddings are for semantic matching and Local AI retrieval quality after text is indexed."]
+        [t("sourcesToIndex"), String(sources.length)],
+        [t("downloadedDataToScan"), gb(sources.reduce((sum, source) => sum + Number(source.size_bytes ?? sourceCatalog.get(source.id)?.expected_size_bytes ?? 0), 0))],
+        [t("indexLocation"), t("localAppDatabase")],
+        [t("embeddingModelRequired"), t("embeddingNotRequired")]
       ],
-      confirmLabel: "Index Downloaded Sources",
-      cancelLabel: "Cancel"
+      confirmLabel: t("indexDownloadedSources"),
+      cancelLabel: t("cancel")
     });
     if (!accepted) return;
     await run("index-all-downloaded", () => api("/api/index/downloaded", { method: "POST" }));
@@ -612,16 +940,16 @@
     const plan: any = await api("/api/source/open-plan", { method: "POST", body: JSON.stringify({ sourceId }) });
     const accepted = await requestConfirm({
       tone: "normal",
-      title: `Open ${plan.title}`,
-      body: "The app will prepare this source and then open the useful reader or file, not the raw downloaded archive.",
+      title: t("openSourceTitle", { title: plan.title }),
+      body: t("openSourceBody"),
       steps: plan.steps,
       details: [
-        ["Final target", plan.finalTarget],
-        ["Extra disk needed now", gb(plan.additionalBytes)],
-        ["Prepared on-disk size after open", gb(plan.extractedBytes)]
+        [t("finalTarget"), plan.finalTarget],
+        [t("extraDiskNeededNow"), gb(plan.additionalBytes)],
+        [t("preparedSizeAfterOpen"), gb(plan.extractedBytes)]
       ],
-      confirmLabel: "Open Source",
-      cancelLabel: "Cancel"
+      confirmLabel: t("openSource"),
+      cancelLabel: t("cancel")
     });
     if (!accepted) return;
     await run(`open-${sourceId}`, () => api("/api/source/open", { method: "POST", body: JSON.stringify({ sourceId }) }));
@@ -663,15 +991,15 @@
   async function cleanSources() {
     const accepted = await requestConfirm({
       tone: "danger",
-      title: "Clean Sources",
-      body: "This deletes downloaded sources, extracted/opened files, indexes, models, managed AI runtimes, partial downloads, and logs.",
+      title: t("cleanSources"),
+      body: t("cleanSourcesBody"),
       details: [
-        ["Catalog", "Kept"],
-        ["Settings", "Kept"],
-        ["Library payloads", "Deleted"]
+        [t("catalog"), t("kept")],
+        [t("settings"), t("kept")],
+        [t("libraryPayloads"), t("deleted")]
       ],
-      confirmLabel: "Clean Everything",
-      cancelLabel: "Cancel"
+      confirmLabel: t("cleanEverything"),
+      cancelLabel: t("cancel")
     });
     if (!accepted) return;
     await run("clean-sources", () => api("/api/clean-sources", { method: "POST" }));
@@ -763,9 +1091,9 @@
       const repaired = Number(result.repaired?.length ?? 0);
       const missing = Number(result.missing?.length ?? 0);
       const partials = Number(result.partials?.length ?? 0);
-      showMaintenanceFeedback(missing === 0, `Check complete: ${repaired} repaired, ${missing} missing, ${partials} partials`);
+      showMaintenanceFeedback(missing === 0, t("maintenanceCheckComplete", { repaired, missing, partials }));
     } else if (error) {
-      showMaintenanceFeedback(false, "Check failed");
+      showMaintenanceFeedback(false, t("maintenanceCheckFailed"));
     }
   }
 
@@ -1018,11 +1346,11 @@
 
   function recommendationReason(model: any) {
     if (!system || !model) return "";
-    if (model.role === "embedding") return "Use this for semantic search and Local AI retrieval over indexed files.";
-    if (system.tier === "browse-only") return "This is the smallest chat model in the catalog for this machine.";
-    if (system.tier === "survival-ai") return "Best fit for this PC without needing a large workstation.";
-    if (system.tier === "core-ai") return "Balanced local chat model for your available RAM.";
-    return "Strong local chat model for this workstation tier.";
+    if (model.role === "embedding") return t("embeddingReason");
+    if (system.tier === "browse-only") return t("browseOnlyReason");
+    if (system.tier === "survival-ai") return t("survivalAiReason");
+    if (system.tier === "core-ai") return t("coreAiReason");
+    return t("workstationReason");
   }
 
   function estimateAiRamBytes(model: any) {
@@ -1036,7 +1364,7 @@
 
   function recommendedInstallSummary() {
     const parts = recommendedAiModels.map((model) => `${model.title} (${gb(model.expected_size_bytes)})`);
-    return parts.join(" + ") || (uiLanguage === "es" ? "Calculando modelos recomendados automaticamente." : "Calculating recommended models automatically.");
+    return parts.join(" + ") || t("calculatingRecommendedModels");
   }
 
   function preparedSize(source: Source) {
@@ -1045,14 +1373,14 @@
 
   function progressLine(progress: any) {
     if (!progress) return "";
-    const eta = progress.etaSeconds ? ` · about ${duration(progress.etaSeconds)} left` : "";
+    const eta = progress.etaSeconds ? ` · ${t("etaLeft", { duration: duration(progress.etaSeconds) })}` : "";
     if (progress.phase === "runtime-download" && progress.runtimeBytesTotal) {
       return `${gb(progress.runtimeBytesReceived)} / ${gb(progress.runtimeBytesTotal)}${eta}`;
     }
     if (progress.phase === "model-pull" && progress.modelBytesTotal) {
-      return `${gb(progress.modelBytesReceived)} / ${gb(progress.modelBytesTotal)} for this model · ${progress.percent ?? 0}% overall${eta}`;
+      return `${t("modelProgress", { current: gb(progress.modelBytesReceived), total: gb(progress.modelBytesTotal), percent: progress.percent ?? 0 })}${eta}`;
     }
-    if (progress.totalBytes) return `${gb(progress.currentBytes ?? 0)} / ${gb(progress.totalBytes)} overall${eta}`;
+    if (progress.totalBytes) return `${t("overallProgress", { current: gb(progress.currentBytes ?? 0), total: gb(progress.totalBytes) })}${eta}`;
     return progress.detail ?? "";
   }
 
@@ -1068,44 +1396,44 @@
   function easyInstallProgressLine(progress: any) {
     if (!progress) return "";
     if (progress.phase === "download") {
-      const bytes = progress.totalBytes ? `${gb(progress.currentBytes ?? 0)} / ${gb(progress.totalBytes)}` : (uiLanguage === "es" ? "tamano total desconocido" : "total size unknown");
-      const counts = progress.sourceCount ? `${progress.done ?? 0}/${progress.sourceCount} ${uiLanguage === "es" ? "completas" : "complete"}` : "";
-      const active = progress.active ? ` · ${progress.active} active` : "";
-      return `${uiLanguage === "es" ? "Descargando fuentes del perfil con hasta 4 descargas paralelas" : "Downloading profile sources with up to 4 parallel downloads"} · ${bytes}${counts ? ` · ${counts}` : ""}${active}`;
+      const bytes = progress.totalBytes ? `${gb(progress.currentBytes ?? 0)} / ${gb(progress.totalBytes)}` : t("totalSizeUnknown");
+      const counts = progress.sourceCount ? `${progress.done ?? 0}/${progress.sourceCount} ${t("completeCount")}` : "";
+      const active = progress.active ? ` · ${t("activeCount", { count: progress.active })}` : "";
+      return `${t("easyDownloadLine")} · ${bytes}${counts ? ` · ${counts}` : ""}${active}`;
     }
-    if (progress.phase === "prepare") return uiLanguage === "es" ? "Extrayendo archivos y preparando descargas para uso offline." : "Extracting archives and preparing downloaded files for offline use.";
-    if (progress.phase === "index") return uiLanguage === "es" ? "Creando indices de busqueda local y contexto de IA local." : "Building local search and Local AI context indexes.";
-    if (progress.phase === "ai") return uiLanguage === "es" ? "Instalando Ollama y modelos recomendados; mira el panel de IA local para detalles." : "Installing Ollama and recommended models; see the Local AI progress panel for model download details.";
+    if (progress.phase === "prepare") return t("easyPrepareLine");
+    if (progress.phase === "index") return t("easyIndexLine");
+    if (progress.phase === "ai") return t("easyAiLine");
     return progress.detail ?? "";
   }
 
   function downloadProfileTooltip(profile: Profile) {
-    return `Download every source needed for ${profile.title}. Already downloaded sources are skipped, and up to 4 downloads run in parallel.`;
+    return t("downloadProfileTooltip", { title: profile.title });
   }
 
   function downloadTooltip(source: Source | Record<string, any>) {
-    return `Download ${source.title} into the local library so it can later be verified, opened, indexed, searched, and used by Local AI.`;
+    return t("downloadTooltip", { title: source.title });
   }
 
   function verifyTooltip(source: Source | Record<string, any>) {
-    return `Verify ${source.title} by checking the downloaded file on disk against its recorded size and checksum when one is available. This does not download new data.`;
+    return t("verifyTooltip", { title: source.title });
   }
 
   function indexTooltip(source: Source | Record<string, any>) {
-    const verb = fullyIndexedSourceIds.has(source.id) ? "Re-index" : "Index";
-    return `${verb} ${source.title} by extracting searchable text into the local search database and Local AI retrieval context. This does not open the file for reading or download anything new.`;
+    const verb = fullyIndexedSourceIds.has(source.id) ? t("reindex") : t("index");
+    return t("indexTooltip", { verb, title: source.title });
   }
 
   function indexActionLabel(sourceId: string) {
-    return fullyIndexedSourceIds.has(sourceId) ? "Re-index" : "Index";
+    return fullyIndexedSourceIds.has(sourceId) ? t("reindex") : t("index");
   }
 
   function openTooltip(source: Source | Record<string, any>) {
     const action = source.open?.action ?? (source.type === "zim" ? "kiwix_serve" : "direct_open");
-    if (action === "kiwix_serve") return `Open ${source.title} in the local Kiwix reader. This starts or reuses the localhost Kiwix server for downloaded ZIM files.`;
-    if (action === "extract_serve") return `Open ${source.title} by extracting the configured content, serving it on localhost, and opening it in the browser.`;
-    if (action === "extract_open") return `Open ${source.title} by extracting the archive and launching the configured file with the system viewer.`;
-    return `Open ${source.title} with the system default application for the downloaded file.`;
+    if (action === "kiwix_serve") return t("openZimTooltip", { title: source.title });
+    if (action === "extract_serve") return t("openExtractServeTooltip", { title: source.title });
+    if (action === "extract_open") return t("openExtractOpenTooltip", { title: source.title });
+    return t("openDirectTooltip", { title: source.title });
   }
 </script>
 
@@ -1341,7 +1669,7 @@
                   <small>{info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
                 {:else}
                   <progress></progress>
-                  <small>{gb(info.received)} downloaded · total unknown</small>
+                  <small>{t("downloadedTotalUnknown", { size: gb(info.received) })}</small>
                 {/if}
               </span>
               <span class="actions">
@@ -1362,7 +1690,7 @@
                   <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || sourceBusy}>{t("open")}</button>
                 </span>
                 {#if busy === `index-${source.id}`}
-                  <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
+                  <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                 {/if}
                 {#if verifyNotice}
                   <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
@@ -1371,7 +1699,7 @@
             </div>
           {:else}
             <div class="row emptyRow">
-              <span>No add-on sources match the current filter.</span><span></span><span></span><span></span><span></span>
+              <span>{t("noAddonSourcesMatch")}</span><span></span><span></span><span></span><span></span>
             </div>
           {/each}
         </div>
@@ -1417,10 +1745,10 @@
             <span class="sourceProgress">
               {#if downloadTotalKnown}
                 <progress max="100" value={downloadProgress}></progress>
-                <small>{downloadProgress}% · {gb(downloadReceived)} downloaded</small>
+                <small>{downloadProgress}% · {gb(downloadReceived)} {t("downloaded").toLowerCase()}</small>
               {:else}
                 <progress></progress>
-                <small>{gb(downloadReceived)} downloaded · total unknown</small>
+                <small>{t("downloadedTotalUnknown", { size: gb(downloadReceived) })}</small>
               {/if}
             </span>
             <span>{gb(downloadRow.total_bytes)}</span>
@@ -1439,7 +1767,7 @@
       {#if recovery}
         <article class="answer">
           <strong>{t("recoveryScan")}</strong>
-          <small>{recovery.repaired.length} repaired · {recovery.missing.length} missing · {recovery.partials.length} partials</small>
+          <small>{t("repairedMissingPartials", { repaired: recovery.repaired.length, missing: recovery.missing.length, partials: recovery.partials.length })}</small>
         </article>
       {/if}
     </section>
@@ -1450,7 +1778,7 @@
       <div class="sectionHeader">
         <div>
           <h2>{t("extraKnowledge")}</h2>
-          <small>Add local PDFs, EPUBs, text/Markdown/HTML/CSV/JSON files, and ZIM files from another folder.</small>
+          <small>{t("extraKnowledgeHelp")}</small>
         </div>
         <span class="actions">
           <button type="button" on:click={indexImportedExtraFiles} disabled={!!busy || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>{t("indexImported")}</button>
@@ -1463,24 +1791,24 @@
       </div>
       {#if extraScan}
         <div class="stats">
-          <span>{extraFiles.length} supported files</span>
-          <span>{gb(extraScan.totalBytes ?? 0)} selected folder data</span>
-          <span>{extraScan.skippedUnsupported ?? 0} unsupported skipped</span>
+          <span>{t("supportedFiles", { count: extraFiles.length })}</span>
+          <span>{t("selectedFolderData", { size: gb(extraScan.totalBytes ?? 0) })}</span>
+          <span>{t("unsupportedSkipped", { count: extraScan.skippedUnsupported ?? 0 })}</span>
         </div>
         <article class="infoCard">
           <div class="sectionHeader compactHeader">
             <div>
-              <h3>Files Found</h3>
-              <small>{selectedExtraFiles.length} selected · imported files are copied into the app library before indexing.</small>
+              <h3>{t("filesFound")}</h3>
+              <small>{t("selectedImportHelp", { count: selectedExtraFiles.length })}</small>
             </div>
             <span class="actions">
-              <button type="button" on:click={() => setAllExtraSelections(true)} disabled={!extraFiles.length}>Select All</button>
-              <button type="button" on:click={() => setAllExtraSelections(false)} disabled={!extraFiles.length}>Clear</button>
+              <button type="button" on:click={() => setAllExtraSelections(true)} disabled={!extraFiles.length}>{t("selectAll")}</button>
+              <button type="button" on:click={() => setAllExtraSelections(false)} disabled={!extraFiles.length}>{t("clear")}</button>
               <label class="inlineCheckbox">
                 <input type="checkbox" bind:checked={extraIndexOnImport} />
-                <span>Index after import</span>
+                <span>{t("indexAfterImport")}</span>
               </label>
-              <button class="primaryAction" type="button" on:click={importSelectedExtraFiles} disabled={!!busy || !selectedExtraFiles.length}>Import Selected</button>
+              <button class="primaryAction" type="button" on:click={importSelectedExtraFiles} disabled={!!busy || !selectedExtraFiles.length}>{t("importSelected")}</button>
             </span>
           </div>
           <div class="fileList">
@@ -1493,20 +1821,20 @@
                 </span>
               </label>
             {:else}
-              <small>No supported files found in this folder.</small>
+              <small>{t("noSupportedFiles")}</small>
             {/each}
           </div>
         </article>
       {/if}
       {#if extraImportResult}
         <article class="answer">
-          <strong>Imported {extraImportResult.imported?.length ?? 0} files</strong>
-          <small>{extraImportResult.indexed?.length ?? 0} indexed or registered for search/local AI context.</small>
+          <strong>{t("importedFiles", { count: extraImportResult.imported?.length ?? 0 })}</strong>
+          <small>{t("indexedOrRegistered", { count: extraImportResult.indexed?.length ?? 0 })}</small>
         </article>
       {/if}
       <article class="infoCard">
-        <h3>Imported Local Sources</h3>
-        <small class="cardIntro">{extraImportedSources.length ? "These local files are now part of the app library." : "No extra local files imported yet."}</small>
+        <h3>{t("importedLocalSources")}</h3>
+        <small class="cardIntro">{extraImportedSources.length ? t("importedLocalSourcesHelp") : t("importedLocalSourcesEmpty")}</small>
         {#if extraImportedSources.length}
           {#each extraImportedSources as source}
             <div class="resourceRow">
@@ -1515,10 +1843,10 @@
                 <small>{source.type} · {source.status} · {source.local_path}</small>
               </span>
               <span class="actions">
-                <button type="button" on:click={() => openOriginal(source.id)} disabled={!!busy || !source.local_path}>Open</button>
+                <button type="button" on:click={() => openOriginal(source.id)} disabled={!!busy || !source.local_path}>{t("openButton")}</button>
                 <button type="button" on:click={() => indexSource(source.id)} disabled={!!busy || !source.local_path}>{indexActionLabel(source.id)}</button>
                 {#if busy === `index-${source.id}`}
-                  <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
+                  <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                 {/if}
               </span>
             </div>
@@ -1533,9 +1861,9 @@
       <div class="sectionHeader">
         <h2>{t("search")}</h2>
         <span class="actions">
-          <span class="tooltipHost" title="Index all downloaded sources that are not indexed yet. This uses built-in text extraction and does not require an embedding model.">
+          <span class="tooltipHost" title={t("indexAllDownloadedTooltip")}>
             <button type="button" on:click={indexAllDownloaded} disabled={!!busy || !indexableDownloadedSources.length}>
-              {indexableDownloadedSources.length ? `Index ${indexableDownloadedSources.length} Downloaded` : "All Downloaded Indexed"}
+              {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : t("allDownloadedIndexed")}
             </button>
           </span>
         </span>
@@ -1559,20 +1887,20 @@
       </div>
       <div class="resourceGrid">
         <article class="infoCard">
-          <h3>Searchable Resources</h3>
-          <small class="cardIntro">{searchableSources.length ? "Indexed sources that can be searched now." : "No indexed resources yet. Open or index downloaded sources first."}</small>
+          <h3>{t("searchableResources")}</h3>
+          <small class="cardIntro">{searchableSources.length ? t("searchableResourcesReady") : t("searchableResourcesEmpty")}</small>
           {#if searchableSources.length}
             <div class="actions">
               {#each searchableSources as source}
                 <button type="button" class:active={searchSource === source.id} on:click={() => searchSource = source.id}>{source.title}</button>
               {/each}
-              <button type="button" class:active={!searchSource} on:click={() => searchSource = ""}>All</button>
+              <button type="button" class:active={!searchSource} on:click={() => searchSource = ""}>{t("all")}</button>
             </div>
           {/if}
         </article>
         <article class="infoCard">
-          <h3>Downloading Now</h3>
-          <small class="cardIntro">These resources are still queued, downloading, or resuming. They cannot be opened or indexed until the download completes.</small>
+          <h3>{t("downloadingNow")}</h3>
+          <small class="cardIntro">{t("downloadingNowHelp")}</small>
           {#if activeDownloadSources.length}
             {#each activeDownloadSources as source}
               {@const info = sourceProgressInfo(source)}
@@ -1587,12 +1915,12 @@
               </div>
             {/each}
           {:else}
-            <small class="emptyNote">No active downloads.</small>
+            <small class="emptyNote">{t("noActiveDownloads")}</small>
           {/if}
         </article>
         <article class="infoCard">
-          <h3>Downloaded Files Needing Open or Index</h3>
-          <small class="cardIntro">These files are actually present on disk. Open prepares them for reading; Index adds prepared text to local search and Local AI context.</small>
+          <h3>{t("downloadedNeedsIndex")}</h3>
+          <small class="cardIntro">{t("downloadedNeedsIndexHelp")}</small>
           {#if notSearchableDownloads.length}
             {#each notSearchableDownloads as source}
               {@const downloadRow = downloadState.get(source.id)}
@@ -1602,17 +1930,17 @@
               <div class="resourceRow">
                 <span>
                   <strong>{source.title}</strong>
-                  <small>{source.type === "repo-archive" ? "Open this source to extract the configured content, then index it." : "Index this source before it can be searched."}</small>
+                  <small>{source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch")}</small>
                 </span>
                 <span class="actions">
                   <span class="tooltipHost" title={openTooltip(source)}>
-                    <button type="button" aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={sourceBusy}>Open</button>
+                    <button type="button" aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={sourceBusy}>{t("openButton")}</button>
                   </span>
                   <span class="tooltipHost" title={indexTooltip(source)}>
                     <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading}>{indexActionLabel(source.id)}</button>
                   </span>
                   {#if busy === `index-${source.id}`}
-                    <small class="inlineFeedback">Indexing… this may take several minutes for large files.</small>
+                    <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                   {/if}
                   {#if verifyNotice}
                     <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
@@ -1621,7 +1949,7 @@
               </div>
             {/each}
           {:else}
-            <small>No fully downloaded files are waiting for Open or Index.</small>
+            <small>{t("noDownloadedNeedsIndex")}</small>
           {/if}
         </article>
       </div>
@@ -1630,12 +1958,12 @@
           <button
             type="button"
             class="resultCard clickableResult"
-            title="Open this result in the matched local resource"
+            title={t("openSearchResultTitle")}
             on:click={() => openSearchHit(result)}
           >
             <h3>{result.title}</h3>
             <p>{@html result.snippet}</p>
-            <small>{result.path} · click to open match</small>
+            <small>{result.path} · {t("clickToOpenMatch")}</small>
           </button>
         {/each}
       </div>
@@ -1647,7 +1975,7 @@
       <div class="sectionHeader">
         <div>
           <h2>{t("recommendedLocalAiSetup")}</h2>
-          <small>Installs the app-managed Ollama runtime if needed, starts it locally, and downloads every model recommended for this PC.</small>
+          <small>{t("localAiInstallHelp")}</small>
         </div>
         <button class="primaryAction" on:click={installRecommendedAi} disabled={loadingCatalog || (!!busy && busy !== "easy-install")}>
           {busy === "ai-install" ? t("installingAllRecommended") : t("installAllRecommended")}
@@ -1655,12 +1983,12 @@
       </div>
       <div class="stats">
         <span>{recommendedInstallSummary()}</span>
-        <span>{system?.tier ?? "machine tier unknown"}</span>
+        <span>{system?.tier ?? t("machineTierUnknown")}</span>
       </div>
       {#if showAiInstallProgress}
         <div class="progressPanel aiProgress">
           <div class="progressHeader">
-            <strong>{aiInstallProgress.item ?? "Local AI setup"}</strong>
+            <strong>{aiInstallProgress.item ?? t("localAiSetup")}</strong>
             <span class:bad={aiInstallProgress.status === "failed"}>{aiInstallProgress.phase ?? aiInstallProgress.status}</span>
           </div>
           <progress max="100" value={aiInstallProgress.percent ?? 0}></progress>
@@ -1670,8 +1998,8 @@
       {:else if aiInstallComplete}
         <div class="progressPanel aiProgress">
           <div class="progressHeader">
-            <strong>Recommended Local AI setup installed</strong>
-            <span class="ok">complete</span>
+            <strong>{t("recommendedAiInstalled")}</strong>
+            <span class="ok">{t("complete")}</span>
           </div>
           <progress max="100" value="100"></progress>
           <small>{aiInstallProgress.detail}</small>
@@ -1692,25 +2020,25 @@
             <span class:ok={statusTone(service.status) === "ok"} class:warn={statusTone(service.status) === "warn"} class:bad={statusTone(service.status) === "bad"}>{service.status}</span>
             <small>{service.url}</small>
             {#if serviceRunning}
-              <button on:click={() => stop(service.name)} disabled={!!busy}>Stop</button>
+              <button on:click={() => stop(service.name)} disabled={!!busy}>{t("stop")}</button>
             {:else if service.status === "installing" || service.status === "starting"}
-              <small>{service.message ?? "Local AI setup is in progress."}</small>
+              <small>{service.message ?? t("localAiSetupInProgress")}</small>
             {:else if service.status === "blocked"}
-              <small>{service.message ?? "Local AI is blocked by the RAM safety guard."}</small>
+              <small>{service.message ?? t("localAiBlockedByRam")}</small>
             {:else if service.status === "missing"}
-              <small>Use Install Recommended below to download and start the app-managed Ollama runtime.</small>
+              <small>{t("localAiRuntimeMissingHelp")}</small>
             {:else if service.name === "ollama" && (service.status === "available" || service.status === "stopped" || service.status === "failed")}
               {#if startAiModel}
-                <small>Startup guard: {gb(system?.availableMemBytes ?? 0)} available RAM / {gb(startAiRequiredBytes)} required for {startAiModel.title}.</small>
+                <small>{t("startupGuard", { available: gb(system?.availableMemBytes ?? 0), required: gb(startAiRequiredBytes), model: startAiModel.title })}</small>
                 {#if startAiSwapPressure}
-                  <small>Swap is too full for a safe Local AI start.</small>
+                  <small>{t("swapTooFull")}</small>
                 {/if}
               {:else}
-                <small>Install a chat model before starting Local AI.</small>
+                <small>{t("installChatModelFirst")}</small>
               {/if}
-              <button on:click={startOllama} disabled={!!busy || !startAiAllowed}>Start Ollama</button>
+              <button on:click={startOllama} disabled={!!busy || !startAiAllowed}>{t("startOllama")}</button>
             {:else}
-              <small>No running service to stop.</small>
+              <small>{t("noRunningServiceToStop")}</small>
             {/if}
           </article>
         {/each}
@@ -1726,23 +2054,23 @@
         <div class="recommendationPanel">
           {#if recommendedChatModel}
             <article class="recommendedModel">
-              <span class="badge">Recommended chat model for this PC</span>
+              <span class="badge">{t("recommendedChatBadge")}</span>
               <strong>{recommendedChatModel.title}</strong>
               <small>{recommendationReason(recommendedChatModel)}</small>
               <small>{recommendedChatModel.pull} · {gb(recommendedChatModel.expected_size_bytes)} · {recommendedChatModel.status}</small>
               <button class="primaryAction" on:click={() => pullModel(recommendedChatModel.id)} disabled={!!busy || recommendedChatModel.status === "pulling" || recommendedChatModel.status === "installed"}>
-                {recommendedChatModel.status === "installed" ? "Installed" : "Pull Recommended Chat Model"}
+                {recommendedChatModel.status === "installed" ? t("installed") : t("pullRecommendedChatModel")}
               </button>
             </article>
           {/if}
           {#if recommendedEmbeddingModel}
             <article class="recommendedModel">
-              <span class="badge">Recommended embedding model</span>
+              <span class="badge">{t("recommendedEmbeddingBadge")}</span>
               <strong>{recommendedEmbeddingModel.title}</strong>
               <small>{recommendationReason(recommendedEmbeddingModel)}</small>
               <small>{recommendedEmbeddingModel.pull} · {gb(recommendedEmbeddingModel.expected_size_bytes)} · {recommendedEmbeddingModel.status}</small>
               <button class="primaryAction" on:click={() => pullModel(recommendedEmbeddingModel.id)} disabled={!!busy || recommendedEmbeddingModel.status === "pulling" || recommendedEmbeddingModel.status === "installed"}>
-                {recommendedEmbeddingModel.status === "installed" ? "Installed" : "Pull Recommended Embedding"}
+                {recommendedEmbeddingModel.status === "installed" ? t("installed") : t("pullRecommendedEmbedding")}
               </button>
             </article>
           {/if}
@@ -1753,15 +2081,15 @@
           <article class:recommendedModel={model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id}>
             <strong>{model.title}</strong>
             <span class:ok={statusTone(model.status) === "ok"} class:warn={statusTone(model.status) === "warn"} class:bad={statusTone(model.status) === "bad"}>{model.status}</span>
-            <small>Engine: {model.runtime} · {model.pull} · {model.role} · {gb(model.expected_size_bytes)}</small>
+            <small>{t("engine")}: {model.runtime} · {model.pull} · {model.role} · {gb(model.expected_size_bytes)}</small>
             {#if model.id === recommendedChatModel?.id}
-              <small>Recommended chat model for {system?.tier ?? "this PC"}.</small>
+              <small>{t("recommendedChatForTier", { tier: system?.tier ?? "this PC" })}</small>
             {/if}
             {#if model.id === recommendedEmbeddingModel?.id}
-              <small>Recommended embedding model for search and Local AI context.</small>
+              <small>{t("recommendedEmbeddingHelp")}</small>
             {/if}
             <button class:primaryAction={model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id} on:click={() => pullModel(model.id)} disabled={!!busy || model.status === "pulling" || model.status === "installed"}>
-              {model.status === "installed" ? "Installed" : model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id ? "Pull Recommended" : "Pull"}
+              {model.status === "installed" ? t("installed") : model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id ? t("pullRecommended") : t("pull")}
             </button>
           </article>
         {/each}
@@ -1772,21 +2100,21 @@
       <div class="sectionHeader">
         <h2>{t("localAi")}</h2>
         <span class="actions">
-          <span>{indexedSources.length} indexed resources available</span>
+          <span>{t("indexedResourcesAvailable", { count: indexedSources.length })}</span>
           <button type="button" on:click={indexAllDownloaded} disabled={!!busy || !indexableDownloadedSources.length}>
-            {indexableDownloadedSources.length ? `Index ${indexableDownloadedSources.length} Downloaded` : "All Downloaded Indexed"}
+            {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : t("allDownloadedIndexed")}
           </button>
         </span>
       </div>
-      <p>The text index makes downloaded sources searchable without an embedding model. The embedding model is used after indexing for semantic matching: finding relevant passages by meaning for Local AI answers and semantic search, even when the exact words differ.</p>
+      <p>{t("textIndexHelp")}</p>
       <form class="ask" on:submit|preventDefault={ask}>
         <select bind:value={questionSource}>
-          <option value="">All indexed resources</option>
+          <option value="">{t("allIndexedResources")}</option>
           {#each indexedSources as source}
             <option value={source.id}>{source.title}</option>
           {/each}
         </select>
-        <textarea placeholder="Ask against indexed local documents" bind:value={question}></textarea>
+        <textarea placeholder={t("askPlaceholder")} bind:value={question}></textarea>
         <button disabled={!!busy || !question.trim()}>{t("askOllama")}</button>
       </form>
       {#if answer}
@@ -1805,25 +2133,25 @@
       <div class="sectionHeader">
         <h2>{t("share")}</h2>
       </div>
-      <p>Share creates one compressed package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.</p>
+      <p>{t("shareHelp")}</p>
       <article class="recommendedSetup">
         <div>
-          <strong>Generate app + sources package</strong>
-          <small>The package includes app files from the extracted all-platforms release folder, downloaded files, prepared/opened files, and search indexes for the selected source set. Unrelated local content is left out.</small>
+          <strong>{t("generatePackageTitle")}</strong>
+          <small>{t("generatePackageHelp")}</small>
         </div>
         {#if shareOptions.length}
           <span class="actions">
-            <select bind:value={shareProfile} aria-label="Sources to share">
+            <select bind:value={shareProfile} aria-label={t("sourcesToShare")}>
               {#each shareOptions as option}
-                <option value={option.id}>{option.title} · {gb(option.sizeBytes)} · {option.sourceCount} sources</option>
+                <option value={option.id}>{option.title} · {gb(option.sizeBytes)} · {option.sourceCount} {t("sources")}</option>
               {/each}
             </select>
-            <select bind:value={sharePrimaryOs} aria-label="Primary operating system">
-              <option value="linux">Primary launcher: Linux</option>
-              <option value="windows">Primary launcher: Windows</option>
-              <option value="macos">Primary launcher: macOS</option>
+            <select bind:value={sharePrimaryOs} aria-label={t("primaryOperatingSystem")}>
+              <option value="linux">{t("primaryLauncherLinux")}</option>
+              <option value="windows">{t("primaryLauncherWindows")}</option>
+              <option value="macos">{t("primaryLauncherMacos")}</option>
             </select>
-            <button type="button" on:click={pickShareAppsFolder} disabled={!!busy}>App Bundle Folder</button>
+            <button type="button" on:click={pickShareAppsFolder} disabled={!!busy}>{t("appBundleFolder")}</button>
             <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy || !shareProfile}>
               {busy === "share-package" ? t("generatingSharePackage") : t("sharePackage")}
             </button>
@@ -1831,20 +2159,20 @@
         {/if}
       </article>
       {#if shareAppsPath}
-        <small class="pathHint">App bundle folder: {shareAppsPath}</small>
+        <small class="pathHint">{t("appBundleFolderValue", { path: shareAppsPath })}</small>
       {:else}
-        <small class="pathHint">Optional: choose the extracted Offline-Survival-all-platforms folder before generating a mixed-OS package.</small>
+        <small class="pathHint">{t("appBundleFolderHelp")}</small>
       {/if}
       {#if sharePackageProgress && (busy === "share-package" || ["running", "failed", "complete"].includes(String(sharePackageProgress.status ?? "")))}
         <div class="progressPanel">
           <div class="progressHeader">
-            <strong>{sharePackageProgress.profileTitle ?? "Share package"}</strong>
+            <strong>{sharePackageProgress.profileTitle ?? t("sharePackageProgressTitle")}</strong>
             <span class:bad={sharePackageProgress.status === "failed"} class:ok={sharePackageProgress.status === "complete"}>{sharePackageProgress.phase ?? sharePackageProgress.status}</span>
           </div>
           <progress max="100" value={sharePackageProgress.percent ?? 0}></progress>
           <small>{sharePackageProgress.detail}</small>
           {#if sharePackageProgress.total}
-            <small>{sharePackageProgress.current ?? 0} / {sharePackageProgress.total} sources · {sharePackageProgress.percent ?? 0}%</small>
+            <small>{t("shareProgressSources", { current: sharePackageProgress.current ?? 0, total: sharePackageProgress.total, percent: sharePackageProgress.percent ?? 0 })}</small>
           {:else}
             <small>{sharePackageProgress.percent ?? 0}%</small>
           {/if}
@@ -1855,26 +2183,26 @@
       {/if}
       {#if !shareOptions.length}
         <article class="answer">
-          <strong>No downloaded sources ready to share</strong>
-          <small>Download sources first. Share packages can only include sources already present on disk.</small>
+          <strong>{t("noDownloadedSourcesReady")}</strong>
+          <small>{t("noDownloadedSourcesReadyHelp")}</small>
         </article>
       {/if}
       {#if sharePackage}
         <article class="answer">
-          <strong>Share package ready</strong>
+          <strong>{t("sharePackageReady")}</strong>
           {#if sharePackage.profile}
-            <small>Profile: {sharePackage.profile.title}</small>
+            <small>{t("profile")}: {sharePackage.profile.title}</small>
           {/if}
-          <small>Archive: {sharePackage.archivePath}</small>
-          <small>Folder: {sharePackage.packageDir}</small>
-          <small>Size: {gb(sharePackage.sizeBytes)}</small>
-          <small>Checksum: {sharePackage.checksum}</small>
-          <small>Checksum file: {sharePackage.checksumPath}</small>
+          <small>{t("archive")}: {sharePackage.archivePath}</small>
+          <small>{t("folder")}: {sharePackage.packageDir}</small>
+          <small>{t("size")}: {gb(sharePackage.sizeBytes)}</small>
+          <small>{t("checksum")}: {sharePackage.checksum}</small>
+          <small>{t("checksumFile")}: {sharePackage.checksumPath}</small>
           {#if sharePackage.primaryOs}
-            <small>Primary launcher: {sharePackage.primaryOs}</small>
+            <small>{t("primaryLauncher")}: {sharePackage.primaryOs}</small>
           {/if}
           {#if sharePackage.apps?.length}
-            <small>Included app folders: {sharePackage.apps.map((app: any) => app.label).join(", ")}</small>
+            <small>{t("includedAppFolders")}: {sharePackage.apps.map((app: any) => app.label).join(", ")}</small>
           {/if}
           {#each sharePackage.instructions as instruction}
             <small>{instruction}</small>
@@ -1897,17 +2225,17 @@
       </div>
       {#if updates}
         <article class="answer">
-          <strong>Update channels</strong>
-          <small>App: {updates.app_update}</small>
-          <small>Manifests: {updates.manifest_update}</small>
-          <small>Content: {updates.content_snapshot_update}</small>
-          <small>Open services: {updates.runtime_update}</small>
-          <small>Models: {updates.model_update}</small>
+          <strong>{t("updateChannels")}</strong>
+          <small>{t("appUpdate")}: {updates.app_update}</small>
+          <small>{t("manifestsUpdate")}: {updates.manifest_update}</small>
+          <small>{t("contentUpdate")}: {updates.content_snapshot_update}</small>
+          <small>{t("openServicesUpdate")}: {updates.runtime_update}</small>
+          <small>{t("modelsUpdate")}: {updates.model_update}</small>
         </article>
       {/if}
       <article class="answer">
-        <strong>Network policy</strong>
-        <small>Local services bind to 127.0.0.1. LAN sharing remains disabled in this v1 build.</small>
+        <strong>{t("networkPolicy")}</strong>
+        <small>{t("networkPolicyHelp")}</small>
       </article>
     </section>
 
@@ -1932,7 +2260,7 @@
 
 {#if confirmDialog}
   <div class="modalBackdrop" role="presentation" on:click={() => answerConfirm(false)}>
-    <div role="dialog" aria-modal="true" class:dangerModal={confirmDialog.tone === "danger"} class="confirmModal" aria-labelledby="confirm-title" on:click|stopPropagation>
+    <div role="dialog" tabindex="-1" aria-modal="true" class:dangerModal={confirmDialog.tone === "danger"} class="confirmModal" aria-labelledby="confirm-title" on:click|stopPropagation on:keydown|stopPropagation>
       <div class="modalHeader">
         <div>
           <span class="modalKicker">{confirmDialog.tone === "danger" ? t("destructiveAction") : t("confirmation")}</span>

@@ -5,10 +5,20 @@ import YAML from "./vendor/yaml/browser/index.js";
 const root = process.cwd();
 const profileOrder = [
   "survival-essential",
+  "survival-essential-es",
+  "survival-essential-bilingual",
   "survival-plus",
+  "survival-plus-es",
+  "survival-plus-bilingual",
   "civilization-core",
+  "civilization-core-es",
+  "civilization-core-bilingual",
   "civilization-rebuild",
-  "civilization-max"
+  "civilization-rebuild-es",
+  "civilization-rebuild-bilingual",
+  "civilization-max",
+  "civilization-max-es",
+  "civilization-max-bilingual"
 ];
 
 export async function readYaml(file) {
@@ -57,9 +67,14 @@ export async function loadCatalog() {
       return sum + Number(source?.prepared_size_bytes ?? source?.expected_size_bytes ?? 0);
     }, 0);
     return { ...profile, sourceIds: ids, addedSourceIds: addedIds, expectedSizeBytes, addedExpectedSizeBytes, preparedSizeBytes, addedPreparedSizeBytes };
-  }).sort((a, b) => profileOrder.indexOf(a.id) - profileOrder.indexOf(b.id));
+  }).sort((a, b) => profileSortIndex(a.id) - profileSortIndex(b.id));
 
   return { sources: preparedSources, models: catalog.models ?? [], profiles: resolvedProfiles };
+}
+
+function profileSortIndex(id) {
+  const index = profileOrder.indexOf(id);
+  return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
 }
 
 export function preparedSizeBytes(source) {

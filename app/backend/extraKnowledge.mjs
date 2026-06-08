@@ -14,7 +14,7 @@ const supported = new Map([
   [".htm", { type: "html", indexable: true }],
   [".pdf", { type: "pdf", indexable: true }],
   [".epub", { type: "epub", indexable: true }],
-  [".zim", { type: "zim", indexable: false }]
+  [".zim", { type: "zim", indexable: true }]
 ]);
 
 const ignoredDirectories = new Set([".git", "node_modules", "target", "dist", ".cache", ".venv", "__pycache__"]);
@@ -91,9 +91,7 @@ export async function importExtraKnowledgeFiles({ db, libraryRoot, files = [], i
   for (const filePath of uniquePaths) {
     const source = await importOneExtraFile({ db, libraryRoot, filePath });
     imported.push(source);
-    if (index && source.type !== "zim") {
-      indexed.push(await normalizeAndIndex({ db, libraryRoot, sourceId: source.id, sourceConfig: source }));
-    } else if (index && source.type === "zim") {
+    if (index) {
       indexed.push(await normalizeAndIndex({ db, libraryRoot, sourceId: source.id, sourceConfig: source }));
     }
   }
@@ -150,7 +148,7 @@ async function importOneExtraFile({ db, libraryRoot, filePath }) {
 }
 
 function sourceRuntime(type) {
-  if (type === "zim") return ["reader"];
+  if (type === "zim") return ["reader", "index", "search", "local-ai"];
   return ["index", "search", "local-ai"];
 }
 

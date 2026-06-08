@@ -18,7 +18,10 @@ pub fn run() {
             let (mut rx, child) = app
                 .shell()
                 .sidecar("sca-node")?
-                .args([backend.to_string_lossy().to_string()])
+                .args([
+                    "--experimental-sqlite".to_string(),
+                    backend.to_string_lossy().to_string(),
+                ])
                 .current_dir(catalog_root)
                 .env("PORT", "8787")
                 .env("SCA_PACKAGED", "1")

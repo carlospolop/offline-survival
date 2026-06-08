@@ -1,0 +1,16 @@
+id: civilization-core-es
+title: Civilization Core ES
+language: es
+variant: spanish
+description: Spanish community knowledge-station profile. Adds Wikibooks ES and Wiktionary ES to the Spanish survival and repair base for education, language reference, and practical community use.
+target_size_gb: [5, 12]
+disk_budget_gb: 15
+includes:
+  - survival-plus-es
+sources:
+  - wikibooks-es-zim
+  - wiktionary-es-zim
+models:
+  recommended:
+    - qwen3-8b
+    - bge-m3

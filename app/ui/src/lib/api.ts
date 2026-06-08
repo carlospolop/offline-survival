@@ -14,6 +14,8 @@ export type Source = {
 export type Profile = {
   id: string;
   title: string;
+  language?: "en" | "es" | "both" | string;
+  variant?: "english" | "spanish" | "bilingual" | string;
   description: string;
   target_size_gb: [number, number];
   disk_budget_gb: number;

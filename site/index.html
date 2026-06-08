@@ -18,23 +18,30 @@
       <nav class="nav" aria-label="Main">
         <a class="brand" href="#top">Offline Survival</a>
         <div>
-          <a href="#how">How it works</a>
-          <a href="#features">Features</a>
-          <a href="#screens">Screenshots</a>
-          <a href="#contribute">Contribute</a>
-          <a href="#download">Download</a>
+          <a href="#how" data-i18n="navHow">How it works</a>
+          <a href="#features" data-i18n="navFeatures">Features</a>
+          <a href="#screens" data-i18n="navScreens">Screenshots</a>
+          <a href="#contribute" data-i18n="navContribute">Contribute</a>
+          <a href="#download" data-i18n="navDownload">Download</a>
           <a href="https://github.com/carlospolop/offline-survival">GitHub</a>
+          <label class="languageSelect">
+            <span data-i18n="language">Language</span>
+            <select id="language-select" aria-label="Language">
+              <option value="en">English</option>
+              <option value="es">Español</option>
+            </select>
+          </label>
         </div>
       </nav>
 
       <section id="top" class="heroGrid">
         <div class="heroCopy">
-          <p class="kicker">Private offline knowledge library</p>
-          <h1>Keep useful knowledge available when the internet is not.</h1>
-          <p class="lead">Offline Survival downloads trusted public knowledge packs, indexes them for search, and can package the result for another computer. It is a practical library builder, not a cloud service.</p>
+          <p class="kicker" data-i18n="heroKicker">Private offline knowledge library</p>
+          <h1 data-i18n="heroTitle">Keep useful knowledge available when the internet is not.</h1>
+          <p class="lead" data-i18n="heroLead">Offline Survival downloads trusted public knowledge packs, indexes them for search, and can package the result for another computer. It is a practical library builder, not a cloud service.</p>
           <div class="heroActions">
-            <a class="button primary" href="#download">Download latest</a>
-            <a class="button secondary" href="#how">See how it works</a>
+            <a class="button primary" href="#download" data-i18n="downloadLatest">Download latest</a>
+            <a class="button secondary" href="#how" data-i18n="seeHow">See how it works</a>
           </div>
         </div>
         <figure class="heroShot">
@@ -46,96 +53,96 @@
     <main>
       <section class="strip">
         <div>
-          <strong>Local first</strong>
-          <span>Downloaded files, indexes, and optional AI models stay on the selected computer or drive.</span>
+          <strong data-i18n="localFirst">Local first</strong>
+          <span data-i18n="localFirstText">Downloaded files, indexes, and optional AI models stay on the selected computer or drive.</span>
         </div>
         <div>
-          <strong>Simple setup</strong>
-          <span>Pick a library size, press download, and let the app prepare the rest.</span>
+          <strong data-i18n="simpleSetup">Simple setup</strong>
+          <span data-i18n="simpleSetupText">Pick a library size, press download, and let the app prepare the rest.</span>
         </div>
         <div>
-          <strong>Shareable</strong>
-          <span>Build a portable package for a USB drive, field laptop, classroom, clinic, or workshop.</span>
+          <strong data-i18n="shareable">Shareable</strong>
+          <span data-i18n="shareableText">Build a portable package for a USB drive, field laptop, classroom, clinic, or workshop.</span>
         </div>
       </section>
 
       <section id="how" class="section">
         <div class="sectionTitle">
-          <p class="kicker">What it is</p>
-          <h2>A private offline knowledge station.</h2>
-          <p>Offline Survival is a desktop app for preparing a useful knowledge library before the network becomes unreliable. It downloads public references into a folder you control, keeps the original files, prepares readable/searchable copies, and helps you move the finished library to another machine.</p>
+          <p class="kicker" data-i18n="whatItIs">What it is</p>
+          <h2 data-i18n="stationTitle">A private offline knowledge station.</h2>
+          <p data-i18n="stationText">Offline Survival is a desktop app for preparing a useful knowledge library before the network becomes unreliable. It downloads public references into a folder you control, keeps the original files, prepares readable/searchable copies, and helps you move the finished library to another machine.</p>
         </div>
         <div class="featureGrid">
           <article>
-            <span>Library</span>
-            <h3>Curated survival and rebuilding sources</h3>
-            <p>Profiles group practical public knowledge by disk size, from small emergency references to large civilization-recovery archives.</p>
+            <span data-i18n="library">Library</span>
+            <h3 data-i18n="libraryTitle">Curated survival and rebuilding sources</h3>
+            <p data-i18n="libraryText">Profiles group practical public knowledge by disk size, from small emergency references to large civilization-recovery archives.</p>
           </article>
           <article>
-            <span>Offline</span>
-            <h3>Everything stays on the selected drive</h3>
-            <p>Downloaded files, prepared readable copies, search indexes, logs, and optional model data live in the library folder you control.</p>
+            <span data-i18n="offline">Offline</span>
+            <h3 data-i18n="offlineTitle">Everything stays on the selected drive</h3>
+            <p data-i18n="offlineText">Downloaded files, prepared readable copies, search indexes, logs, and optional model data live in the library folder you control.</p>
           </article>
           <article>
-            <span>Search</span>
-            <h3>Find answers without a connection</h3>
-            <p>The app indexes supported sources locally, then opens the original or prepared material so you can inspect the reference directly.</p>
+            <span data-i18n="search">Search</span>
+            <h3 data-i18n="searchTitle">Find answers without a connection</h3>
+            <p data-i18n="searchText">The app indexes supported sources locally, then opens the original or prepared material so you can inspect the reference directly.</p>
           </article>
           <article>
-            <span>Handoff</span>
-            <h3>Package a ready offline library</h3>
-            <p>Create a share package with selected sources, search data, and available app files for Windows, macOS, and Linux.</p>
+            <span data-i18n="handoff">Handoff</span>
+            <h3 data-i18n="packageTitle">Package a ready offline library</h3>
+            <p data-i18n="packageText">Create a share package with selected sources, search data, and available app files for Windows, macOS, and Linux.</p>
           </article>
         </div>
       </section>
 
       <section id="features" class="section">
         <div class="sectionTitle">
-          <p class="kicker">Functionality</p>
-          <h2>More than a download list.</h2>
-          <p>The app manages the boring parts of building an offline archive: source selection, disk planning, downloads, opening formats, indexing, local AI safety, and cross-platform sharing.</p>
+          <p class="kicker" data-i18n="functionality">Functionality</p>
+          <h2 data-i18n="featuresTitle">More than a download list.</h2>
+          <p data-i18n="featuresText">The app manages the boring parts of building an offline archive: source selection, disk planning, downloads, opening formats, indexing, local AI safety, and cross-platform sharing.</p>
         </div>
         <div class="capabilityGrid">
           <article>
-            <h3>Profiles for different disk sizes</h3>
-            <p>Start with a small emergency archive or build a much larger library for serious long-term reference. Profiles are curated by usefulness and expected size.</p>
+            <h3 data-i18n="capProfilesTitle">Profiles for different disk sizes</h3>
+            <p data-i18n="capProfilesText">Start with a small emergency archive or build a much larger library for serious long-term reference. Profiles are curated by usefulness and expected size.</p>
           </article>
           <article>
-            <h3>Managed downloads</h3>
-            <p>Sources are downloaded into the selected library folder with state tracking, retry paths, expected sizes, mirrors where available, and license/attribution metadata.</p>
+            <h3 data-i18n="capDownloadsTitle">Managed downloads</h3>
+            <p data-i18n="capDownloadsText">Sources are downloaded into the selected library folder with state tracking, retry paths, expected sizes, mirrors where available, and license/attribution metadata.</p>
           </article>
           <article>
-            <h3>Local readers</h3>
-            <p>ZIMs open through a local Kiwix server, PDFs open with the system viewer, and supported archives can be extracted into readable local copies.</p>
+            <h3 data-i18n="capReadersTitle">Local readers</h3>
+            <p data-i18n="capReadersText">ZIMs open through a local Kiwix server, PDFs open with the system viewer, and supported archives can be extracted into readable local copies.</p>
           </article>
           <article>
-            <h3>Offline search index</h3>
-            <p>Supported sources are normalized and indexed so you can find material without a network. Search points back to the local source, not a remote website.</p>
+            <h3 data-i18n="capIndexTitle">Offline search index</h3>
+            <p data-i18n="capIndexText">Supported sources are normalized and indexed so you can find material without a network. Search points back to the local source, not a remote website.</p>
           </article>
           <article>
-            <h3>Your own knowledge</h3>
-            <p>Import local PDFs, EPUBs, Markdown, HTML, CSV, JSON, text files, and ZIMs so personal or organization-specific references live beside public sources.</p>
+            <h3 data-i18n="capOwnTitle">Your own knowledge</h3>
+            <p data-i18n="capOwnText">Import local PDFs, EPUBs, Markdown, HTML, CSV, JSON, text files, and ZIMs so personal or organization-specific references live beside public sources.</p>
           </article>
           <article>
-            <h3>Optional Local AI</h3>
-            <p>Install an app-managed Ollama runtime and recommended models. Startup is blocked when available RAM is not safe for the selected installed chat model.</p>
+            <h3 data-i18n="capAiTitle">Optional Local AI</h3>
+            <p data-i18n="capAiText">Install an app-managed Ollama runtime and recommended models. Startup is blocked when available RAM is not safe for the selected installed chat model.</p>
           </article>
           <article>
-            <h3>Shareable libraries</h3>
-            <p>Create a package with selected downloaded sources, indexes, metadata, and available app files for Windows, macOS, and Linux handoff.</p>
+            <h3 data-i18n="capShareTitle">Shareable libraries</h3>
+            <p data-i18n="capShareText">Create a package with selected downloaded sources, indexes, metadata, and available app files for Windows, macOS, and Linux handoff.</p>
           </article>
           <article>
-            <h3>Local-first privacy</h3>
-            <p>The library, indexes, imported files, logs, and optional AI models stay on the selected computer or drive. Internal services bind to localhost by default.</p>
+            <h3 data-i18n="capPrivacyTitle">Local-first privacy</h3>
+            <p data-i18n="capPrivacyText">The library, indexes, imported files, logs, and optional AI models stay on the selected computer or drive. Internal services bind to localhost by default.</p>
           </article>
         </div>
       </section>
 
       <section id="screens" class="section split">
         <div>
-          <p class="kicker">Local AI with brakes</p>
-          <h2>Optional AI, guarded by RAM checks.</h2>
-          <p>Local AI can use Ollama and recommended models, but the app checks available RAM before starting the selected chat model. If the machine is under pressure, Local AI stays blocked and normal search still works.</p>
+          <p class="kicker" data-i18n="aiKicker">Local AI with brakes</p>
+          <h2 data-i18n="aiTitle">Optional AI, guarded by RAM checks.</h2>
+          <p data-i18n="aiText">Local AI can use Ollama and recommended models, but the app checks available RAM before starting the selected chat model. If the machine is under pressure, Local AI stays blocked and normal search still works.</p>
         </div>
         <figure>
           <img src="assets/screenshots/local-ai.png" alt="Offline Survival Local AI setup screen" />
@@ -147,70 +154,70 @@
           <img src="assets/screenshots/share.svg" alt="Offline Survival share package screen" />
         </figure>
         <div>
-          <p class="kicker">Offline handoff</p>
-          <h2>Prepare a drive for the next machine.</h2>
-          <p>Share packages are built from sources already present on disk. Pick the primary target OS, choose the extracted all-platforms app bundle, and the package can include Windows, macOS, and Linux app folders beside the prepared offline library.</p>
+          <p class="kicker" data-i18n="handoffKicker">Offline handoff</p>
+          <h2 data-i18n="handoffTitle">Prepare a drive for the next machine.</h2>
+          <p data-i18n="handoffText">Share packages are built from sources already present on disk. Pick the primary target OS, choose the extracted all-platforms app bundle, and the package can include Windows, macOS, and Linux app folders beside the prepared offline library.</p>
         </div>
       </section>
 
       <section class="section catalog">
         <div class="sectionTitle">
-          <p class="kicker">What can go inside</p>
-          <h2>Practical references, not noise.</h2>
-          <p>The catalog focuses on material that remains useful when you cannot search the web: first aid, public health, repair, farming, engineering, maps, education, reference works, and practical how-to knowledge.</p>
+          <p class="kicker" data-i18n="catalogKicker">What can go inside</p>
+          <h2 data-i18n="catalogTitle">Practical references, not noise.</h2>
+          <p data-i18n="catalogText">The catalog focuses on material that remains useful when you cannot search the web: first aid, public health, repair, farming, engineering, maps, education, reference works, and practical how-to knowledge.</p>
         </div>
         <div class="pillGrid">
-          <span>Survival manuals</span>
-          <span>First aid and medicine</span>
-          <span>Wikipedia and Simple Wikipedia</span>
-          <span>Repair guides</span>
-          <span>Engineering and electronics</span>
-          <span>Farming and food</span>
-          <span>Textbooks</span>
-          <span>Your own PDFs and ZIMs</span>
+          <span data-i18n="pillSurvival">Survival manuals</span>
+          <span data-i18n="pillMedicine">First aid and medicine</span>
+          <span data-i18n="pillWikipedia">Wikipedia and Simple Wikipedia</span>
+          <span data-i18n="pillRepair">Repair guides</span>
+          <span data-i18n="pillEngineering">Engineering and electronics</span>
+          <span data-i18n="pillFood">Farming and food</span>
+          <span data-i18n="pillTextbooks">Textbooks</span>
+          <span data-i18n="pillOwn">Your own PDFs and ZIMs</span>
         </div>
         <div class="profileTable" aria-label="Profile overview">
-          <div><strong>Survival Essential</strong><span>Small emergency reference set for limited disks.</span></div>
-          <div><strong>Survival Plus</strong><span>Broader laptop or USB-SSD library with repair, medicine, food, and reference material.</span></div>
-          <div><strong>Civilization Core</strong><span>Community knowledge-station profile for practical rebuilding and education.</span></div>
-          <div><strong>Civilization Rebuild</strong><span>Workstation-scale archive with deeper science, engineering, medicine, agriculture, and culture.</span></div>
-          <div><strong>Civilization Max</strong><span>Large-drive preservation profile for maximum breadth.</span></div>
+          <div><strong>Survival Essential</strong><span data-i18n="profileEssential">Small emergency reference set for limited disks.</span></div>
+          <div><strong>Survival Plus</strong><span data-i18n="profilePlus">Broader laptop or USB-SSD library with repair, medicine, food, and reference material.</span></div>
+          <div><strong>Civilization Core</strong><span data-i18n="profileCore">Community knowledge-station profile for practical rebuilding and education.</span></div>
+          <div><strong>Civilization Rebuild</strong><span data-i18n="profileRebuild">Workstation-scale archive with deeper science, engineering, medicine, agriculture, and culture.</span></div>
+          <div><strong>Civilization Max</strong><span data-i18n="profileMax">Large-drive preservation profile for maximum breadth.</span></div>
         </div>
       </section>
 
       <section id="contribute" class="section">
         <div class="sectionTitle">
-          <p class="kicker">Contribute</p>
-          <h2>Add features or propose better sources.</h2>
+          <p class="kicker" data-i18n="contribute">Contribute</p>
+          <h2 data-i18n="contributeTitle">Add features or propose better sources.</h2>
         </div>
         <div class="steps">
           <article>
             <span>1</span>
-            <h3>Improve the app</h3>
-            <p>Feature contributions should be focused, tested, documented, and validated before opening a pull request.</p>
+            <h3 data-i18n="stepImprove">Improve the app</h3>
+            <p data-i18n="stepImproveText">Feature contributions should be focused, tested, documented, and validated before opening a pull request.</p>
           </article>
           <article>
             <span>2</span>
-            <h3>Add sources</h3>
-            <p>New downloadable sources go through the catalog manifest with license, attribution, expected size, runtime, and profile placement.</p>
+            <h3 data-i18n="stepSources">Add sources</h3>
+            <p data-i18n="stepSourcesText">New downloadable sources go through the catalog manifest with license, attribution, expected size, runtime, and profile placement.</p>
           </article>
           <article>
             <span>3</span>
-            <h3>Keep the repo clean</h3>
-            <p>Do not commit downloaded PDFs, ZIMs, archives, local databases, model files, secrets, or generated release bundles.</p>
+            <h3 data-i18n="stepClean">Keep the repo clean</h3>
+            <p data-i18n="stepCleanText">Do not commit downloaded PDFs, ZIMs, archives, local databases, model files, secrets, or generated release bundles.</p>
           </article>
           <article>
             <span>4</span>
-            <h3>Read the guide</h3>
-            <p><a href="https://github.com/carlospolop/offline-survival/blob/main/CONTRIBUTING.md">Open CONTRIBUTING.md</a> before preparing a pull request.</p>
+            <h3 data-i18n="stepGuide">Read the guide</h3>
+            <p data-i18n-html="stepGuideText"><a href="https://github.com/carlospolop/offline-survival/blob/main/CONTRIBUTING.md">Open CONTRIBUTING.md</a> before preparing a pull request.</p>
           </article>
         </div>
       </section>
 
       <section id="download" class="download">
-        <p class="kicker">Get it</p>
-        <h2>Download the latest release.</h2>
-        <p>Choose the file for your operating system. Use the all-platforms bundle when you need to prepare a share package for multiple operating systems at once.</p>
+        <p class="kicker" data-i18n="getIt">Get it</p>
+        <h2 data-i18n="downloadTitle">Download the latest release.</h2>
+        <p data-i18n="downloadText">Choose the file for your operating system. Use the all-platforms bundle when you need to prepare a share package for multiple operating systems at once.</p>
         <div class="downloadGrid">
           <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-x64.zip">Windows x64</a>
           <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-arm64.zip">Windows ARM64</a>
@@ -220,15 +227,134 @@
           <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-arm64.zip">Linux ARM64</a>
           <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-all-platforms.zip">All platforms bundle</a>
         </div>
-        <p class="downloadNote">macOS: if the app shows "damaged and can't be opened", right-click the .dmg and choose Open, or run <code>xattr -d com.apple.quarantine "Offline Survival_*.dmg"</code> before mounting. The app is not notarised; this is expected on Apple Silicon.</p>
+        <p class="downloadNote" data-i18n-html="macNote">macOS: if the app shows "damaged and can't be opened", right-click the .dmg and choose Open, or run <code>xattr -d com.apple.quarantine "Offline Survival_*.dmg"</code> before mounting. The app is not notarised; this is expected on Apple Silicon.</p>
       </section>
     </main>
 
     <footer>
       <span>Offline Survival</span>
-      <a href="https://github.com/carlospolop/offline-survival">Source code</a>
-      <a href="https://github.com/carlospolop/offline-survival/blob/main/CONTRIBUTING.md">Contribute</a>
-      <a href="https://github.com/carlospolop/offline-survival/releases/latest">Releases</a>
+      <a href="https://github.com/carlospolop/offline-survival" data-i18n="sourceCode">Source code</a>
+      <a href="https://github.com/carlospolop/offline-survival/blob/main/CONTRIBUTING.md" data-i18n="contribute">Contribute</a>
+      <a href="https://github.com/carlospolop/offline-survival/releases/latest" data-i18n="releases">Releases</a>
     </footer>
+    <script>
+      const translations = {
+        en: {},
+        es: {
+          navHow: "Como funciona",
+          navFeatures: "Funciones",
+          navScreens: "Capturas",
+          navContribute: "Contribuir",
+          navDownload: "Descargar",
+          language: "Idioma",
+          heroKicker: "Biblioteca privada de conocimiento offline",
+          heroTitle: "Mantén conocimiento util disponible cuando no haya internet.",
+          heroLead: "Offline Survival descarga paquetes publicos de conocimiento fiable, los indexa para busqueda y puede empaquetar el resultado para otro ordenador. Es un constructor practico de bibliotecas, no un servicio en la nube.",
+          downloadLatest: "Descargar ultima version",
+          seeHow: "Ver como funciona",
+          localFirst: "Local primero",
+          localFirstText: "Los archivos descargados, indices y modelos de IA opcionales se quedan en el ordenador o unidad seleccionada.",
+          simpleSetup: "Configuracion simple",
+          simpleSetupText: "Elige un tamano de biblioteca, pulsa descargar y deja que la app prepare el resto.",
+          shareable: "Compartible",
+          shareableText: "Crea un paquete portatil para USB, portatil de campo, aula, clinica o taller.",
+          whatItIs: "Que es",
+          stationTitle: "Una estacion privada de conocimiento offline.",
+          stationText: "Offline Survival es una app de escritorio para preparar una biblioteca util antes de que la red sea poco fiable. Descarga referencias publicas en una carpeta que controlas, conserva los archivos originales, prepara copias legibles o buscables y te ayuda a mover la biblioteca terminada a otra maquina.",
+          library: "Biblioteca",
+          libraryTitle: "Fuentes curadas de supervivencia y reconstruccion",
+          libraryText: "Los perfiles agrupan conocimiento publico practico por tamano de disco, desde pequenas referencias de emergencia hasta grandes archivos de recuperacion civilizatoria.",
+          offline: "Offline",
+          offlineTitle: "Todo se queda en la unidad seleccionada",
+          offlineText: "Los archivos descargados, copias legibles preparadas, indices de busqueda, registros y datos opcionales de modelos viven en la carpeta de biblioteca que controlas.",
+          search: "Busqueda",
+          searchTitle: "Encuentra respuestas sin conexion",
+          searchText: "La app indexa localmente las fuentes compatibles y despues abre el material original o preparado para que puedas inspeccionar la referencia directamente.",
+          handoff: "Traspaso",
+          packageTitle: "Empaqueta una biblioteca offline lista",
+          packageText: "Crea un paquete compartido con fuentes seleccionadas, datos de busqueda y archivos de app disponibles para Windows, macOS y Linux.",
+          functionality: "Funcionalidad",
+          featuresTitle: "Mas que una lista de descargas.",
+          featuresText: "La app gestiona las partes aburridas de construir un archivo offline: seleccion de fuentes, planificacion de disco, descargas, apertura de formatos, indexacion, seguridad de IA local y comparticion multiplataforma.",
+          capProfilesTitle: "Perfiles para distintos tamanos de disco",
+          capProfilesText: "Empieza con un pequeno archivo de emergencia o crea una biblioteca mucho mayor para referencia seria a largo plazo. Los perfiles se curan por utilidad y tamano esperado.",
+          capDownloadsTitle: "Descargas gestionadas",
+          capDownloadsText: "Las fuentes se descargan en la carpeta de biblioteca seleccionada con seguimiento de estado, reintentos, tamanos esperados, espejos cuando existen y metadatos de licencia y atribucion.",
+          capReadersTitle: "Lectores locales",
+          capReadersText: "Los ZIM se abren mediante un servidor Kiwix local, los PDF con el visor del sistema y los archivos compatibles pueden extraerse a copias locales legibles.",
+          capIndexTitle: "Indice de busqueda offline",
+          capIndexText: "Las fuentes compatibles se normalizan e indexan para encontrar material sin red. La busqueda apunta a la fuente local, no a una web remota.",
+          capOwnTitle: "Tu propio conocimiento",
+          capOwnText: "Importa PDF, EPUB, Markdown, HTML, CSV, JSON, texto y ZIM para que referencias personales u organizativas vivan junto a las fuentes publicas.",
+          capAiTitle: "IA local opcional",
+          capAiText: "Instala un runtime Ollama gestionado por la app y modelos recomendados. El arranque se bloquea cuando la RAM disponible no es segura para el modelo de chat instalado.",
+          capShareTitle: "Bibliotecas compartibles",
+          capShareText: "Crea un paquete con fuentes descargadas seleccionadas, indices, metadatos y archivos de app disponibles para traspaso en Windows, macOS y Linux.",
+          capPrivacyTitle: "Privacidad local primero",
+          capPrivacyText: "La biblioteca, indices, archivos importados, registros y modelos de IA opcionales se quedan en el ordenador o unidad seleccionada. Los servicios internos se enlazan a localhost por defecto.",
+          aiKicker: "IA local con frenos",
+          aiTitle: "IA opcional, protegida por comprobaciones de RAM.",
+          aiText: "La IA local puede usar Ollama y modelos recomendados, pero la app comprueba la RAM disponible antes de iniciar el modelo de chat seleccionado. Si la maquina esta bajo presion, la IA local queda bloqueada y la busqueda normal sigue funcionando.",
+          handoffKicker: "Traspaso offline",
+          handoffTitle: "Prepara una unidad para la siguiente maquina.",
+          handoffText: "Los paquetes compartidos se crean desde fuentes ya presentes en disco. Elige el sistema operativo principal, selecciona el paquete extraido de todas las plataformas y el paquete puede incluir carpetas de app para Windows, macOS y Linux junto a la biblioteca offline preparada.",
+          catalogKicker: "Que puede incluir",
+          catalogTitle: "Referencias practicas, no ruido.",
+          catalogText: "El catalogo se centra en material que sigue siendo util cuando no puedes buscar en la web: primeros auxilios, salud publica, reparacion, agricultura, ingenieria, mapas, educacion, obras de referencia y conocimiento practico.",
+          pillSurvival: "Manuales de supervivencia",
+          pillMedicine: "Primeros auxilios y medicina",
+          pillWikipedia: "Wikipedia y Wikipedia simple",
+          pillRepair: "Guias de reparacion",
+          pillEngineering: "Ingenieria y electronica",
+          pillFood: "Agricultura y alimentos",
+          pillTextbooks: "Libros de texto",
+          pillOwn: "Tus propios PDF y ZIM",
+          profileEssential: "Pequeno conjunto de referencias de emergencia para discos limitados.",
+          profilePlus: "Biblioteca mas amplia para portatil o USB-SSD con reparacion, medicina, alimentos y referencias.",
+          profileCore: "Perfil de estacion comunitaria de conocimiento para reconstruccion practica y educacion.",
+          profileRebuild: "Archivo de escala workstation con ciencia, ingenieria, medicina, agricultura y cultura mas profundas.",
+          profileMax: "Perfil de preservacion para discos grandes con maxima amplitud.",
+          contribute: "Contribuir",
+          contributeTitle: "Anade funciones o propone mejores fuentes.",
+          stepImprove: "Mejorar la app",
+          stepImproveText: "Las contribuciones de funciones deben ser enfocadas, probadas, documentadas y validadas antes de abrir un pull request.",
+          stepSources: "Anadir fuentes",
+          stepSourcesText: "Las nuevas fuentes descargables pasan por el manifiesto del catalogo con licencia, atribucion, tamano esperado, runtime y ubicacion de perfil.",
+          stepClean: "Mantener limpio el repo",
+          stepCleanText: "No hagas commit de PDF, ZIM, archivos descargados, bases de datos locales, modelos, secretos ni paquetes de release generados.",
+          stepGuide: "Leer la guia",
+          stepGuideText: "<a href=\"https://github.com/carlospolop/offline-survival/blob/main/CONTRIBUTING.md\">Abre CONTRIBUTING.md</a> antes de preparar un pull request.",
+          getIt: "Descarga",
+          downloadTitle: "Descarga la ultima version.",
+          downloadText: "Elige el archivo para tu sistema operativo. Usa el paquete de todas las plataformas cuando necesites preparar un paquete compartido para varios sistemas a la vez.",
+          macNote: "macOS: si la app muestra \"damaged and can't be opened\", haz clic derecho en el .dmg y elige Open, o ejecuta <code>xattr -d com.apple.quarantine \"Offline Survival_*.dmg\"</code> antes de montarlo. La app no esta notarizada; esto es normal en Apple Silicon.",
+          sourceCode: "Codigo fuente",
+          releases: "Versiones"
+        }
+      };
+
+      const defaultText = {};
+      const defaultHtml = {};
+      for (const node of document.querySelectorAll("[data-i18n]")) defaultText[node.getAttribute("data-i18n")] = node.textContent;
+      for (const node of document.querySelectorAll("[data-i18n-html]")) defaultHtml[node.getAttribute("data-i18n-html")] = node.innerHTML;
+
+      function applyLanguage(language) {
+        const selected = language === "es" ? "es" : "en";
+        document.documentElement.lang = selected;
+        localStorage.setItem("offline-survival-ui-language", selected);
+        document.getElementById("language-select").value = selected;
+        for (const node of document.querySelectorAll("[data-i18n]")) {
+          const key = node.getAttribute("data-i18n");
+          node.textContent = translations[selected][key] || defaultText[key] || node.textContent;
+        }
+        for (const node of document.querySelectorAll("[data-i18n-html]")) {
+          const key = node.getAttribute("data-i18n-html");
+          node.innerHTML = translations[selected][key] || defaultHtml[key] || node.innerHTML;
+        }
+      }
+
+      document.getElementById("language-select").addEventListener("change", (event) => applyLanguage(event.target.value));
+      applyLanguage(localStorage.getItem("offline-survival-ui-language") || "en");
+    </script>
   </body>
 </html>

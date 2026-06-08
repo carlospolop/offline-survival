@@ -56,13 +56,20 @@ button.easyInstallButton {
 button.easyInstallButton::after {
   background: rgba(255, 255, 255, 0.22);
   border-radius: 999px;
-  content: "Recommended";
+  content: attr(data-badge);
   font-size: 11px;
   font-weight: 900;
   padding: 3px 7px;
   position: absolute;
   right: 8px;
   top: -9px;
+}
+
+.languageControl {
+  background: #f7faf5;
+  border: 1px solid #cdd4c7;
+  border-radius: 8px;
+  padding: 10px;
 }
 
 button.easyInstallButton.active {

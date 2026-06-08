@@ -1,0 +1,20 @@
+id: civilization-rebuild-es
+title: Civilization Rebuild ES
+language: es
+variant: spanish
+description: Spanish workstation-scale archive. Adds Wikisource ES, Spanish topical Wikipedia packs for history, math, physics, and computing, plus Spanish Project Gutenberg for deeper education and cultural continuity.
+target_size_gb: [7, 20]
+disk_budget_gb: 25
+includes:
+  - civilization-core-es
+sources:
+  - wikisource-es-zim
+  - wikipedia-es-history-zim
+  - wikipedia-es-mathematics-zim
+  - wikipedia-es-physics-zim
+  - wikipedia-es-computer-zim
+  - project-gutenberg-es-zim
+models:
+  optional:
+    - gemma3-4b
+    - qwen3-8b
