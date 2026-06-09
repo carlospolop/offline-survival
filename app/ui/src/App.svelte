@@ -38,7 +38,7 @@
   let logsPoller = 0;
   let logsRefreshing = false;
   let searchResults: any[] = [];
-  let busy = "";
+  let busy = new Set<string>();
   let error = "";
   let catalogError = "";
   let loadingCatalog = true;
@@ -870,7 +870,7 @@
   $: extraFiles = Array.isArray(extraScan?.files) ? extraScan.files : [];
   $: selectedExtraFiles = extraFiles.filter((file) => extraSelections[file.path]);
   $: extraImportedSources = stateSources.filter((source) => String(source.id ?? "").startsWith("extra-"));
-  $: profileDownloadBusy = busy.startsWith("profile-");
+  $: profileDownloadBusy = [...busy].some(b => b.startsWith("profile-"));
   $: aiServices = stateServices.filter((service) => service.name === "ollama");
   $: aiServiceCards = aiServices.length ? aiServices : [{
     name: "ollama",
@@ -899,7 +899,7 @@
   $: easyInstallProgress = progressObject(stateSettings.easyInstallProgress);
   $: sharePackageProgress = progressObject(stateSettings.sharePackageProgress);
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
-  $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy === "ai-install");
+  $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy.has("ai-install"));
   $: aiInstallComplete = aiInstallProgress?.status === "complete";
   $: selectedEasyProfiles = contentProfiles.filter((profile) => easyProfileSelections[profile.id]);
   $: selectedEasySourceIds = [...new Set(selectedEasyProfiles.flatMap((profile) => profile.sourceIds ?? []))];
@@ -1095,7 +1095,7 @@
   }
 
   async function run(label: string, fn: () => Promise<unknown>) {
-    busy = label;
+    busy = new Set([...busy, label]);
     error = "";
     const shouldPoll = label.startsWith("profile-") || label.startsWith("download-") || label.startsWith("retry-") || label.startsWith("model-") || label === "ai-install" || label === "index-all-downloaded" || label === "easy-install" || label === "clean-sources" || label === "share-package";
     const poller = shouldPoll ? window.setInterval(() => {
@@ -1108,7 +1108,8 @@
       fnError = String((err as Error).message ?? err);
     } finally {
       if (poller) window.clearInterval(poller);
-      busy = "";
+      busy.delete(label);
+      busy = busy;
     }
     await load();
     if (fnError) error = fnError;
@@ -1814,7 +1815,7 @@
       {t("libraryPath")}
       <input bind:value={libraryPath} />
     </label>
-    <button on:click={setLibrary} disabled={!!busy}>{t("setLibrary")}</button>
+    <button on:click={setLibrary} disabled={!!busy.size}>{t("setLibrary")}</button>
     <div class="sidebarService">
       <div>
         <span>Kiwix</span>
@@ -1822,12 +1823,12 @@
         <small>{kiwixService.url}</small>
       </div>
       {#if kiwixService.status === "running"}
-        <button type="button" on:click={() => stop("kiwix")} disabled={!!busy}>{t("stopKiwix")}</button>
+        <button type="button" on:click={() => stop("kiwix")} disabled={!!busy.size}>{t("stopKiwix")}</button>
       {:else}
-        <button type="button" on:click={startKiwix} disabled={!!busy || kiwixService.status === "missing"}>{t("startKiwix")}</button>
+        <button type="button" on:click={startKiwix} disabled={!!busy.size || kiwixService.status === "missing"}>{t("startKiwix")}</button>
       {/if}
     </div>
-    <button type="button" class="dangerAction" on:click={cleanSources} disabled={!!busy}>{t("cleanSources")}</button>
+    <button type="button" class="dangerAction" on:click={cleanSources} disabled={!!busy.size}>{t("cleanSources")}</button>
   </aside>
 
   <section class="workspace">
@@ -1841,7 +1842,7 @@
       <button type="button" class:active={activeTab === "settings"} on:click={() => activeTab = "settings"}>{t("settings")}</button>
     </nav>
     {#if error}<div class="alert">{error}</div>{/if}
-    {#if busy}<div class="busy">{t("working", { busy })}</div>{/if}
+    {#if busy.size}<div class="busy">{t("working", { busy: [...busy].join(", ") })}</div>{/if}
 
     {#if activeTab === "easy"}
     <section id="easy-install" class="band">
@@ -1882,8 +1883,8 @@
         <span>{easyInstallAi ? t("localAiIncluded") : t("localAiSkipped")}</span>
       </div>
       <div class="centerAction">
-        <button class="primaryAction startEasyInstallButton" type="button" on:click={easyInstall} disabled={!!busy || (!selectedEasyProfiles.length && !easyInstallAi)}>
-          {busy === "easy-install" ? t("installing") : t("startEasyInstall")}
+        <button class="primaryAction startEasyInstallButton" type="button" on:click={easyInstall} disabled={!!busy.size || (!selectedEasyProfiles.length && !easyInstallAi)}>
+          {busy.has("easy-install") ? t("installing") : t("startEasyInstall")}
         </button>
       </div>
       {#if easyInstallProgress}
@@ -1965,7 +1966,7 @@
             <small>{profileSubtitle(profile, index)}</small>
           </div>
           <span class="tooltipHost" title={downloadProfileTooltip(profile)}>
-            <button aria-label={downloadProfileTooltip(profile)} on:click={() => downloadProfile(profile)} disabled={!hasDownloadableSources || (profileDownloadBusy && busy !== `profile-${profile.id}`)}>
+            <button aria-label={downloadProfileTooltip(profile)} on:click={() => downloadProfile(profile)} disabled={!hasDownloadableSources || (profileDownloadBusy && !busy.has(`profile-${profile.id}`))}>
               {hasDownloadableSources ? t("downloadFullProfile") : t("profileDownloaded")}
             </button>
           </span>
@@ -1992,7 +1993,7 @@
           </div>
           {#each added as source}
             {@const info = sourceProgressInfo(source)}
-            {@const sourceBusy = busy.endsWith(source.id)}
+            {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
             {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(info.downloadRow?.status ?? ""))}
             {@const downloaded = sourceIsDownloaded(info.local ?? {})}
             {@const verifyNotice = verifyFeedback[source.id]}
@@ -2030,7 +2031,7 @@
                 <span class="tooltipHost" title={openTooltip(source)}>
                   <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || sourceBusy}>{t("open")}</button>
                 </span>
-                {#if busy === `index-${source.id}`}
+                {#if busy.has(`index-${source.id}`)}
                   <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                 {/if}
                 {#if verifyNotice}
@@ -2055,14 +2056,14 @@
         <h2>{t("downloads")}</h2>
         <div class="maintenanceActions">
           <span>
-            <button on:click={reconcile} disabled={!!busy}>{t("checkFiles")}</button>
+            <button on:click={reconcile} disabled={!!busy.size}>{t("checkFiles")}</button>
             <small>{t("checkFilesHelp")}</small>
             {#if maintenanceFeedback}
               <small class="inlineFeedback" class:ok={maintenanceFeedback.ok} class:bad={!maintenanceFeedback.ok}>{maintenanceFeedback.message}</small>
             {/if}
           </span>
           <span>
-            <button on:click={cleanupPartials} disabled={!!busy}>{t("removePartialFiles")}</button>
+            <button on:click={cleanupPartials} disabled={!!busy.size}>{t("removePartialFiles")}</button>
             <small>{t("removePartialFilesHelp")}</small>
           </span>
         </div>
@@ -2078,8 +2079,8 @@
           {@const downloadTotal = downloadRow.status === "complete" && !Number(downloadRow.total_bytes || 0) ? downloadReceived : Number(downloadRow.total_bytes || 0)}
           {@const downloadProgress = downloadTotal > 0 ? Math.min(100, Math.round((downloadReceived / downloadTotal) * 100)) : 0}
           {@const downloadTotalKnown = downloadTotal > downloadReceived || downloadRow.status === "complete" || downloadReceived === 0}
-          {@const pauseBusy = busy === `pause-${downloadRow.source_id}`}
-          {@const retryBusy = busy === `retry-${downloadRow.source_id}`}
+          {@const pauseBusy = busy.has(`pause-${downloadRow.source_id}`)}
+          {@const retryBusy = busy.has(`retry-${downloadRow.source_id}`)}
           <div class="row">
             <span>{sourceTitleById(downloadRow.source_id)}<small>{downloadRow.error}</small></span>
             <span class:ok={statusTone(downloadRow.status) === "ok"} class:warn={statusTone(downloadRow.status) === "warn"} class:bad={statusTone(downloadRow.status) === "bad"}>{statusLabel(downloadRow.status)}</span>
@@ -2122,13 +2123,13 @@
           <small>{t("extraKnowledgeHelp")}</small>
         </div>
         <span class="actions">
-          <button type="button" on:click={indexImportedExtraFiles} disabled={!!busy || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>{t("indexImported")}</button>
+          <button type="button" on:click={indexImportedExtraFiles} disabled={!!busy.size || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>{t("indexImported")}</button>
         </span>
       </div>
       <div class="pathPicker">
         <input placeholder="/home/you/Documents/offline-notes" bind:value={extraFolderPath} />
-        <button type="button" on:click={pickExtraFolder} disabled={!!busy}>{t("chooseFolder")}</button>
-        <button type="button" on:click={scanExtraFolder} disabled={!!busy || !extraFolderPath.trim()}>{t("scanFolder")}</button>
+        <button type="button" on:click={pickExtraFolder} disabled={!!busy.size}>{t("chooseFolder")}</button>
+        <button type="button" on:click={scanExtraFolder} disabled={!!busy.size || !extraFolderPath.trim()}>{t("scanFolder")}</button>
       </div>
       {#if extraScan}
         <div class="stats">
@@ -2149,7 +2150,7 @@
                 <input type="checkbox" bind:checked={extraIndexOnImport} />
                 <span>{t("indexAfterImport")}</span>
               </label>
-              <button class="primaryAction" type="button" on:click={importSelectedExtraFiles} disabled={!!busy || !selectedExtraFiles.length}>{t("importSelected")}</button>
+              <button class="primaryAction" type="button" on:click={importSelectedExtraFiles} disabled={!!busy.size || !selectedExtraFiles.length}>{t("importSelected")}</button>
             </span>
           </div>
           <div class="fileList">
@@ -2178,15 +2179,16 @@
         <small class="cardIntro">{extraImportedSources.length ? t("importedLocalSourcesHelp") : t("importedLocalSourcesEmpty")}</small>
         {#if extraImportedSources.length}
           {#each extraImportedSources as source}
+            {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
             <div class="resourceRow">
               <span>
                 <strong>{sourceTitle(source)}</strong>
                 <small>{source.type} · {statusLabel(source.status)} · {source.local_path}</small>
               </span>
               <span class="actions">
-                <button type="button" on:click={() => openOriginal(source.id)} disabled={!!busy || !source.local_path}>{t("openButton")}</button>
-                <button type="button" on:click={() => indexSource(source.id)} disabled={!!busy || !source.local_path}>{indexActionLabel(source.id)}</button>
-                {#if busy === `index-${source.id}`}
+                <button type="button" on:click={() => openOriginal(source.id)} disabled={sourceBusy || !source.local_path}>{t("openButton")}</button>
+                <button type="button" on:click={() => indexSource(source.id)} disabled={sourceBusy || !source.local_path}>{indexActionLabel(source.id)}</button>
+                {#if busy.has(`index-${source.id}`)}
                   <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                 {/if}
               </span>
@@ -2203,7 +2205,7 @@
         <h2>{t("search")}</h2>
         <span class="actions">
           <span class="tooltipHost" title={t("indexAllDownloadedTooltip")}>
-            <button type="button" on:click={indexAllDownloaded} disabled={!!busy || !indexableDownloadedSources.length}>
+            <button type="button" on:click={indexAllDownloaded} disabled={!!busy.size || !indexableDownloadedSources.length}>
               {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : t("allDownloadedIndexed")}
             </button>
           </span>
@@ -2265,7 +2267,7 @@
           {#if notSearchableDownloads.length}
             {#each notSearchableDownloads as source}
               {@const downloadRow = downloadState.get(source.id)}
-              {@const sourceBusy = busy.endsWith(source.id)}
+              {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
               {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(downloadRow?.status ?? ""))}
               {@const verifyNotice = verifyFeedback[source.id]}
               <div class="resourceRow">
@@ -2280,7 +2282,7 @@
                   <span class="tooltipHost" title={indexTooltip(source)}>
                     <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading}>{indexActionLabel(source.id)}</button>
                   </span>
-                  {#if busy === `index-${source.id}`}
+                  {#if busy.has(`index-${source.id}`)}
                     <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                   {/if}
                   {#if verifyNotice}
@@ -2318,8 +2320,8 @@
           <h2>{t("recommendedLocalAiSetup")}</h2>
           <small>{t("localAiInstallHelp")}</small>
         </div>
-        <button class="primaryAction" on:click={installRecommendedAi} disabled={loadingCatalog || (!!busy && busy !== "easy-install")}>
-          {busy === "ai-install" ? t("installingAllRecommended") : t("installAllRecommended")}
+        <button class="primaryAction" on:click={installRecommendedAi} disabled={loadingCatalog || (!!busy.size && !busy.has("easy-install"))}>
+          {busy.has("ai-install") ? t("installingAllRecommended") : t("installAllRecommended")}
         </button>
       </div>
       <div class="stats">
@@ -2361,7 +2363,7 @@
             <span class:ok={statusTone(service.status) === "ok"} class:warn={statusTone(service.status) === "warn"} class:bad={statusTone(service.status) === "bad"}>{statusLabel(service.status)}</span>
             <small>{service.url}</small>
             {#if serviceRunning}
-              <button on:click={() => stop(service.name)} disabled={!!busy}>{t("stop")}</button>
+              <button on:click={() => stop(service.name)} disabled={!!busy.size}>{t("stop")}</button>
             {:else if service.status === "installing" || service.status === "starting"}
               <small>{service.message ? detailLabel(service.message) : t("localAiSetupInProgress")}</small>
             {:else if service.status === "blocked"}
@@ -2377,7 +2379,7 @@
               {:else}
                 <small>{t("installChatModelFirst")}</small>
               {/if}
-              <button on:click={startOllama} disabled={!!busy || !startAiAllowed}>{t("startOllama")}</button>
+              <button on:click={startOllama} disabled={!!busy.size || !startAiAllowed}>{t("startOllama")}</button>
             {:else}
               <small>{t("noRunningServiceToStop")}</small>
             {/if}
@@ -2399,7 +2401,7 @@
               <strong>{modelTitle(recommendedChatModel)}</strong>
               <small>{recommendationReason(recommendedChatModel)}</small>
               <small>{recommendedChatModel.pull} · {gb(recommendedChatModel.expected_size_bytes)} · {statusLabel(recommendedChatModel.status)}</small>
-              <button class="primaryAction" on:click={() => pullModel(recommendedChatModel.id)} disabled={!!busy || recommendedChatModel.status === "pulling" || recommendedChatModel.status === "installed"}>
+              <button class="primaryAction" on:click={() => pullModel(recommendedChatModel.id)} disabled={!!busy.size || recommendedChatModel.status === "pulling" || recommendedChatModel.status === "installed"}>
                 {recommendedChatModel.status === "installed" ? t("installed") : t("pullRecommendedChatModel")}
               </button>
             </article>
@@ -2410,7 +2412,7 @@
               <strong>{modelTitle(recommendedEmbeddingModel)}</strong>
               <small>{recommendationReason(recommendedEmbeddingModel)}</small>
               <small>{recommendedEmbeddingModel.pull} · {gb(recommendedEmbeddingModel.expected_size_bytes)} · {statusLabel(recommendedEmbeddingModel.status)}</small>
-              <button class="primaryAction" on:click={() => pullModel(recommendedEmbeddingModel.id)} disabled={!!busy || recommendedEmbeddingModel.status === "pulling" || recommendedEmbeddingModel.status === "installed"}>
+              <button class="primaryAction" on:click={() => pullModel(recommendedEmbeddingModel.id)} disabled={!!busy.size || recommendedEmbeddingModel.status === "pulling" || recommendedEmbeddingModel.status === "installed"}>
                 {recommendedEmbeddingModel.status === "installed" ? t("installed") : t("pullRecommendedEmbedding")}
               </button>
             </article>
@@ -2429,7 +2431,7 @@
             {#if model.id === recommendedEmbeddingModel?.id}
               <small>{t("recommendedEmbeddingHelp")}</small>
             {/if}
-            <button class:primaryAction={model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id} on:click={() => pullModel(model.id)} disabled={!!busy || model.status === "pulling" || model.status === "installed"}>
+            <button class:primaryAction={model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id} on:click={() => pullModel(model.id)} disabled={!!busy.size || model.status === "pulling" || model.status === "installed"}>
               {model.status === "installed" ? t("installed") : model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id ? t("pullRecommended") : t("pull")}
             </button>
           </article>
@@ -2442,7 +2444,7 @@
         <h2>{t("localAi")}</h2>
         <span class="actions">
           <span>{t("indexedResourcesAvailable", { count: indexedSources.length })}</span>
-          <button type="button" on:click={indexAllDownloaded} disabled={!!busy || !indexableDownloadedSources.length}>
+          <button type="button" on:click={indexAllDownloaded} disabled={!!busy.size || !indexableDownloadedSources.length}>
             {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : t("allDownloadedIndexed")}
           </button>
         </span>
@@ -2456,7 +2458,7 @@
           {/each}
         </select>
         <textarea placeholder={t("askPlaceholder")} bind:value={question}></textarea>
-        <button disabled={!!busy || !question.trim()}>{t("askOllama")}</button>
+        <button disabled={!!busy.size || !question.trim()}>{t("askOllama")}</button>
       </form>
       {#if answer}
         <article class="answer">
@@ -2492,8 +2494,8 @@
               <option value="windows">{t("primaryLauncherWindows")}</option>
               <option value="macos">{t("primaryLauncherMacos")}</option>
             </select>
-            <button type="button" on:click={pickShareAppsFolder} disabled={!!busy}>{t("appBundleFolder")}</button>
-            <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy || !shareProfile}>
+            <button type="button" on:click={pickShareAppsFolder} disabled={!!busy.size}>{t("appBundleFolder")}</button>
+            <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy.size || !shareProfile}>
               {busy === "share-package" ? t("generatingSharePackage") : t("sharePackage")}
             </button>
           </span>
@@ -2504,7 +2506,7 @@
       {:else}
         <small class="pathHint">{t("appBundleFolderHelp")}</small>
       {/if}
-      {#if sharePackageProgress && (busy === "share-package" || ["running", "failed", "complete"].includes(String(sharePackageProgress.status ?? "")))}
+      {#if sharePackageProgress && (busy.has("share-package") || ["running", "failed", "complete"].includes(String(sharePackageProgress.status ?? "")))}
         <div class="progressPanel">
           <div class="progressHeader">
             <strong>{profileTitleById(sharePackageProgress.profileId, sharePackageProgress.profileTitle ?? t("sharePackageProgressTitle"))}</strong>
@@ -2559,9 +2561,9 @@
       <div class="sectionHeader">
         <h2>{t("settings")}</h2>
         <span class="actions">
-          <button on:click={updatesStatus} disabled={!!busy}>{t("updates")}</button>
-          <button on:click={refreshCatalog} disabled={!!busy}>{t("refreshCatalog")}</button>
-          <button on:click={keepLocalhostOnly} disabled={!!busy}>{t("localhostOnly")}</button>
+          <button on:click={updatesStatus} disabled={!!busy.size}>{t("updates")}</button>
+          <button on:click={refreshCatalog} disabled={!!busy.size}>{t("refreshCatalog")}</button>
+          <button on:click={keepLocalhostOnly} disabled={!!busy.size}>{t("localhostOnly")}</button>
         </span>
       </div>
       {#if updates}
@@ -2583,7 +2585,7 @@
     <section id="logs" class="band">
       <div class="sectionHeader">
         <h2>{t("logs")}</h2>
-        <button on:click={loadLogs} disabled={!!busy}>{t("refreshLogs")}</button>
+        <button on:click={loadLogs} disabled={!!busy.size}>{t("refreshLogs")}</button>
       </div>
       <div class="results">
         {#each logs as log}

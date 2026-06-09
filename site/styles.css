@@ -356,9 +356,17 @@ h3 {
 
 .steps {
   display: grid;
-  gap: 14px;
+  column-gap: 14px;
+  row-gap: 8px;
   grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto 1fr;
   margin-top: 24px;
+}
+
+.steps article {
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  gap: 0;
 }
 
 .featureGrid {

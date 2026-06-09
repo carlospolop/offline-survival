@@ -135,7 +135,10 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
   const cloneDir = `${tmpPath}.git-worktree`;
   const outputDir = path.dirname(tmpPath);
   await fsp.mkdir(outputDir, { recursive: true });
-  const commandCwd = await stableExternalCommandCwd();
+  // Use the library's own tmp dir as CWD — it's just been created above and lives
+  // in the user's home folder, so it won't be garbage-collected mid-clone the way
+  // macOS per-process TMPDIR paths (/var/folders/…) can be.
+  const commandCwd = outputDir;
   await fsp.rm(cloneDir, { recursive: true, force: true });
   await fsp.rm(tmpPath, { force: true });
   try {
