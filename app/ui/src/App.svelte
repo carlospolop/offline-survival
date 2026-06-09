@@ -1059,7 +1059,6 @@
   }
 
   function profileMatchesContentLanguage(profile: Profile | Record<string, any>, language = contentLanguage) {
-    if (language === "both") return true;
     return String(profile.language ?? "en") === language;
   }
 
