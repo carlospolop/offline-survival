@@ -28,7 +28,8 @@ const triplet = `${arch}-windows-static-md`;
 const vcpkgRoot = process.env.VCPKG_ROOT ?? "C:\\vcpkg";
 const installed  = path.join(vcpkgRoot, "installed", triplet);
 const includeDir = path.join(installed, "include");
-const libFile    = path.join(installed, "lib", "zim.lib");
+const libDir     = path.join(installed, "lib");
+const libFile    = path.join(libDir, "zim.lib");
 const releaseDir = path.join(libzimDir, "build", "Release");
 
 function run(cmd, opts = {}) {
@@ -73,26 +74,30 @@ if (arch === "arm64") {
   }
 }
 
-// ── 3. Install libzim via vcpkg ───────────────────────────────────────────────
-console.log(`\nInstalling libzim:${triplet} via vcpkg (cached on repeat runs)...`);
-run(`"${vcpkgExe}" install "libzim:${triplet}" --no-print-usage`);
+// ── 3. Install libzim[xapian] via vcpkg ──────────────────────────────────────
+//    [xapian] feature enables full-text search and installs zim/search.h
+console.log(`\nInstalling libzim[xapian]:${triplet} via vcpkg (cached on repeat runs)...`);
+run(`"${vcpkgExe}" install "libzim[xapian]:${triplet}" --no-print-usage`);
 
 if (!fs.existsSync(libFile)) {
   console.error(`vcpkg did not produce expected lib: ${libFile}`);
   process.exit(1);
 }
-console.log(`libzim installed (static). Lib: ${libFile}`);
+console.log(`libzim installed (static+xapian). Lib: ${libFile}`);
 
 // ── 4. Verify and print installed headers ────────────────────────────────────
 const zimInclude = path.join(includeDir, "zim");
 if (!fs.existsSync(zimInclude)) {
   console.error(`Expected zim include dir not found: ${zimInclude}`);
-  console.error(`Installed include dir contents:`);
-  for (const f of fs.readdirSync(includeDir).slice(0, 20)) console.error(` ${f}`);
   process.exit(1);
 }
 console.log(`zim headers found at: ${zimInclude}`);
 console.log(`  headers: ${fs.readdirSync(zimInclude).join(", ")}`);
+
+if (!fs.existsSync(path.join(zimInclude, "search.h"))) {
+  console.error("zim/search.h not found — xapian feature may not have been installed.");
+  process.exit(1);
+}
 
 // ── 5. Copy vcpkg headers into download/include so binding.gyp finds them ────
 //    binding.gyp already defines libzim_include = download/include — we
@@ -103,27 +108,30 @@ console.log(`\nCopying vcpkg headers → ${downloadInclude}`);
 copyDirSync(includeDir, downloadInclude);
 console.log("Headers copied.");
 
-// ── 6. Patch binding.gyp to add Windows conditions ───────────────────────────
+// ── 6. Enumerate ALL static .lib files for complete transitive linking ────────
+//    libzim[xapian] pulls in xapian, icu, lzma, zstd as static libs.
+//    node-gyp/MSBuild needs all of them listed explicitly.
+const allLibFiles = fs.readdirSync(libDir)
+  .filter(f => /\.lib$/i.test(f))
+  .map(f => path.join(libDir, f).replace(/\\/g, "/"));
+
+console.log(`\nFound ${allLibFiles.length} .lib files for linking:`);
+allLibFiles.forEach(f => console.log(`  ${path.basename(f)}`));
+
+// ── 7. Patch binding.gyp to add Windows conditions ───────────────────────────
 const bindingGypPath = path.join(libzimDir, "binding.gyp");
 const originalGyp = fs.readFileSync(bindingGypPath, "utf8");
 
-// GYP paths must use forward slashes
-const fwdLib = libFile.replace(/\\/g, "/");
-
-// We use <(libzim_include) which binding.gyp defines as download/include —
-// populated from vcpkg in the step above.
 const windowsConditions = `
               ["OS=='win'", {
                   "include_dirs": [
                     "<(libzim_include)"
                   ],
-                  "libraries": [
-                    "${fwdLib}"
-                  ],
+                  "libraries": ${JSON.stringify(allLibFiles)},
                   "msvs_settings": {
                     "VCCLCompilerTool": {
                       "ExceptionHandling": "1",
-                      "AdditionalOptions": [ "/std:c++17", "/utf-8" ]
+                      "AdditionalOptions": [ "/utf-8" ]
                     }
                   }
               }],`;
@@ -142,7 +150,7 @@ const patched = originalGyp.replace(
 fs.writeFileSync(bindingGypPath, patched);
 console.log("Patched binding.gyp with Windows static-md conditions.");
 
-// ── 7. Build the native addon via node-gyp ────────────────────────────────────
+// ── 8. Build the native addon via node-gyp ────────────────────────────────────
 fs.mkdirSync(releaseDir, { recursive: true });
 
 run(`npx node-gyp rebuild --arch=${arch}`, { cwd: libzimDir });

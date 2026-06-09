@@ -101,7 +101,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\vcpkg\installed
-          key: vcpkg-libzim-${{ matrix.target }}-${{ hashFiles('node_modules/@openzim/libzim/package.json') }}
+          key: vcpkg-libzim-xapian-${{ matrix.target }}-${{ hashFiles('node_modules/@openzim/libzim/package.json') }}
 
       - name: Build @openzim/libzim native addon (Linux/macOS)
         if: matrix.os != 'windows'
