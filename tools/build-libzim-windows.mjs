@@ -140,11 +140,21 @@ const windowsConditions = `
                   "msvs_settings": {
                     "VCCLCompilerTool": {
                       "ExceptionHandling": "1",
-                      "RuntimeLibrary": "2",
                       "AdditionalOptions": [ "/utf-8" ]
                     }
                   }
               }],`;
+
+// RuntimeLibrary=2 (/MD, dynamic CRT) injected at TARGET LEVEL (outside conditions)
+// so it overrides node-gyp's common.gypi which defaults to /MT (RuntimeLibrary=0).
+// Must match the *-windows-static-md vcpkg triplet which also uses dynamic CRT.
+// msvs_settings at target level take precedence over include-level defaults per GYP spec.
+const targetMsvs = `
+            "msvs_settings": {
+              "VCCLCompilerTool": {
+                "RuntimeLibrary": 2
+              }
+            },`;
 
 // The conditions array ends just before '"target_name"'.
 const marker = `],\n            "target_name"`;
@@ -155,7 +165,7 @@ if (!originalGyp.includes(marker)) {
 
 const patched = originalGyp.replace(
   marker,
-  `${windowsConditions}\n            ],\n            "target_name"`
+  `${windowsConditions}\n            ],${targetMsvs}\n            "target_name"`
 );
 fs.writeFileSync(bindingGypPath, patched);
 console.log("Patched binding.gyp with Windows static-md conditions.");
