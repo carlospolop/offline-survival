@@ -1782,14 +1782,6 @@
         <option value="es">{t("spanish")}</option>
       </select>
     </label>
-    <label class="languageControl">
-      {t("contentLanguage")}
-      <select value={contentLanguage} on:change={e => setContentLanguage((e.currentTarget as HTMLSelectElement).value)}>
-        <option value="en">{t("english")}</option>
-        <option value="es">{t("spanish")}</option>
-        <option value="both">{t("bilingual")}</option>
-      </select>
-    </label>
     <button class="easyInstallButton" type="button" class:active={activeTab === "easy"} data-badge={t("recommendedBadge")} on:click={openEasyInstall}>{t("easyInstall")}</button>
     <div class="meter">
       <span>{t("downloaded")}</span>
@@ -1917,6 +1909,14 @@
     <section class="band">
       <div class="sectionHeader">
         <h2>{t("profiles")}</h2>
+        <label class="languageControl">
+          {t("contentLanguage")}
+          <select value={contentLanguage} on:change={e => setContentLanguage((e.currentTarget as HTMLSelectElement).value)}>
+            <option value="en">{t("english")}</option>
+            <option value="es">{t("spanish")}</option>
+            <option value="both">{t("bilingual")}</option>
+          </select>
+        </label>
         <input placeholder={t("filterProfileSources")} bind:value={filter} />
       </div>
       <p>{t("profilesHelp")}</p>
