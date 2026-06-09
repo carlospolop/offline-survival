@@ -838,13 +838,10 @@
     }
   };
 
-  $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
-  $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
-  // Explicit reactive lookups so t() / localizedRecord() re-evaluate immediately
-  // when uiLanguage changes. Svelte 5 legacy mode does not always track uiLanguage
-  // through plain function-call closures in template expressions.
   $: _uiT = uiText[uiLanguage] ?? {};
   $: _catT = catalogText[uiLanguage] ?? {};
+  $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
+  $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
   $: contentProfiles = profilesForContentLanguage(contentLanguage);
   $: contentSourceIds = new Set(contentProfiles.flatMap((profile) => profile.sourceIds ?? []));
   $: contentSources = catalogSources.filter((source) => contentSourceIds.has(source.id));
@@ -982,12 +979,12 @@
   }
 
   function t(key: string, vars: Record<string, string | number> = {}) {
-    const template = _uiT[key] ?? uiText.en[key] ?? key;
+    const template = _uiT[key] ?? uiText.en?.[key] ?? key;
     return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
   }
 
   function localizedRecord(kind: "profiles" | "sources", id: unknown) {
-    return _catT[kind]?.[String(id ?? "")] ?? null;
+    return _catT?.[kind]?.[String(id ?? "")] ?? null;
   }
 
   function profileTitle(profile: Profile | Record<string, any> | null | undefined) {
@@ -1012,7 +1009,7 @@
 
   function sourceCategory(source: Source | Record<string, any> | null | undefined) {
     const category = String(source?.category ?? "");
-    return _catT.categories?.[category] ?? category;
+    return _catT?.categories?.[category] ?? category;
   }
 
   function sourceForId(sourceId: unknown) {
@@ -1033,23 +1030,23 @@
 
   function statusLabel(status: unknown) {
     const value = String(status ?? "");
-    return _catT.statuses?.[value] ?? value;
+    return _catT?.statuses?.[value] ?? value;
   }
 
   function phaseLabel(phase: unknown) {
     const value = String(phase ?? "");
-    return _catT.phases?.[value] ?? value;
+    return _catT?.phases?.[value] ?? value;
   }
 
   function tierLabel(tier: unknown) {
     const value = String(tier ?? "");
-    return _catT.tiers?.[value] ?? value;
+    return _catT?.tiers?.[value] ?? value;
   }
 
   function detailLabel(detail: unknown) {
     const value = String(detail ?? "");
     if (_uiT !== uiText.es) return value; // only map when Spanish is active
-    const mapped = catalogText.es.details?.[value];
+    const mapped = catalogText.es?.details?.[value];
     if (mapped) return mapped;
     if (value.startsWith("Downloading ")) return value.replace("Downloading ", "Descargando ");
     if (value.startsWith("Pulling ")) return value.replace("Pulling ", "Descargando ");
@@ -1059,6 +1056,7 @@
   }
 
   function profileMatchesContentLanguage(profile: Profile | Record<string, any>, language = contentLanguage) {
+    if (language === "both") return true;
     return String(profile.language ?? "en") === language;
   }
 
@@ -1773,19 +1771,20 @@
   }
 </script>
 
+{#key uiLanguage}
 <main>
   <aside>
     <h1>Offline Survival</h1>
     <label class="languageControl">
       {t("appLanguage")}
-      <select bind:value={uiLanguage} on:change={() => setUiLanguage(uiLanguage)}>
+      <select value={uiLanguage} on:change={e => setUiLanguage((e.currentTarget as HTMLSelectElement).value)}>
         <option value="en">{t("english")}</option>
         <option value="es">{t("spanish")}</option>
       </select>
     </label>
     <label class="languageControl">
       {t("contentLanguage")}
-      <select bind:value={contentLanguage} on:change={() => setContentLanguage(contentLanguage)}>
+      <select value={contentLanguage} on:change={e => setContentLanguage((e.currentTarget as HTMLSelectElement).value)}>
         <option value="en">{t("english")}</option>
         <option value="es">{t("spanish")}</option>
         <option value="both">{t("bilingual")}</option>
@@ -2637,3 +2636,4 @@
     </div>
   </div>
 {/if}
+{/key}

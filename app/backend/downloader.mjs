@@ -132,12 +132,30 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
 
 async function cloneGitArchive({ db, source, tmpPath, signal }) {
   if (signal?.aborted) throw new Error("Download paused");
-  const cloneDir = `${tmpPath}.git-worktree`;
   const outputDir = path.dirname(tmpPath);
   await fsp.mkdir(outputDir, { recursive: true });
-  // Use the library's own tmp dir as CWD — it's just been created above and lives
-  // in the user's home folder, so it won't be garbage-collected mid-clone the way
-  // macOS per-process TMPDIR paths (/var/folders/…) can be.
+
+  // For GitHub repos use HTTP archive download — avoids git-remote-https subprocess
+  // CWD failures that occur inside Tauri sidecars on macOS.
+  const archiveUrl = githubArchiveUrl(source.url);
+  if (archiveUrl) {
+    const response = await fetch(archiveUrl, { signal });
+    if (response.ok) {
+      db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
+        .run(0, Number(source.expected_size_bytes ?? 0), "downloading", now(), source.id);
+      const zipBuf = Buffer.from(await response.arrayBuffer());
+      const entries = parseZipStripTopLevel(zipBuf);
+      await writeZipEntries(entries, tmpPath);
+      const size = (await fsp.stat(tmpPath)).size;
+      db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
+        .run(size, size, "downloading", now(), source.id);
+      return;
+    }
+    // Archive endpoint returned non-200 (e.g. wiki repos return 404) — fall through to git clone
+  }
+
+  // Fallback: git clone for non-GitHub URLs
+  const cloneDir = `${tmpPath}.git-worktree`;
   const commandCwd = outputDir;
   await fsp.rm(cloneDir, { recursive: true, force: true });
   await fsp.rm(tmpPath, { force: true });
@@ -146,7 +164,9 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
       .run(0, Number(source.expected_size_bytes ?? 0), "downloading", now(), source.id);
     const gitBin = await findGitBin(commandCwd);
     if (!gitBin) throw new Error("git is not installed. Install git (https://git-scm.com) and retry.");
-    await execFileSafe(gitBin, ["clone", "--depth", "1", source.url, cloneDir], { cwd: commandCwd, maxBuffer: 20 * 1024 * 1024 });
+    // Disable credential helper for public repos — prevents osxkeychain subprocess
+    // issues in Tauri sidecars where the helper's getcwd() can fail.
+    await execFileSafe(gitBin, ["-c", "credential.helper=", "clone", "--depth", "1", source.url, cloneDir], { cwd: commandCwd, maxBuffer: 20 * 1024 * 1024 });
     await fsp.rm(path.join(cloneDir, ".git"), { recursive: true, force: true });
     if (signal?.aborted) throw new Error("Download paused");
     await zipDirectoryToFile(cloneDir, tmpPath);
@@ -156,6 +176,91 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
   } finally {
     await fsp.rm(cloneDir, { recursive: true, force: true });
   }
+}
+
+function githubArchiveUrl(url) {
+  const m = /^https:\/\/github\.com\/([^/]+\/[^/]+?)(?:\.git)?$/.exec(url);
+  if (!m) return null;
+  return `https://github.com/${m[1]}/archive/HEAD.zip`;
+}
+
+function parseZipStripTopLevel(buf) {
+  // Find End of Central Directory record
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error("Invalid ZIP: EOCD not found");
+  const cdCount = buf.readUInt16LE(eocd + 10);
+  let cdPos = buf.readUInt32LE(eocd + 16);
+  const entries = [];
+  for (let i = 0; i < cdCount; i++) {
+    if (buf.readUInt32LE(cdPos) !== 0x02014b50) throw new Error("Invalid ZIP: bad CD signature");
+    const method = buf.readUInt16LE(cdPos + 10);
+    const compSize = buf.readUInt32LE(cdPos + 20);
+    const uncompSize = buf.readUInt32LE(cdPos + 24);
+    const nameLen = buf.readUInt16LE(cdPos + 28);
+    const extraLen = buf.readUInt16LE(cdPos + 30);
+    const commentLen = buf.readUInt16LE(cdPos + 32);
+    const localOff = buf.readUInt32LE(cdPos + 42);
+    const name = buf.toString("utf8", cdPos + 46, cdPos + 46 + nameLen);
+    cdPos += 46 + nameLen + extraLen + commentLen;
+    if (name.endsWith("/")) continue; // directory entry
+    const slash = name.indexOf("/");
+    if (slash < 0) continue; // top-level file (shouldn't happen in GitHub archives)
+    const strippedName = name.slice(slash + 1);
+    if (!strippedName) continue;
+    // Read data from local file header
+    const lhNameLen = buf.readUInt16LE(localOff + 26);
+    const lhExtraLen = buf.readUInt16LE(localOff + 28);
+    const dataStart = localOff + 30 + lhNameLen + lhExtraLen;
+    const compData = buf.slice(dataStart, dataStart + compSize);
+    let data;
+    if (method === 0) {
+      data = compData; // stored
+    } else if (method === 8) {
+      data = zlib.inflateRawSync(compData); // deflate
+    } else {
+      continue; // skip unsupported compression
+    }
+    entries.push({ name: strippedName, data });
+  }
+  return entries;
+}
+
+async function writeZipEntries(entries, destPath) {
+  const locals = [], chunks = [];
+  let pos = 0;
+  for (const { name, data } of entries) {
+    const nb = Buffer.from(name, "utf8");
+    const comp = zlib.deflateRawSync(data, { level: 6 });
+    const useComp = comp.length < data.length;
+    const fd = useComp ? comp : data;
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4);
+    lh.writeUInt16LE(0, 6); lh.writeUInt16LE(useComp ? 8 : 0, 8);
+    lh.writeUInt32LE(0, 10); lh.writeUInt32LE(0, 14);
+    lh.writeUInt32LE(fd.length, 18); lh.writeUInt32LE(data.length, 22);
+    lh.writeUInt16LE(nb.length, 26); lh.writeUInt16LE(0, 28);
+    locals.push({ offset: pos, nb, cs: fd.length, us: data.length });
+    chunks.push(lh, nb, fd);
+    pos += 30 + nb.length + fd.length;
+  }
+  const cdStart = pos;
+  for (let i = 0; i < entries.length; i++) {
+    const { nb, offset, cs, us } = locals[i];
+    const cd = Buffer.alloc(46);
+    cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(0x0014, 4); cd.writeUInt16LE(20, 6);
+    cd.writeUInt32LE(0, 16); cd.writeUInt32LE(cs, 20); cd.writeUInt32LE(us, 24);
+    cd.writeUInt16LE(nb.length, 28); cd.writeUInt32LE(offset, 42);
+    chunks.push(cd, nb); pos += 46 + nb.length;
+  }
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10); eocd.writeUInt32LE(pos - cdStart, 12);
+  eocd.writeUInt32LE(cdStart, 16);
+  chunks.push(eocd);
+  await fsp.writeFile(destPath, Buffer.concat(chunks));
 }
 
 async function findGitBin(cwd) {
@@ -189,9 +294,19 @@ async function stableExternalCommandCwd() {
 }
 
 async function execFileSafe(command, args, options = {}) {
-  const cwd = options.cwd ?? await stableExternalCommandCwd();
+  let cwd = options.cwd ?? await stableExternalCommandCwd();
   await fsp.mkdir(cwd, { recursive: true });
-  const env = { ...process.env, ...options.env, PWD: cwd };
+  // Resolve to real path so getcwd() works for all subprocesses (git-remote-https etc.)
+  // when the parent process CWD contains symlinks (common in Tauri app bundles).
+  cwd = await fsp.realpath(cwd).catch(() => cwd);
+  const env = {
+    HOME: os.homedir(),
+    ...process.env,
+    ...options.env,
+    PWD: cwd,
+    GIT_TERMINAL_PROMPT: "0",
+    GIT_CONFIG_NOSYSTEM: "1",
+  };
   return execFileAsync(command, args, { ...options, cwd, env });
 }
 
