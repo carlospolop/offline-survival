@@ -111,11 +111,20 @@ console.log("Headers copied.");
 // ── 6. Enumerate ALL static .lib files for complete transitive linking ────────
 //    libzim[xapian] pulls in xapian, icu, lzma, zstd as static libs.
 //    node-gyp/MSBuild needs all of them listed explicitly.
-const allLibFiles = fs.readdirSync(libDir)
+const vcpkgLibFiles = fs.readdirSync(libDir)
   .filter(f => /\.lib$/i.test(f))
   .map(f => path.join(libDir, f).replace(/\\/g, "/"));
 
-console.log(`\nFound ${allLibFiles.length} .lib files for linking:`);
+// Windows system libraries required by xapian's static dependencies:
+//   ws2_32  — Winsock (socket, connect, WSACleanup, etc.)
+//   rpcrt4  — RPC/UUID (UuidCreate used by xapian)
+//   ucrt    — Universal CRT (POSIX aliases: unlink, rmdir, dup, write, _fstat64,
+//              _ftime64, _findclose, _findfirst64i32, _findnext64i32)
+const systemLibs = ["ws2_32.lib", "rpcrt4.lib", "ucrt.lib"];
+
+const allLibFiles = [...vcpkgLibFiles, ...systemLibs];
+
+console.log(`\nFound ${vcpkgLibFiles.length} vcpkg .lib files + ${systemLibs.length} system libs for linking:`);
 allLibFiles.forEach(f => console.log(`  ${path.basename(f)}`));
 
 // ── 7. Patch binding.gyp to add Windows conditions ───────────────────────────
