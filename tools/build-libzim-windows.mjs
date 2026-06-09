@@ -120,7 +120,7 @@ const vcpkgLibFiles = fs.readdirSync(libDir)
 //   rpcrt4  — RPC/UUID (UuidCreate used by xapian)
 //   ucrt    — Universal CRT (POSIX aliases: unlink, rmdir, dup, write, _fstat64,
 //              _ftime64, _findclose, _findfirst64i32, _findnext64i32)
-const systemLibs = ["ws2_32.lib", "rpcrt4.lib", "ucrt.lib"];
+const systemLibs = ["ws2_32.lib", "rpcrt4.lib", "ucrt.lib", "winmm.lib"];
 
 const allLibFiles = [...vcpkgLibFiles, ...systemLibs];
 
