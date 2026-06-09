@@ -51,7 +51,6 @@
       "../../node_modules/@openzim/libzim/build/Release/libzim.9.dylib",
       "../../node_modules/pdf-parse",
       "../../node_modules/pdfjs-dist",
-      "../../node_modules/@napi-rs",
       "../../node_modules/markdown-it",
       "../../node_modules/argparse",
       "../../node_modules/entities",
