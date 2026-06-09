@@ -840,6 +840,11 @@
 
   $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
   $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
+  // Explicit reactive lookups so t() / localizedRecord() re-evaluate immediately
+  // when uiLanguage changes. Svelte 5 legacy mode does not always track uiLanguage
+  // through plain function-call closures in template expressions.
+  $: _uiT = uiText[uiLanguage] ?? {};
+  $: _catT = catalogText[uiLanguage] ?? {};
   $: contentProfiles = profilesForContentLanguage(contentLanguage);
   $: contentSourceIds = new Set(contentProfiles.flatMap((profile) => profile.sourceIds ?? []));
   $: contentSources = catalogSources.filter((source) => contentSourceIds.has(source.id));
@@ -954,16 +959,13 @@
 
   function setUiLanguage(language: string) {
     const nextLanguage = language === "es" ? "es" : "en";
-    const changed = uiLanguage !== nextLanguage;
     uiLanguage = nextLanguage;
     contentLanguage = nextLanguage;
-    if (changed) {
-      verifyFeedback = {};
-      maintenanceFeedback = null;
-      error = catalogError ? t("loadBackendError", { error: catalogError }) : error;
-      easyProfileSelections = {};
-      selectRecommendedEasyInstall();
-    }
+    verifyFeedback = {};
+    maintenanceFeedback = null;
+    error = catalogError ? t("loadBackendError", { error: catalogError }) : error;
+    easyProfileSelections = {};
+    selectRecommendedEasyInstall();
     if (typeof window !== "undefined") {
       window.localStorage.setItem("offline-survival-ui-language", uiLanguage);
       window.localStorage.setItem("offline-survival-content-language", contentLanguage);
@@ -980,12 +982,12 @@
   }
 
   function t(key: string, vars: Record<string, string | number> = {}) {
-    const template = uiText[uiLanguage]?.[key] ?? uiText.en[key] ?? key;
+    const template = _uiT[key] ?? uiText.en[key] ?? key;
     return template.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
   }
 
   function localizedRecord(kind: "profiles" | "sources", id: unknown) {
-    return catalogText[uiLanguage]?.[kind]?.[String(id ?? "")] ?? null;
+    return _catT[kind]?.[String(id ?? "")] ?? null;
   }
 
   function profileTitle(profile: Profile | Record<string, any> | null | undefined) {
@@ -1010,7 +1012,7 @@
 
   function sourceCategory(source: Source | Record<string, any> | null | undefined) {
     const category = String(source?.category ?? "");
-    return catalogText[uiLanguage]?.categories?.[category] ?? category;
+    return _catT.categories?.[category] ?? category;
   }
 
   function sourceForId(sourceId: unknown) {
@@ -1031,22 +1033,22 @@
 
   function statusLabel(status: unknown) {
     const value = String(status ?? "");
-    return catalogText[uiLanguage]?.statuses?.[value] ?? value;
+    return _catT.statuses?.[value] ?? value;
   }
 
   function phaseLabel(phase: unknown) {
     const value = String(phase ?? "");
-    return catalogText[uiLanguage]?.phases?.[value] ?? value;
+    return _catT.phases?.[value] ?? value;
   }
 
   function tierLabel(tier: unknown) {
     const value = String(tier ?? "");
-    return catalogText[uiLanguage]?.tiers?.[value] ?? value;
+    return _catT.tiers?.[value] ?? value;
   }
 
   function detailLabel(detail: unknown) {
     const value = String(detail ?? "");
-    if (uiLanguage !== "es") return value;
+    if (_uiT !== uiText.es) return value; // only map when Spanish is active
     const mapped = catalogText.es.details?.[value];
     if (mapped) return mapped;
     if (value.startsWith("Downloading ")) return value.replace("Downloading ", "Descargando ");
@@ -1057,6 +1059,7 @@
   }
 
   function profileMatchesContentLanguage(profile: Profile | Record<string, any>, language = contentLanguage) {
+    if (language === "both") return true;
     return String(profile.language ?? "en") === language;
   }
 
@@ -1776,14 +1779,14 @@
     <h1>Offline Survival</h1>
     <label class="languageControl">
       {t("appLanguage")}
-      <select value={uiLanguage} on:change={(event) => setUiLanguage(event.currentTarget.value)}>
+      <select bind:value={uiLanguage} on:change={() => setUiLanguage(uiLanguage)}>
         <option value="en">{t("english")}</option>
         <option value="es">{t("spanish")}</option>
       </select>
     </label>
     <label class="languageControl">
       {t("contentLanguage")}
-      <select value={contentLanguage} on:change={(event) => setContentLanguage(event.currentTarget.value)}>
+      <select bind:value={contentLanguage} on:change={() => setContentLanguage(contentLanguage)}>
         <option value="en">{t("english")}</option>
         <option value="es">{t("spanish")}</option>
         <option value="both">{t("bilingual")}</option>
