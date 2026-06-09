@@ -58,7 +58,10 @@ async function ensureLibzimResourcePaths() {
     await requireRealFile(path.join(releaseDir, "libzim.9.dylib"), "macOS libzim shared library");
     await ensurePlaceholder(path.join(releaseDir, "libzim.so.9"));
   } else {
-    throw new Error(`@openzim/libzim does not provide bundled ZIM indexing binaries for target ${target}. Add a supported bundled ZIM extractor before building this target.`);
+    // Windows: zim_binding.node is built by tools/build-libzim-windows.mjs using
+    // static-md vcpkg linkage so it has no external DLL dependencies at runtime.
+    await ensurePlaceholder(path.join(releaseDir, "libzim.so.9"));
+    await ensurePlaceholder(path.join(releaseDir, "libzim.9.dylib"));
   }
 }
 

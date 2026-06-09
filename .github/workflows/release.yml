@@ -6,6 +6,7 @@ on:
     paths:
       - "app/**"
       - "manifests/**"
+      - "tools/**"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/release.yml"
@@ -58,6 +59,14 @@ jobs:
             runner: macos-14
             target: aarch64-apple-darwin
             os: macos
+          - label: windows-x64
+            runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            os: windows
+          - label: windows-arm64
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            os: windows
 
     steps:
       - uses: actions/checkout@v4
@@ -87,9 +96,24 @@ jobs:
       - name: Install npm dependencies
         run: npm ci --ignore-scripts
 
-      - name: Build @openzim/libzim native addon
+      - name: Cache vcpkg packages (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: C:\vcpkg\installed
+          key: vcpkg-libzim-${{ matrix.target }}-${{ hashFiles('node_modules/@openzim/libzim/package.json') }}
+
+      - name: Build @openzim/libzim native addon (Linux/macOS)
         if: matrix.os != 'windows'
         run: npm rebuild @openzim/libzim
+
+      - name: Build @openzim/libzim native addon (Windows)
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: node tools/build-libzim-windows.mjs
+        env:
+          VCPKG_ROOT: C:\vcpkg
+          TARGET_ARCH: ${{ matrix.target == 'aarch64-pc-windows-msvc' && 'arm64' || 'x64' }}
 
       - name: Validate manifests
         run: npm run lint:manifests
