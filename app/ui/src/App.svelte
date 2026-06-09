@@ -1058,7 +1058,8 @@
 
   function profileMatchesContentLanguage(profile: Profile | Record<string, any>, language = contentLanguage) {
     if (language === "both") return true;
-    return String(profile.language ?? "en") === language;
+    const profileLang = String(profile.language ?? "en");
+    return profileLang === language || profileLang === "both";
   }
 
   function profilesForContentLanguage(language: string) {
@@ -1845,6 +1846,14 @@
           <h2>{t("easyInstall")}</h2>
           <small>{t("easyInstallIntro")}</small>
         </div>
+        <label class="languageControl">
+          {t("contentLanguage")}
+          <select value={contentLanguage} on:change={e => setContentLanguage((e.currentTarget as HTMLSelectElement).value)}>
+            <option value="en">{t("english")}</option>
+            <option value="es">{t("spanish")}</option>
+            <option value="both">{t("bilingual")}</option>
+          </select>
+        </label>
       </div>
       <div class="serviceGrid">
         {#each contentProfiles as profile}

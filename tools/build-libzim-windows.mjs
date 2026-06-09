@@ -140,6 +140,7 @@ const windowsConditions = `
                   "msvs_settings": {
                     "VCCLCompilerTool": {
                       "ExceptionHandling": "1",
+                      "RuntimeLibrary": "2",
                       "AdditionalOptions": [ "/utf-8" ]
                     }
                   }
