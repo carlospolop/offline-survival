@@ -36,6 +36,19 @@ function run(cmd, opts = {}) {
   execSync(cmd, { stdio: "inherit", ...opts });
 }
 
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath  = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 // ── 1. Verify vcpkg is available ──────────────────────────────────────────────
 if (!fs.existsSync(vcpkgRoot)) {
   console.error(`vcpkg not found at ${vcpkgRoot}. Set VCPKG_ROOT.`);
@@ -68,20 +81,41 @@ if (!fs.existsSync(libFile)) {
   console.error(`vcpkg did not produce expected lib: ${libFile}`);
   process.exit(1);
 }
-console.log(`libzim installed (static). No DLL needed.`);
+console.log(`libzim installed (static). Lib: ${libFile}`);
 
-// ── 4. Patch binding.gyp to add Windows conditions ───────────────────────────
+// ── 4. Verify and print installed headers ────────────────────────────────────
+const zimInclude = path.join(includeDir, "zim");
+if (!fs.existsSync(zimInclude)) {
+  console.error(`Expected zim include dir not found: ${zimInclude}`);
+  console.error(`Installed include dir contents:`);
+  for (const f of fs.readdirSync(includeDir).slice(0, 20)) console.error(` ${f}`);
+  process.exit(1);
+}
+console.log(`zim headers found at: ${zimInclude}`);
+console.log(`  headers: ${fs.readdirSync(zimInclude).join(", ")}`);
+
+// ── 5. Copy vcpkg headers into download/include so binding.gyp finds them ────
+//    binding.gyp already defines libzim_include = download/include — we
+//    populate that directory from vcpkg so the EXISTING Linux/macOS conditions
+//    (which reference <(libzim_include)) also work via the Windows condition.
+const downloadInclude = path.join(libzimDir, "download", "include");
+console.log(`\nCopying vcpkg headers → ${downloadInclude}`);
+copyDirSync(includeDir, downloadInclude);
+console.log("Headers copied.");
+
+// ── 6. Patch binding.gyp to add Windows conditions ───────────────────────────
 const bindingGypPath = path.join(libzimDir, "binding.gyp");
 const originalGyp = fs.readFileSync(bindingGypPath, "utf8");
 
 // GYP paths must use forward slashes
-const fwdInclude = includeDir.replace(/\\/g, "/");
-const fwdLib     = libFile.replace(/\\/g, "/");
+const fwdLib = libFile.replace(/\\/g, "/");
 
+// We use <(libzim_include) which binding.gyp defines as download/include —
+// populated from vcpkg in the step above.
 const windowsConditions = `
               ["OS=='win'", {
                   "include_dirs": [
-                    "${fwdInclude}"
+                    "<(libzim_include)"
                   ],
                   "libraries": [
                     "${fwdLib}"
@@ -95,10 +129,9 @@ const windowsConditions = `
               }],`;
 
 // The conditions array ends just before '"target_name"'.
-// Find that boundary and insert Windows conditions before it.
 const marker = `],\n            "target_name"`;
 if (!originalGyp.includes(marker)) {
-  console.error("Cannot locate patch point in binding.gyp — structure may have changed in this version.");
+  console.error("Cannot locate patch point in binding.gyp — structure may have changed.");
   process.exit(1);
 }
 
@@ -109,7 +142,7 @@ const patched = originalGyp.replace(
 fs.writeFileSync(bindingGypPath, patched);
 console.log("Patched binding.gyp with Windows static-md conditions.");
 
-// ── 5. Build the native addon via node-gyp ────────────────────────────────────
+// ── 7. Build the native addon via node-gyp ────────────────────────────────────
 fs.mkdirSync(releaseDir, { recursive: true });
 
 run(`npx node-gyp rebuild --arch=${arch}`, { cwd: libzimDir });
