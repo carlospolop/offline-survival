@@ -840,6 +840,7 @@
 
   $: _uiT = uiText[uiLanguage] ?? {};
   $: _catT = catalogText[uiLanguage] ?? {};
+  $: _contentCatT = catalogText[contentLanguage === "both" ? uiLanguage : contentLanguage] ?? {};
   $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
   $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
   $: contentProfiles = profilesForContentLanguage(contentLanguage);
@@ -984,7 +985,7 @@
   }
 
   function localizedRecord(kind: "profiles" | "sources", id: unknown) {
-    return _catT?.[kind]?.[String(id ?? "")] ?? null;
+    return _contentCatT?.[kind]?.[String(id ?? "")] ?? null;
   }
 
   function profileTitle(profile: Profile | Record<string, any> | null | undefined) {

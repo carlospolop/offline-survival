@@ -2,6 +2,13 @@ name: Desktop Release
 
 on:
   push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "manifests/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/release.yml"
     tags:
       - "v*"
   workflow_dispatch:
