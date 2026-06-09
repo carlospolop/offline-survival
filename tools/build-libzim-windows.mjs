@@ -145,17 +145,6 @@ const windowsConditions = `
                   }
               }],`;
 
-// RuntimeLibrary=2 (/MD, dynamic CRT) injected at TARGET LEVEL (outside conditions)
-// so it overrides node-gyp's common.gypi which defaults to /MT (RuntimeLibrary=0).
-// Must match the *-windows-static-md vcpkg triplet which also uses dynamic CRT.
-// msvs_settings at target level take precedence over include-level defaults per GYP spec.
-const targetMsvs = `
-            "msvs_settings": {
-              "VCCLCompilerTool": {
-                "RuntimeLibrary": 2
-              }
-            },`;
-
 // The conditions array ends just before '"target_name"'.
 const marker = `],\n            "target_name"`;
 if (!originalGyp.includes(marker)) {
@@ -165,15 +154,44 @@ if (!originalGyp.includes(marker)) {
 
 const patched = originalGyp.replace(
   marker,
-  `${windowsConditions}\n            ],${targetMsvs}\n            "target_name"`
+  `${windowsConditions}\n            ],\n            "target_name"`
 );
 fs.writeFileSync(bindingGypPath, patched);
 console.log("Patched binding.gyp with Windows static-md conditions.");
 
 // ── 8. Build the native addon via node-gyp ────────────────────────────────────
+//   Step 1: configure (generates .vcxproj from binding.gyp)
+//   Step 2: patch .vcxproj to use /MD (MultiThreadedDLL) — GYP msvs_settings overrides
+//           are unreliable because node-gyp's common.gypi sets RuntimeLibrary in a
+//           conditions block that evaluates after target-level settings. Patching the
+//           generated MSBuild XML directly is the only reliable way to override this.
+//   Step 3: build (MSBuild uses the patched .vcxproj)
 fs.mkdirSync(releaseDir, { recursive: true });
 
-run(`npx node-gyp rebuild --arch=${arch}`, { cwd: libzimDir });
+run(`npx node-gyp configure --arch=${arch}`, { cwd: libzimDir });
+
+// Find and patch the generated .vcxproj
+const buildDir = path.join(libzimDir, "build");
+const vcxprojFiles = fs.readdirSync(buildDir).filter(f => f.endsWith(".vcxproj") && !f.startsWith("_"));
+if (vcxprojFiles.length === 0) {
+  console.error(`No .vcxproj found in ${buildDir} after node-gyp configure`);
+  process.exit(1);
+}
+for (const vcxprojFile of vcxprojFiles) {
+  const vcxprojPath = path.join(buildDir, vcxprojFile);
+  let vcxproj = fs.readFileSync(vcxprojPath, "utf8");
+  // node-gyp generates /MT (MultiThreaded) by default; vcpkg static-md uses /MD
+  const before = vcxproj;
+  vcxproj = vcxproj
+    .replace(/<RuntimeLibrary>MultiThreaded<\/RuntimeLibrary>/g, "<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>")
+    .replace(/<RuntimeLibrary>MultiThreadedDebug<\/RuntimeLibrary>/g, "<RuntimeLibrary>MultiThreadedDLLDebug</RuntimeLibrary>");
+  if (vcxproj !== before) {
+    fs.writeFileSync(vcxprojPath, vcxproj);
+    console.log(`Patched ${vcxprojFile}: RuntimeLibrary → MultiThreadedDLL (/MD)`);
+  }
+}
+
+run(`npx node-gyp build --arch=${arch}`, { cwd: libzimDir });
 
 const nodeFile = path.join(releaseDir, "zim_binding.node");
 if (!fs.existsSync(nodeFile) || fs.statSync(nodeFile).size === 0) {
