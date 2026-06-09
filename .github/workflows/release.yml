@@ -104,6 +104,8 @@ jobs:
 
       - name: Build desktop app
         run: npm run tauri:build -- --target ${{ matrix.target }}
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
 
       - name: Collect artifact files
         shell: bash
