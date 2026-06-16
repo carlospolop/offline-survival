@@ -1,15 +1,21 @@
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::process;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tauri::Manager;
+use tauri::{Manager, RunEvent, WindowEvent};
+use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let backend_child: BackendChild = Arc::new(Mutex::new(None));
+    let setup_backend_child = backend_child.clone();
+    let shutdown_backend_child = backend_child.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .setup(|app| {
+        .setup(move |app| {
             let resource_dir = app
                 .path()
                 .resource_dir()
@@ -42,7 +48,9 @@ pub fn run() {
                         .to_string(),
                 )
                 .spawn()?;
-            std::mem::forget(child);
+            *setup_backend_child
+                .lock()
+                .expect("backend child lock poisoned") = Some(child);
             tauri::async_runtime::spawn(async move {
                 while let Some(event) = rx.recv().await {
                     if let tauri_plugin_shell::process::CommandEvent::Stderr(line) = event {
@@ -66,12 +74,38 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Offline Survival");
+        .build(tauri::generate_context!())
+        .expect("error while building Offline Survival")
+        .run(move |_app, event| match event {
+            RunEvent::Exit | RunEvent::ExitRequested { .. } => {
+                kill_backend_child(&shutdown_backend_child);
+            }
+            RunEvent::WindowEvent { label, event, .. }
+                if label == "main"
+                    && matches!(
+                        event,
+                        WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed
+                    ) =>
+            {
+                kill_backend_child(&shutdown_backend_child);
+            }
+            _ => {}
+        });
 }
 
 fn main() {
     run();
+}
+
+type BackendChild = Arc<Mutex<Option<CommandChild>>>;
+
+fn kill_backend_child(child: &BackendChild) {
+    let Some(child) = child.lock().expect("backend child lock poisoned").take() else {
+        return;
+    };
+    if let Err(error) = child.kill() {
+        eprintln!("failed to stop backend sidecar: {error}");
+    }
 }
 
 fn reserve_backend_port() -> std::io::Result<u16> {

@@ -32,6 +32,10 @@ describe("desktop release workflow", () => {
     expect(launcher).toContain("reserve_backend_port()");
     expect(launcher).toContain(".env(\"PORT\", backend_port.to_string())");
     expect(launcher).toContain("window.__SCA_API_PORT");
+    expect(launcher).toContain("kill_backend_child");
+    expect(launcher).toContain("RunEvent::Exit");
+    expect(launcher).toContain("WindowEvent::CloseRequested");
+    expect(launcher).not.toContain("std::mem::forget(child)");
     expect(launcher).not.toContain(".env(\"PORT\", \"8787\")");
     expect(api).toContain("function isPackagedTauri()");
     expect(api).toContain("window.__SCA_API_PORT");
