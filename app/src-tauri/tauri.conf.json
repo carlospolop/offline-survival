@@ -34,10 +34,10 @@
       "icons/icon.icns"
     ],
     "externalBin": [
-      "binaries/sca-node",
-      "binaries/kiwix-serve"
+      "binaries/sca-node"
     ],
     "resources": [
+      "kiwix",
       "../backend",
       "../ui/dist",
       "../../manifests",

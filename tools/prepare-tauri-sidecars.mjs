@@ -1,15 +1,18 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 const binariesDir = path.resolve("app/src-tauri/binaries");
+const kiwixResourceDir = path.resolve("app/src-tauri/kiwix");
+const kiwixDownloadBase = process.env.KIWIX_TOOLS_BASE_URL ?? "https://download.kiwix.org/release/kiwix-tools";
 const target = process.env.TAURI_TARGET_TRIPLE || process.env.TARGET || hostTriple();
 const isWindowsTarget = target.includes("windows");
 const exe = isWindowsTarget ? ".exe" : "";
 
 await fs.mkdir(binariesDir, { recursive: true });
 await copyNodeSidecar();
-await writeKiwixPlaceholder();
+await prepareKiwixRuntime();
 await ensureLibzimResourcePaths();
 
 console.log(`Prepared Tauri sidecars for ${target}`);
@@ -20,24 +23,133 @@ async function copyNodeSidecar() {
   if (!isWindowsTarget) await fs.chmod(destination, 0o755);
 }
 
-async function writeKiwixPlaceholder() {
-  const destination = path.join(binariesDir, `kiwix-serve-${target}${exe}`);
+async function prepareKiwixRuntime() {
+  await fs.rm(kiwixResourceDir, { recursive: true, force: true });
+  await fs.mkdir(kiwixResourceDir, { recursive: true });
+
   if (process.env.KIWIX_SERVE_BIN) {
+    const destination = path.join(kiwixResourceDir, `kiwix-serve${exe}`);
     await fs.copyFile(process.env.KIWIX_SERVE_BIN, destination);
     if (!isWindowsTarget) await fs.chmod(destination, 0o755);
+    console.log(`Bundled Kiwix runtime from ${process.env.KIWIX_SERVE_BIN}`);
     return;
   }
 
-  const body = isWindowsTarget
-    ? "Offline Survival was built without a bundled kiwix-serve binary.\r\n"
-    : [
-        "#!/usr/bin/env sh",
-        "echo 'Offline Survival was built without a bundled kiwix-serve binary.' >&2",
-        "exit 127",
-        ""
-      ].join("\n");
-  await fs.writeFile(destination, body);
-  if (!isWindowsTarget) await fs.chmod(destination, 0o755);
+  const plan = kiwixPlanForTarget(target);
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "offline-survival-kiwix-"));
+  try {
+    const archive = path.join(workDir, plan.asset);
+    const extractDir = path.join(workDir, "extract");
+    await downloadFile(`${kiwixDownloadBase}/${plan.asset}`, archive);
+    await extractArchive(archive, extractDir, plan.kind);
+    const binary = await findFile(extractDir, plan.binary);
+    if (!binary) throw new Error(`Downloaded Kiwix Tools archive does not contain ${plan.binary}`);
+    await copyDirectoryContents(path.dirname(binary), kiwixResourceDir);
+    const runtime = path.join(kiwixResourceDir, plan.binary);
+    await requireRealFile(runtime, "Kiwix runtime");
+    if (!isWindowsTarget) await fs.chmod(runtime, 0o755);
+    console.log(`Bundled Kiwix Tools ${plan.version} for ${target}${plan.note ? ` (${plan.note})` : ""}`);
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true });
+  }
+}
+
+function kiwixPlanForTarget(triple) {
+  if (triple.includes("windows")) {
+    return {
+      asset: "kiwix-tools_win-x86_64-3.8.1.zip",
+      binary: "kiwix-serve.exe",
+      kind: "zip",
+      version: "3.8.1",
+      note: triple.includes("aarch64") ? "official Windows x64 package; upstream does not publish Windows ARM64 tools" : ""
+    };
+  }
+  if (triple.includes("darwin") || triple.includes("apple")) {
+    if (triple.startsWith("aarch64")) {
+      return { asset: "kiwix-tools_macos-arm64-3.8.2.tar.gz", binary: "kiwix-serve", kind: "tar.gz", version: "3.8.2" };
+    }
+    if (triple.startsWith("x86_64")) {
+      return { asset: "kiwix-tools_macos-x86_64-3.8.2.tar.gz", binary: "kiwix-serve", kind: "tar.gz", version: "3.8.2" };
+    }
+  }
+  if (triple.includes("linux")) {
+    if (triple.startsWith("aarch64")) {
+      return { asset: "kiwix-tools_linux-aarch64-3.8.2.tar.gz", binary: "kiwix-serve", kind: "tar.gz", version: "3.8.2" };
+    }
+    if (triple.startsWith("x86_64")) {
+      return { asset: "kiwix-tools_linux-x86_64-3.8.2.tar.gz", binary: "kiwix-serve", kind: "tar.gz", version: "3.8.2" };
+    }
+  }
+  throw new Error(`No bundled Kiwix Tools package is configured for target ${triple}`);
+}
+
+async function downloadFile(url, destination) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to download ${url}: HTTP ${response.status}`);
+  await fs.writeFile(destination, Buffer.from(await response.arrayBuffer()));
+}
+
+async function extractArchive(archive, destination, kind) {
+  await fs.mkdir(destination, { recursive: true });
+  if (kind === "tar.gz") {
+    await run("tar", ["-xzf", archive, "-C", destination]);
+    return;
+  }
+  if (kind === "zip") {
+    if (process.platform === "win32") {
+      await run("powershell", [
+        "-NoProfile",
+        "-Command",
+        `Expand-Archive -LiteralPath ${powershellQuote(archive)} -DestinationPath ${powershellQuote(destination)} -Force`
+      ]);
+    } else {
+      await run("unzip", ["-oq", archive, "-d", destination]);
+    }
+    return;
+  }
+  throw new Error(`Unsupported Kiwix archive type: ${kind}`);
+}
+
+function powershellQuote(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+async function run(command, args) {
+  await new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: "inherit" });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${command} ${args.join(" ")} exited with ${code}`));
+    });
+  });
+}
+
+async function findFile(root, basename) {
+  const entries = await fs.readdir(root, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(root, entry.name);
+    if (entry.isFile() && entry.name === basename) return entryPath;
+    if (entry.isDirectory()) {
+      const match = await findFile(entryPath, basename);
+      if (match) return match;
+    }
+  }
+  return null;
+}
+
+async function copyDirectoryContents(source, destination) {
+  await fs.mkdir(destination, { recursive: true });
+  const entries = await fs.readdir(source, { withFileTypes: true });
+  for (const entry of entries) {
+    const sourcePath = path.join(source, entry.name);
+    const destinationPath = path.join(destination, entry.name);
+    if (entry.isDirectory()) {
+      await copyDirectoryContents(sourcePath, destinationPath);
+    } else if (entry.isFile()) {
+      await fs.copyFile(sourcePath, destinationPath);
+    }
+  }
 }
 
 function hostTriple() {

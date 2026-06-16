@@ -47,6 +47,10 @@ pub fn run() {
                         .to_string_lossy()
                         .to_string(),
                 )
+                .env(
+                    "SCA_KIWIX_DIR",
+                    resource_dir.join("kiwix").to_string_lossy().to_string(),
+                )
                 .spawn()?;
             *setup_backend_child
                 .lock()

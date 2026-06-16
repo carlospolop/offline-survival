@@ -31,15 +31,27 @@ describe("services", () => {
     db.close();
   });
 
-  it("detects bundled sidecars when SCA_SIDECAR_DIR is set", async () => {
-    const old = process.env.SCA_SIDECAR_DIR;
-    const bin = path.join(root, "bin");
+  it("detects bundled Kiwix resources when SCA_KIWIX_DIR is set", async () => {
+    const old = process.env.SCA_KIWIX_DIR;
+    const bin = path.join(root, "kiwix");
     await fs.mkdir(bin, { recursive: true });
     await fs.writeFile(path.join(bin, "kiwix-serve"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-    process.env.SCA_SIDECAR_DIR = bin;
+    process.env.SCA_KIWIX_DIR = bin;
     expect(await detectRuntime("kiwix-serve")).toBe(true);
-    if (old === undefined) delete process.env.SCA_SIDECAR_DIR;
-    else process.env.SCA_SIDECAR_DIR = old;
+    if (old === undefined) delete process.env.SCA_KIWIX_DIR;
+    else process.env.SCA_KIWIX_DIR = old;
+  });
+
+  it("resolves Kiwix resource binaries with Windows executable names", () => {
+    const env = {
+      SCA_KIWIX_DIR: "C:\\Offline Survival\\resources\\kiwix",
+      SCA_SIDECAR_DIR: "C:\\Offline Survival\\bin"
+    };
+    expect(runtimeCandidates("kiwix-serve", { platform: "win32", env, home: "C:\\Users\\Test" })).toEqual(expect.arrayContaining([
+      "C:\\Offline Survival\\resources\\kiwix/kiwix-serve.exe",
+      "C:\\Offline Survival\\bin/kiwix-serve.exe",
+      "kiwix-serve.exe"
+    ]));
   });
 
   it("knows common Ollama install locations on every supported OS", () => {

@@ -18,21 +18,35 @@ export function runtimeCandidates(command, options = {}) {
   const env = options.env ?? process.env;
   const home = options.home ?? process.env.HOME ?? process.env.USERPROFILE ?? "";
   const localAppData = env.LOCALAPPDATA ?? (home ? path.join(home, "AppData", "Local") : "");
+  const names = runtimeCommandNames(command, platform);
   const candidates = [
     command === "ollama" ? env.SCA_OLLAMA_BIN : null,
-    env.SCA_SIDECAR_DIR ? path.join(env.SCA_SIDECAR_DIR, command) : null,
-    env.APPDIR ? path.join(env.APPDIR, "usr", "bin", command) : null,
+    ...runtimeDirCandidates(command === "kiwix-serve" ? env.SCA_KIWIX_DIR : null, names),
+    ...runtimeDirCandidates(env.SCA_SIDECAR_DIR, names),
+    ...runtimeDirCandidates(env.APPDIR ? path.join(env.APPDIR, "usr", "bin") : null, names),
     ...platformRuntimeCandidates(command, platform, { home, localAppData }),
-    command
+    ...names
   ].filter(Boolean);
   return [...new Set(candidates)];
 }
 
 export function resolveRuntime(command, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const names = runtimeCommandNames(command, platform);
   const candidates = [
     ...runtimeCandidates(command, options)
   ];
-  return candidates.find((candidate) => candidate === command || fs.existsSync(candidate)) ?? command;
+  return candidates.find((candidate) => names.includes(candidate) || fs.existsSync(candidate)) ?? command;
+}
+
+function runtimeCommandNames(command, platform) {
+  if (platform === "win32" && !command.endsWith(".exe")) return [`${command}.exe`, command];
+  return [command];
+}
+
+function runtimeDirCandidates(directory, names) {
+  if (!directory) return [];
+  return names.map((name) => path.join(directory, name));
 }
 
 function platformRuntimeCandidates(command, platform, { home, localAppData }) {

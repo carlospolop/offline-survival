@@ -7,6 +7,7 @@ app/ui/dist/
 !app/backend/vendor/yaml/browser/dist/**
 app/src-tauri/target/
 app/src-tauri/binaries/*
+app/src-tauri/kiwix/
 SurvivalCivilizationArchive/
 OfflineSurvival/
 library/
