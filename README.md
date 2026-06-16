@@ -199,7 +199,9 @@ The sidecar script prepares platform-specific backend binaries under `app/src-ta
 
 ## Releases
 
-Releases are built by GitHub Actions from tags like:
+Every push to `main` that changes the app, manifests, packaging tools, package metadata, or release workflow runs the desktop release workflow. When the builds pass, GitHub Actions publishes a new release tagged like `main-<run>-<sha>` and marks it as the latest release, so the website download links under `/releases/latest/download/...` point at the newest available app packages.
+
+Versioned releases can still be created from tags like:
 
 ```bash
 git tag v0.1.0

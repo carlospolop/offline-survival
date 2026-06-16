@@ -33,11 +33,13 @@ describe("language selectors", () => {
     expect(source).toContain("offline-survival-content-language");
     expect(source).toContain("document.documentElement.lang = uiLanguage");
     expect(source).toContain("contentLanguage = nextLanguage");
-    expect(source).toContain("$: contentProfiles = profilesForContentLanguage(contentLanguage);");
+    expect(source).toContain("$: contentProfiles = profilesForContentLanguage(contentLanguage, catalogProfiles);");
     expect(source).toContain("$: selectedEasyProfiles = contentProfiles.filter");
     expect(source).toContain("profileIds: selectedEasyProfiles.map");
     expect(source).toContain('<option value="es">');
     expect(source).toContain('<option value="both">{t("bilingual")}</option>');
+    expect(source).toContain('spanish: "Español"');
+    expect(source).toContain('if (language === "both") return profileLang === "both";');
 
     const withoutTranslationMap = source.replace(/const uiText:[\s\S]*?\n  \};\s+const catalogText/, "TRANSLATION_MAP_REMOVED\n\n  const catalogText");
     const forbiddenDynamicEnglish = [
@@ -54,6 +56,7 @@ describe("language selectors", () => {
     for (const phrase of forbiddenDynamicEnglish) expect(withoutTranslationMap).not.toContain(phrase);
     expect(source).toContain("function profileTitle(profile");
     expect(source).toContain("function sourceTitle(source");
+    expect(source).toContain("function updateStatusLabel(status");
     expect(source).toContain('\"survival-essential-es\":');
     expect(source).toContain('title: \"Supervivencia esencial ES\"');
     expect(source).toContain('\"wikipedia-es-top-zim\":');
@@ -82,15 +85,34 @@ describe("language selectors", () => {
     const dom = new JSDOM(html, { runScripts: "dangerously", url: "https://offline-survival.test/" });
     const { document, localStorage, Event } = dom.window;
     const select = document.getElementById("language-select");
+    const downloadSelect = document.getElementById("download-os-select");
+    const bottomDownloadSelect = document.getElementById("download-os-select-bottom");
+    const primaryDownload = document.querySelector("[data-download-link]");
     expect(select).toBeTruthy();
+    expect(downloadSelect).toBeTruthy();
+    expect(bottomDownloadSelect).toBeTruthy();
     expect(select.querySelector("option[value='es']").textContent).toBe("Español");
     expect(document.documentElement.lang).toBe("en");
+    expect(primaryDownload.getAttribute("href")).toMatch(/releases\/latest\/download\/Offline-Survival-(windows|macos|linux)-/);
+
+    downloadSelect.value = "macos-arm64";
+    downloadSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(primaryDownload.getAttribute("href")).toBe("https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-macos-arm64.zip");
+    expect(bottomDownloadSelect.value).toBe("macos-arm64");
+    expect(localStorage.getItem("offline-survival-download-os")).toBe("macos-arm64");
+
+    bottomDownloadSelect.value = "linux-x64";
+    bottomDownloadSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(primaryDownload.getAttribute("href")).toBe("https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-x64.zip");
+    expect(downloadSelect.value).toBe("linux-x64");
 
     select.value = "es";
     select.dispatchEvent(new Event("change", { bubbles: true }));
     expect(document.documentElement.lang).toBe("es");
     expect(localStorage.getItem("offline-survival-ui-language")).toBe("es");
     expect(document.querySelector("[data-i18n='downloadLatest']").textContent).toBe("Descargar última versión");
+    expect(document.querySelector("[data-i18n='downloadFor']").textContent).toBe("Descargar para");
+    expect(primaryDownload.getAttribute("href")).toBe("https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-x64.zip");
     expect(document.querySelector("[data-i18n='profileEssentialName']").textContent).toBe("Supervivencia esencial");
     expect(document.querySelector("[data-i18n='heroTitle']").textContent).toContain("internet");
 

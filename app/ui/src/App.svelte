@@ -63,7 +63,7 @@
     en: {
       appLanguage: "App language",
       english: "English",
-      spanish: "Spanish",
+      spanish: "Español",
       bilingual: "Bilingual",
       contentLanguage: "Content language",
       aiRecommendations: "AI",
@@ -92,6 +92,7 @@
       localAi: "Local AI",
       share: "Share",
       settings: "Settings",
+      appSections: "Application sections",
       working: "Working: {busy}",
       easyInstallIntro: "Select one or more profiles. Easy Install downloads them, prepares/extracts downloaded sources, indexes searchable content, and can install recommended Local AI.",
       preparedDisk: "prepared disk",
@@ -376,6 +377,7 @@
       localAi: "IA local",
       share: "Compartir",
       settings: "Ajustes",
+      appSections: "Secciones de la aplicación",
       working: "Trabajando: {busy}",
       easyInstallIntro: "Selecciona uno o más perfiles. La instalación fácil los descarga, prepara o extrae las fuentes descargadas, indexa el contenido buscable y puede instalar la IA local recomendada.",
       preparedDisk: "disco preparado",
@@ -758,6 +760,23 @@
         geography: "geografía",
         reconstruction: "reconstrucción"
       },
+      types: {
+        zim: "ZIM",
+        pdf: "PDF",
+        epub: "EPUB",
+        html: "HTML",
+        "repo-archive": "archivo de repositorio",
+        model: "modelo"
+      },
+      roles: {
+        chat: "chat",
+        embedding: "embeddings"
+      },
+      licenses: {
+        "public-domain-derived": "dominio público derivado",
+        "public-domain-us": "dominio público de EE. UU.",
+        "mixed-free": "licencias libres mixtas"
+      },
       statuses: {
         missing: "pendiente",
         queued: "en cola",
@@ -785,6 +804,14 @@
         corrupt: "corrupto",
         ready_for_kiwix: "listo para Kiwix",
         not_ready: "no listo"
+      },
+      updateStatuses: {
+        "manual-release-check": "comprobación manual de versiones",
+        "current-local-snapshot": "copia local actual",
+        not_refreshed: "sin actualizar",
+        user_approved_only: "solo con aprobación del usuario",
+        manual: "manual",
+        "local-manifest-snapshot": "copia local de manifiestos"
       },
       phases: {
         download: "Descarga",
@@ -840,10 +867,10 @@
 
   $: _uiT = uiText[uiLanguage] ?? {};
   $: _catT = catalogText[uiLanguage] ?? {};
-  $: _contentCatT = catalogText[contentLanguage === "both" ? uiLanguage : contentLanguage] ?? {};
+  $: _contentCatT = catalogText[uiLanguage] ?? {};
   $: catalogSources = Array.isArray(catalog.sources) ? catalog.sources : [];
   $: catalogProfiles = Array.isArray(catalog.profiles) ? catalog.profiles : [];
-  $: contentProfiles = profilesForContentLanguage(contentLanguage);
+  $: contentProfiles = profilesForContentLanguage(contentLanguage, catalogProfiles);
   $: contentSourceIds = new Set(contentProfiles.flatMap((profile) => profile.sourceIds ?? []));
   $: contentSources = catalogSources.filter((source) => contentSourceIds.has(source.id));
   $: catalogModels = Array.isArray(catalog.models) ? catalog.models.filter(Boolean) : [];
@@ -950,9 +977,10 @@
 
   function initialContentLanguage() {
     if (typeof window === "undefined") return initialUiLanguage();
+    const ui = initialUiLanguage();
     const saved = window.localStorage.getItem("offline-survival-content-language");
-    if (saved === "en" || saved === "es" || saved === "both") return saved;
-    return initialUiLanguage();
+    if (saved === ui) return saved;
+    return ui;
   }
 
   function setUiLanguage(language: string) {
@@ -1013,6 +1041,21 @@
     return _catT?.categories?.[category] ?? category;
   }
 
+  function sourceTypeLabel(type: unknown) {
+    const value = String(type ?? "");
+    return _catT?.types?.[value] ?? value;
+  }
+
+  function modelRoleLabel(role: unknown) {
+    const value = String(role ?? "");
+    return _catT?.roles?.[value] ?? value;
+  }
+
+  function licenseLabel(license: unknown) {
+    const value = String(license ?? "");
+    return _catT?.licenses?.[value] ?? value;
+  }
+
   function sourceForId(sourceId: unknown) {
     const id = String(sourceId ?? "");
     return sourceCatalog.get(id) ?? stateSources.find((source) => source.id === id) ?? null;
@@ -1044,6 +1087,12 @@
     return _catT?.tiers?.[value] ?? value;
   }
 
+  function updateStatusLabel(status: unknown) {
+    const value = String(status ?? "");
+    if (!value) return "";
+    return _catT?.updateStatuses?.[value] ?? value.replace(/[-_]/g, " ");
+  }
+
   function detailLabel(detail: unknown) {
     const value = String(detail ?? "");
     if (_uiT !== uiText.es) return value; // only map when Spanish is active
@@ -1057,13 +1106,13 @@
   }
 
   function profileMatchesContentLanguage(profile: Profile | Record<string, any>, language = contentLanguage) {
-    if (language === "both") return true;
     const profileLang = String(profile.language ?? "en");
-    return profileLang === language || profileLang === "both";
+    if (language === "both") return profileLang === "both";
+    return profileLang === language;
   }
 
-  function profilesForContentLanguage(language: string) {
-    return catalogProfiles.filter((profile) => profileMatchesContentLanguage(profile, language));
+  function profilesForContentLanguage(language: string, profiles = catalogProfiles) {
+    return profiles.filter((profile) => profileMatchesContentLanguage(profile, language));
   }
 
   function keepShareProfileValid(options: Array<{ id: string }>, current: string) {
@@ -1827,7 +1876,7 @@
   </aside>
 
   <section class="workspace">
-    <nav class="tabs" aria-label="Application sections">
+    <nav class="tabs" aria-label={t("appSections")}>
       <button type="button" class:active={activeTab === "dashboard"} on:click={() => activeTab = "dashboard"}>{t("dashboard")}</button>
       <button type="button" class:active={activeTab === "downloads"} on:click={() => activeTab = "downloads"}>{t("downloads")}</button>
       <button type="button" class:active={activeTab === "search"} on:click={() => activeTab = "search"}>{t("search")}</button>
@@ -2011,9 +2060,9 @@
             <div class="row">
               <span>
                 <strong>{sourceTitle(source)}</strong>
-                <small>{sourceCategory(source)} · {source.license} · {info.local?.local_path ?? t("notDownloaded")}</small>
+                <small>{sourceCategory(source)} · {licenseLabel(source.license)} · {info.local?.local_path ?? t("notDownloaded")}</small>
               </span>
-              <span>{source.type}</span>
+              <span>{sourceTypeLabel(source.type)}</span>
               <span>{gb(preparedSize(source))}</span>
               <span class="sourceProgress">
                 <span class:ok={statusTone(info.status) === "ok"} class:warn={statusTone(info.status) === "warn"} class:bad={statusTone(info.status) === "bad"}>{statusLabel(info.status)}</span>
@@ -2194,7 +2243,7 @@
             <div class="resourceRow">
               <span>
                 <strong>{sourceTitle(source)}</strong>
-                <small>{source.type} · {statusLabel(source.status)} · {source.local_path}</small>
+                <small>{sourceTypeLabel(source.type)} · {statusLabel(source.status)} · {source.local_path}</small>
               </span>
               <span class="actions">
                 <button type="button" on:click={() => openOriginal(source.id)} disabled={sourceBusy || !source.local_path}>{t("openButton")}</button>
@@ -2232,7 +2281,7 @@
           <select bind:value={searchLicense}>
             <option value="">{t("allLicenses")}</option>
             {#each licenseOptions as license}
-              <option value={license}>{license}</option>
+              <option value={license}>{licenseLabel(license)}</option>
             {/each}
           </select>
           <button>{t("search")}</button>
@@ -2435,7 +2484,7 @@
           <article class:recommendedModel={model.id === recommendedChatModel?.id || model.id === recommendedEmbeddingModel?.id}>
             <strong>{modelTitle(model)}</strong>
             <span class:ok={statusTone(model.status) === "ok"} class:warn={statusTone(model.status) === "warn"} class:bad={statusTone(model.status) === "bad"}>{statusLabel(model.status)}</span>
-            <small>{t("engine")}: {model.runtime} · {model.pull} · {model.role} · {gb(model.expected_size_bytes)}</small>
+            <small>{t("engine")}: {model.runtime} · {model.pull} · {modelRoleLabel(model.role)} · {gb(model.expected_size_bytes)}</small>
             {#if model.id === recommendedChatModel?.id}
               <small>{t("recommendedChatForTier", { tier: system?.tier ? tierLabel(system.tier) : t("thisPc") })}</small>
             {/if}
@@ -2507,7 +2556,7 @@
             </select>
             <button type="button" on:click={pickShareAppsFolder} disabled={!!busy.size}>{t("appBundleFolder")}</button>
             <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={!!busy.size || !shareProfile}>
-              {busy === "share-package" ? t("generatingSharePackage") : t("sharePackage")}
+              {busy.has("share-package") ? t("generatingSharePackage") : t("sharePackage")}
             </button>
           </span>
         {/if}
@@ -2559,7 +2608,7 @@
             <small>{t("includedAppFolders")}: {sharePackage.apps.map((app: any) => app.label).join(", ")}</small>
           {/if}
           {#each sharePackage.instructions as instruction}
-            <small>{instruction}</small>
+            <small>{detailLabel(instruction)}</small>
           {/each}
         </article>
       {/if}
@@ -2580,11 +2629,11 @@
       {#if updates}
         <article class="answer">
           <strong>{t("updateChannels")}</strong>
-          <small>{t("appUpdate")}: {updates.app_update}</small>
-          <small>{t("manifestsUpdate")}: {updates.manifest_update}</small>
-          <small>{t("contentUpdate")}: {updates.content_snapshot_update}</small>
-          <small>{t("openServicesUpdate")}: {updates.runtime_update}</small>
-          <small>{t("modelsUpdate")}: {updates.model_update}</small>
+          <small>{t("appUpdate")}: {updateStatusLabel(updates.app_update)}</small>
+          <small>{t("manifestsUpdate")}: {updateStatusLabel(updates.manifest_update)}</small>
+          <small>{t("contentUpdate")}: {updateStatusLabel(updates.content_snapshot_update)}</small>
+          <small>{t("openServicesUpdate")}: {updateStatusLabel(updates.runtime_update)}</small>
+          <small>{t("modelsUpdate")}: {updateStatusLabel(updates.model_update)}</small>
         </article>
       {/if}
       <article class="answer">
@@ -2601,8 +2650,8 @@
       <div class="results">
         {#each logs as log}
           <article>
-            <h3>{log.kind}</h3>
-            <p>{log.message}</p>
+            <h3>{phaseLabel(log.kind)}</h3>
+            <p>{detailLabel(log.message)}</p>
             <small>{log.created_at}</small>
           </article>
         {/each}

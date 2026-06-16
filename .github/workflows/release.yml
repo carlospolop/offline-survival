@@ -158,8 +158,26 @@ jobs:
     name: Publish GitHub release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Choose release metadata
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA::7}"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            tag="${GITHUB_REF_NAME}"
+            name="Offline Survival ${GITHUB_REF_NAME}"
+          else
+            tag="main-${GITHUB_RUN_NUMBER}-${short_sha}"
+            name="Offline Survival latest (${short_sha})"
+          fi
+          {
+            echo "tag=${tag}"
+            echo "name=${name}"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/download-artifact@v4
         with:
           path: downloaded-artifacts
@@ -193,5 +211,9 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.release.outputs.name }}
           files: release-upload/*
           generate_release_notes: true
+          make_latest: true

@@ -143,10 +143,31 @@ h3 {
 }
 
 .heroActions {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 28px;
+}
+
+.downloadSelect,
+.downloadChooser label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 850;
+  gap: 6px;
+}
+
+.downloadSelect select,
+.downloadChooser select {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  min-height: 46px;
+  padding: 0 14px;
 }
 
 .button,
@@ -498,12 +519,29 @@ h3 {
   margin-top: 24px;
 }
 
-.downloadGrid a {
+.downloadChooser {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.downloadChooser label {
+  color: #d8f3e5;
+}
+
+.downloadGrid a,
+.downloadChooser .button.primary {
   background: #fff;
   border-color: transparent;
   color: var(--green);
   justify-content: center;
   text-align: center;
+}
+
+.downloadGrid a.selected {
+  box-shadow: 0 0 0 3px rgba(216, 243, 229, 0.72);
 }
 
 .downloadNote {

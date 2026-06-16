@@ -37,7 +37,19 @@
           <h1 data-i18n="heroTitle">Keep useful knowledge available when the internet is not.</h1>
           <p class="lead" data-i18n="heroLead">Offline Survival downloads trusted public knowledge packs, indexes them for search, and can package the result for another computer. It is a practical library builder, not a cloud service.</p>
           <div class="heroActions">
-            <a class="button primary" href="#download" data-i18n="downloadLatest">Download latest</a>
+            <label class="downloadSelect">
+              <span data-i18n="downloadFor">Download for</span>
+              <select id="download-os-select" aria-label="Download operating system">
+                <option value="windows-x64">Windows x64</option>
+                <option value="windows-arm64">Windows ARM64</option>
+                <option value="macos-x64">macOS Intel</option>
+                <option value="macos-arm64">macOS Apple Silicon</option>
+                <option value="linux-x64">Linux x64</option>
+                <option value="linux-arm64">Linux ARM64</option>
+                <option value="all-platforms" data-i18n="allPlatformsBundle">All platforms bundle</option>
+              </select>
+            </label>
+            <a class="button primary" data-download-link href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-x64.zip" data-i18n="downloadLatest">Download latest</a>
             <a class="button secondary" href="#how" data-i18n="seeHow">See how it works</a>
           </div>
         </div>
@@ -270,14 +282,29 @@
         <p class="kicker" data-i18n="getIt">Get it</p>
         <h2 data-i18n="downloadTitle">Download the latest release.</h2>
         <p data-i18n="downloadText">Choose the file for your operating system. Use the all-platforms bundle when you need to prepare a share package for multiple operating systems at once.</p>
+        <div class="downloadChooser">
+          <label>
+            <span data-i18n="downloadFor">Download for</span>
+            <select id="download-os-select-bottom" aria-label="Download operating system">
+              <option value="windows-x64">Windows x64</option>
+              <option value="windows-arm64">Windows ARM64</option>
+              <option value="macos-x64">macOS Intel</option>
+              <option value="macos-arm64">macOS Apple Silicon</option>
+              <option value="linux-x64">Linux x64</option>
+              <option value="linux-arm64">Linux ARM64</option>
+              <option value="all-platforms" data-i18n="allPlatformsBundle">All platforms bundle</option>
+            </select>
+          </label>
+          <a class="button primary" data-download-link href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-x64.zip" data-i18n="downloadLatest">Download latest</a>
+        </div>
         <div class="downloadGrid">
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-x64.zip">Windows x64</a>
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-arm64.zip">Windows ARM64</a>
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-macos-x64.zip">macOS Intel</a>
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-macos-arm64.zip">macOS Apple Silicon</a>
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-x64.zip">Linux x64</a>
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-arm64.zip">Linux ARM64</a>
-          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-all-platforms.zip">All platforms bundle</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-x64.zip" data-download-option="windows-x64">Windows x64</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-windows-arm64.zip" data-download-option="windows-arm64">Windows ARM64</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-macos-x64.zip" data-download-option="macos-x64">macOS Intel</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-macos-arm64.zip" data-download-option="macos-arm64">macOS Apple Silicon</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-x64.zip" data-download-option="linux-x64">Linux x64</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-linux-arm64.zip" data-download-option="linux-arm64">Linux ARM64</a>
+          <a href="https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-all-platforms.zip" data-download-option="all-platforms" data-i18n="allPlatformsBundle">All platforms bundle</a>
         </div>
         <p class="downloadNote" data-i18n-html="macNote">macOS: if the app shows "damaged and can't be opened", right-click the .dmg and choose Open, or run <code>xattr -d com.apple.quarantine "Offline Survival_*.dmg"</code> before mounting. The app is not notarised; this is expected on Apple Silicon.</p>
       </section>
@@ -302,6 +329,8 @@
           heroTitle: "Mantén conocimiento útil disponible cuando no haya internet.",
           heroLead: "Offline Survival descarga paquetes públicos de conocimiento fiable, los indexa para búsqueda y puede empaquetar el resultado para otro ordenador. Es un constructor práctico de bibliotecas, no un servicio en la nube.",
           downloadLatest: "Descargar última versión",
+          downloadFor: "Descargar para",
+          allPlatformsBundle: "Paquete para todas las plataformas",
           seeHow: "Ver cómo funciona",
           localFirst: "Todo local",
           localFirstText: "Los archivos descargados, índices y modelos de IA opcionales se quedan en el ordenador o unidad seleccionada.",
@@ -416,8 +445,36 @@
 
       const defaultText = {};
       const defaultHtml = {};
+      const downloadBase = "https://github.com/carlospolop/offline-survival/releases/latest/download/Offline-Survival-";
+      const downloadOptions = new Set(["windows-x64", "windows-arm64", "macos-x64", "macos-arm64", "linux-x64", "linux-arm64", "all-platforms"]);
       for (const node of document.querySelectorAll("[data-i18n]")) defaultText[node.getAttribute("data-i18n")] = node.textContent;
       for (const node of document.querySelectorAll("[data-i18n-html]")) defaultHtml[node.getAttribute("data-i18n-html")] = node.innerHTML;
+
+      function detectedDownloadOption() {
+        const platform = [navigator.userAgentData?.platform, navigator.platform, navigator.userAgent].filter(Boolean).join(" ").toLowerCase();
+        if (platform.includes("mac")) return "macos-arm64";
+        if (platform.includes("linux")) return platform.includes("aarch64") || platform.includes("arm") ? "linux-arm64" : "linux-x64";
+        if (platform.includes("win")) return platform.includes("arm") ? "windows-arm64" : "windows-x64";
+        return "windows-x64";
+      }
+
+      function selectedDownloadOption() {
+        const saved = localStorage.getItem("offline-survival-download-os");
+        return downloadOptions.has(saved) ? saved : detectedDownloadOption();
+      }
+
+      function downloadUrl(option) {
+        const selected = downloadOptions.has(option) ? option : "windows-x64";
+        return `${downloadBase}${selected}.zip`;
+      }
+
+      function applyDownloadOption(option) {
+        const selected = downloadOptions.has(option) ? option : selectedDownloadOption();
+        localStorage.setItem("offline-survival-download-os", selected);
+        for (const select of document.querySelectorAll("#download-os-select, #download-os-select-bottom")) select.value = selected;
+        for (const link of document.querySelectorAll("[data-download-link]")) link.href = downloadUrl(selected);
+        for (const link of document.querySelectorAll("[data-download-option]")) link.classList.toggle("selected", link.getAttribute("data-download-option") === selected);
+      }
 
       function applyLanguage(language) {
         const selected = language === "es" ? "es" : "en";
@@ -435,7 +492,11 @@
       }
 
       document.getElementById("language-select").addEventListener("change", (event) => applyLanguage(event.target.value));
+      for (const select of document.querySelectorAll("#download-os-select, #download-os-select-bottom")) {
+        select.addEventListener("change", (event) => applyDownloadOption(event.target.value));
+      }
       applyLanguage(localStorage.getItem("offline-survival-ui-language") || "en");
+      applyDownloadOption(selectedDownloadOption());
     </script>
   </body>
 </html>
