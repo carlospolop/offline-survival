@@ -456,6 +456,13 @@ small {
   padding: 4px 9px;
 }
 
+.liveFeedback {
+  background: #fff7d8;
+  border-color: #d9be63;
+  color: #5f4900;
+  font-weight: 800;
+}
+
 .maintenanceActions {
   align-items: flex-start;
   justify-content: flex-end;
