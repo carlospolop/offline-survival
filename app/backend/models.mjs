@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { getSettings, now, recordEvent, setSetting } from "./state.mjs";
 import { resolveRuntime, startOllama, upsertService } from "./services.mjs";
+import { extractZipToDir } from "./zip.mjs";
 
 export async function refreshModels(db, catalogModels, fetchImpl = fetch) {
   let installed = localInstalledModelAliases();
@@ -94,7 +95,7 @@ export async function installRecommendedAi({ db, libraryRoot, models }) {
       percent: 0,
       etaSeconds: null
     });
-    await startOllama(db, { modelsDir, logPath: path.join(libraryRoot, "logs", "ollama.log") });
+    await startOllama(db, { modelsDir, logPath: path.join(libraryRoot, "logs", "ollama.log"), skipModelGuard: true });
 
     const installed = [];
     let completedModelBytes = 0;
@@ -157,39 +158,31 @@ async function ensureOllamaInstalled({ db, libraryRoot, progress }) {
     return { status: "available", path: existing };
   }
 
-  if (process.platform !== "linux") {
-    throw new Error("Automatic Ollama installation is currently supported by this app package on Linux. Install Ollama from https://ollama.com/download, then use Install Recommended again.");
-  }
-
-  const arch = os.arch();
-  const asset = arch === "x64" ? "ollama-linux-amd64.tar.zst" : arch === "arm64" ? "ollama-linux-arm64.tar.zst" : null;
-  if (!asset) throw new Error(`Unsupported CPU architecture for managed Ollama install: ${arch}`);
-
+  const plan = ollamaInstallPlan(process.platform, os.arch());
   const installDir = path.join(libraryRoot, "raw", "runtimes", "ollama");
-  const archive = path.join(libraryRoot, "tmp", asset);
-  const url = `https://ollama.com/download/${asset}`;
+  const archive = path.join(libraryRoot, "tmp", plan.asset);
   await fsp.rm(installDir, { recursive: true, force: true });
   await fsp.mkdir(installDir, { recursive: true });
   await fsp.mkdir(path.dirname(archive), { recursive: true });
-  upsertService(db, { name: "ollama", status: "installing", port: 11434, url: "http://127.0.0.1:11434", message: `Downloading ${asset}` });
+  upsertService(db, { name: "ollama", status: "installing", port: 11434, url: "http://127.0.0.1:11434", message: `Downloading ${plan.asset}` });
   updateAiProgress(db, {
     status: "running",
     phase: "runtime-download",
     item: "Ollama runtime",
-    detail: `Downloading ${asset}.`,
+    detail: `Downloading ${plan.asset}.`,
     startedAt: progress.startedAt,
     currentBytes: 0,
     totalBytes: progress.totalModelBytes,
     percent: 0,
     etaSeconds: null
   });
-  recordEvent(db, "ollama-install", "Downloading app-managed Ollama runtime", { url, installDir });
-  await downloadFile(url, archive, ({ received, total }) => {
+  recordEvent(db, "ollama-install", "Downloading app-managed Ollama runtime", { url: plan.url, installDir, platform: process.platform, arch: os.arch() });
+  await downloadFile(plan.url, archive, ({ received, total }) => {
     updateAiProgress(db, {
       status: "running",
       phase: "runtime-download",
       item: "Ollama runtime",
-      detail: `Downloading ${asset}.`,
+      detail: `Downloading ${plan.asset}.`,
       startedAt: progress.startedAt,
       currentBytes: 0,
       totalBytes: progress.totalModelBytes,
@@ -199,26 +192,45 @@ async function ensureOllamaInstalled({ db, libraryRoot, progress }) {
       etaSeconds: etaSeconds(progress.startedAt, received, total)
     });
   });
-  upsertService(db, { name: "ollama", status: "installing", port: 11434, url: "http://127.0.0.1:11434", message: "Extracting Ollama runtime" });
+  upsertService(db, { name: "ollama", status: "installing", port: 11434, url: "http://127.0.0.1:11434", message: plan.mode === "windows-script" ? "Installing Ollama runtime" : "Extracting Ollama runtime" });
   updateAiProgress(db, {
     status: "running",
-    phase: "runtime-extract",
+    phase: plan.mode === "windows-script" ? "runtime-install" : "runtime-extract",
     item: "Ollama runtime",
-    detail: "Extracting Ollama runtime.",
+    detail: plan.mode === "windows-script" ? "Installing Ollama runtime." : "Extracting Ollama runtime.",
     startedAt: progress.startedAt,
     currentBytes: 0,
     totalBytes: progress.totalModelBytes,
     percent: 0,
     etaSeconds: null
   });
-  await extractOllamaArchive(archive, installDir);
+  await installOllamaRuntime({ archive, installDir, plan });
   await fsp.rm(archive, { force: true });
 
-  const ollamaBin = path.join(installDir, "bin", "ollama");
-  await fsp.chmod(ollamaBin, 0o755);
+  const ollamaBin = path.join(installDir, plan.bin);
+  if (process.platform !== "win32") await fsp.chmod(ollamaBin, 0o755);
   process.env.SCA_OLLAMA_BIN = ollamaBin;
   recordEvent(db, "ollama-install", "Installed app-managed Ollama runtime", { ollamaBin });
   return { status: "installed", path: ollamaBin };
+}
+
+export function ollamaInstallPlan(platform = process.platform, arch = os.arch()) {
+  if (platform === "linux") {
+    const asset = arch === "x64" ? "ollama-linux-amd64.tar.zst" : arch === "arm64" ? "ollama-linux-arm64.tar.zst" : null;
+    if (!asset) throw new Error(`Unsupported CPU architecture for managed Ollama install: ${arch}`);
+    return { platform, arch, mode: "tar", asset, url: `https://ollama.com/download/${asset}`, bin: path.join("bin", "ollama") };
+  }
+  if (platform === "darwin") {
+    if (!["x64", "arm64"].includes(arch)) throw new Error(`Unsupported CPU architecture for managed Ollama install: ${arch}`);
+    const asset = "Ollama-darwin.zip";
+    return { platform, arch, mode: "macos-zip", asset, url: `https://ollama.com/download/${asset}`, bin: path.join("Ollama.app", "Contents", "Resources", "ollama") };
+  }
+  if (platform === "win32") {
+    if (!["x64", "arm64"].includes(arch)) throw new Error(`Unsupported CPU architecture for managed Ollama install: ${arch}`);
+    const asset = "install.ps1";
+    return { platform, arch, mode: "windows-script", asset, url: `https://ollama.com/${asset}`, bin: "ollama.exe" };
+  }
+  throw new Error(`Unsupported operating system for managed Ollama install: ${platform}`);
 }
 
 async function pullModelAndWait(db, libraryRoot, model, progress) {
@@ -228,7 +240,7 @@ async function pullModelAndWait(db, libraryRoot, model, progress) {
   try {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
-        await startOllama(db, { modelsDir: path.join(libraryRoot, "raw", "models", "ollama"), logPath: path.join(libraryRoot, "logs", "ollama.log") });
+        await startOllama(db, { modelsDir: path.join(libraryRoot, "raw", "models", "ollama"), logPath: path.join(libraryRoot, "logs", "ollama.log"), skipModelGuard: true });
         await pullModelWithProgress(db, model, progress, attempt);
         db.prepare("UPDATE models SET status=?, updated_at=? WHERE id=?").run("installed", now(), model.id);
         return;
@@ -392,6 +404,28 @@ function runCommand(command, args, options = {}) {
   });
 }
 
+async function installOllamaRuntime({ archive, installDir, plan }) {
+  if (plan.mode === "windows-script") {
+    const powershell = await findPowerShell();
+    await runCommand(powershell, [
+      "-NoProfile",
+      "-ExecutionPolicy", "Bypass",
+      "-File", archive
+    ], {
+      env: {
+        ...process.env,
+        OLLAMA_INSTALL_DIR: installDir
+      }
+    });
+    return;
+  }
+  if (plan.mode === "macos-zip") {
+    await extractZipToDir(archive, installDir);
+    return;
+  }
+  await extractOllamaArchive(archive, installDir);
+}
+
 async function extractOllamaArchive(archive, installDir) {
   if (archive.endsWith(".tar.zst")) {
     await runCommand("tar", ["--zstd", "-xf", archive, "-C", installDir]);
@@ -402,4 +436,12 @@ async function extractOllamaArchive(archive, installDir) {
     return;
   }
   throw new Error(`Unsupported Ollama archive format: ${path.basename(archive)}`);
+}
+
+async function findPowerShell() {
+  const candidates = ["pwsh", "powershell.exe", "powershell"];
+  for (const candidate of candidates) {
+    if (await commandWorks(candidate)) return candidate;
+  }
+  throw new Error("PowerShell is required to install Ollama on Windows.");
 }

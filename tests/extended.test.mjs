@@ -10,6 +10,7 @@ import { cleanupPartials, reconcileLibrary, writeKiwixLibraryXml } from "../app/
 import { ensureLibrary, openState, upsertSource } from "../app/backend/state.mjs";
 import { indexDownloadedSources, normalizeAndIndex, semanticSearch } from "../app/backend/indexer.mjs";
 import { KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT } from "../app/backend/services.mjs";
+import { zipDirectoryToFile } from "../app/backend/zip.mjs";
 
 let root;
 const execFileAsync = promisify(execFile);
@@ -77,6 +78,52 @@ describe("extended archive services", () => {
     expect(opened.opened).toBe(path.join("opened", source.id, "ebook/index.html"));
     expect(await fs.readFile(path.join(root, opened.opened), "utf8")).toContain("Ready");
     db.close();
+  });
+
+  it("opens old app-created ZIP archives with zero CRC headers", async () => {
+    const db = openState(root);
+    const source = {
+      id: "old-zero-crc-wiki",
+      title: "Old Zero CRC Wiki",
+      type: "repo-archive",
+      license: "CC0",
+      url: "https://example.test/wiki.zip",
+      expected_size_bytes: 1,
+      runtime: ["browse"],
+      profiles: ["survival-essential"],
+      open: {
+        action: "extract_serve",
+        entry: "wiki"
+      }
+    };
+    const fixture = path.join(root, "fixture-zero-crc");
+    const archive = path.join(root, "raw/repos/zero-crc.zip");
+    await fs.mkdir(path.join(fixture, "wiki"), { recursive: true });
+    await fs.writeFile(path.join(fixture, "wiki/Home.md"), "# Home\n\nOld archive still opens.");
+    await fs.mkdir(path.dirname(archive), { recursive: true });
+    await zipDirectoryToFile(fixture, archive);
+    const buffer = await fs.readFile(archive);
+    zeroZipCrcFields(buffer);
+    await fs.writeFile(archive, buffer);
+    await expect(execFileAsync("unzip", ["-t", archive])).rejects.toThrow(/bad CRC|unzip/);
+
+    upsertSource(db, source, { status: "downloaded", local_path: "raw/repos/zero-crc.zip" });
+    refreshAdapters(db, [source]);
+    const opened = await openSourceWithAdapter({ db, libraryRoot: root, source });
+    const html = await (await fetch(opened.url)).text();
+    expect(html).toContain("Old archive still opens.");
+    db.close();
+  });
+
+  it("writes app-created ZIP archives with valid CRC headers", async () => {
+    const fixture = path.join(root, "fixture-good-crc");
+    const archive = path.join(root, "raw/repos/good-crc.zip");
+    await fs.mkdir(path.join(fixture, "wiki"), { recursive: true });
+    await fs.writeFile(path.join(fixture, "wiki/Home.md"), "# Home\n\nNew archive validates.");
+    await fs.mkdir(path.dirname(archive), { recursive: true });
+    await zipDirectoryToFile(fixture, archive);
+    const tested = await execFileAsync("unzip", ["-t", archive]);
+    expect(tested.stdout).toContain("No errors detected");
   });
 
   it("rejects extracted static sources that do not contain usable content", async () => {
@@ -328,6 +375,14 @@ describe("extended archive services", () => {
     db.close();
   });
 });
+
+function zeroZipCrcFields(buffer) {
+  for (let index = 0; index <= buffer.length - 4; index += 1) {
+    const signature = buffer.readUInt32LE(index);
+    if (signature === 0x04034b50 && index + 18 <= buffer.length) buffer.writeUInt32LE(0, index + 14);
+    if (signature === 0x02014b50 && index + 20 <= buffer.length) buffer.writeUInt32LE(0, index + 16);
+  }
+}
 
 function minimalPdf(text) {
   // Build a structurally valid PDF so pdf-parse can parse it correctly.

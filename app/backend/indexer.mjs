@@ -1,10 +1,10 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import zlib from "node:zlib";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { now } from "./state.mjs";
+import { extractZipToDir, listZipEntries, readZipEntry } from "./zip.mjs";
 
 const textExtensions = new Set([".txt", ".md", ".markdown", ".csv", ".json", ".html", ".htm"]);
 const epubTextExtensions = new Set([".xhtml", ".xml", ...textExtensions]);
@@ -305,56 +305,6 @@ async function extractEpubText(file) {
     try { parts.push(readZipEntry(buffer, entry).toString("utf8")); } catch { /* skip */ }
   }
   return parts.join("\n\n");
-}
-
-function listZipEntries(buffer) {
-  const EOCD_SIG = 0x06054b50;
-  const CD_SIG = 0x02014b50;
-  let eocd = -1;
-  for (let i = buffer.length - 22; i >= Math.max(0, buffer.length - 65558); i--) {
-    if (buffer.readUInt32LE(i) === EOCD_SIG) { eocd = i; break; }
-  }
-  if (eocd < 0) throw new Error("Not a ZIP file");
-  const count = buffer.readUInt16LE(eocd + 10);
-  let pos = buffer.readUInt32LE(eocd + 16);
-  const entries = [];
-  for (let i = 0; i < count; i++) {
-    if (pos + 46 > buffer.length || buffer.readUInt32LE(pos) !== CD_SIG) break;
-    const method = buffer.readUInt16LE(pos + 10);
-    const compSize = buffer.readUInt32LE(pos + 20);
-    const nameLen = buffer.readUInt16LE(pos + 28);
-    const extraLen = buffer.readUInt16LE(pos + 30);
-    const commentLen = buffer.readUInt16LE(pos + 32);
-    const localOffset = buffer.readUInt32LE(pos + 42);
-    const name = buffer.subarray(pos + 46, pos + 46 + nameLen).toString("utf8");
-    entries.push({ name, method, compSize, localOffset });
-    pos += 46 + nameLen + extraLen + commentLen;
-  }
-  return entries;
-}
-
-function readZipEntry(buffer, entry) {
-  const LOCAL_SIG = 0x04034b50;
-  const p = entry.localOffset;
-  if (p + 30 > buffer.length || buffer.readUInt32LE(p) !== LOCAL_SIG) throw new Error("Bad local header");
-  const nameLen = buffer.readUInt16LE(p + 26);
-  const extraLen = buffer.readUInt16LE(p + 28);
-  const dataStart = p + 30 + nameLen + extraLen;
-  const compressed = buffer.subarray(dataStart, dataStart + entry.compSize);
-  if (entry.method === 0) return compressed;
-  if (entry.method === 8) return zlib.inflateRawSync(compressed);
-  throw new Error(`Unsupported ZIP compression: ${entry.method}`);
-}
-
-async function extractZipToDir(zipFile, outDir) {
-  const buffer = await fs.readFile(zipFile);
-  const entries = listZipEntries(buffer);
-  for (const entry of entries) {
-    if (entry.name.endsWith("/")) continue;
-    const outPath = safeJoin(outDir, entry.name);
-    await fs.mkdir(path.dirname(outPath), { recursive: true });
-    await fs.writeFile(outPath, readZipEntry(buffer, entry));
-  }
 }
 
 export async function loadLibzim() {

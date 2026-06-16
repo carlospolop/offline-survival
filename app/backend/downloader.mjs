@@ -3,13 +3,13 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import zlib from "node:zlib";
 import { execFile } from "node:child_process";
 import { once } from "node:events";
 import { Readable } from "node:stream";
 import { promisify } from "node:util";
 import { artifactName, classifySourcePath } from "./catalog.mjs";
 import { now, recordEvent } from "./state.mjs";
+import { listZipEntries, readZipEntry, writeZipEntries, zipDirectoryToFile } from "./zip.mjs";
 
 const execFileAsync = promisify(execFile);
 const active = new Map();
@@ -144,7 +144,7 @@ async function cloneGitArchive({ db, source, tmpPath, signal }) {
       db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
         .run(0, Number(source.expected_size_bytes ?? 0), "downloading", now(), source.id);
       const zipBuf = Buffer.from(await response.arrayBuffer());
-      const entries = parseZipStripTopLevel(zipBuf);
+      const entries = zipEntriesStripTopLevel(zipBuf);
       await writeZipEntries(entries, tmpPath);
       const size = (await fsp.stat(tmpPath)).size;
       db.prepare("UPDATE downloads SET bytes_received=?, total_bytes=?, status=?, error=NULL, updated_at=? WHERE id=?")
@@ -184,83 +184,18 @@ function githubArchiveUrl(url) {
   return `https://github.com/${m[1]}/archive/HEAD.zip`;
 }
 
-function parseZipStripTopLevel(buf) {
-  // Find End of Central Directory record
-  let eocd = -1;
-  for (let i = buf.length - 22; i >= 0; i--) {
-    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
-  }
-  if (eocd < 0) throw new Error("Invalid ZIP: EOCD not found");
-  const cdCount = buf.readUInt16LE(eocd + 10);
-  let cdPos = buf.readUInt32LE(eocd + 16);
+function zipEntriesStripTopLevel(buf) {
   const entries = [];
-  for (let i = 0; i < cdCount; i++) {
-    if (buf.readUInt32LE(cdPos) !== 0x02014b50) throw new Error("Invalid ZIP: bad CD signature");
-    const method = buf.readUInt16LE(cdPos + 10);
-    const compSize = buf.readUInt32LE(cdPos + 20);
-    const uncompSize = buf.readUInt32LE(cdPos + 24);
-    const nameLen = buf.readUInt16LE(cdPos + 28);
-    const extraLen = buf.readUInt16LE(cdPos + 30);
-    const commentLen = buf.readUInt16LE(cdPos + 32);
-    const localOff = buf.readUInt32LE(cdPos + 42);
-    const name = buf.toString("utf8", cdPos + 46, cdPos + 46 + nameLen);
-    cdPos += 46 + nameLen + extraLen + commentLen;
+  for (const entry of listZipEntries(buf)) {
+    const name = entry.name;
     if (name.endsWith("/")) continue; // directory entry
     const slash = name.indexOf("/");
     if (slash < 0) continue; // top-level file (shouldn't happen in GitHub archives)
     const strippedName = name.slice(slash + 1);
     if (!strippedName) continue;
-    // Read data from local file header
-    const lhNameLen = buf.readUInt16LE(localOff + 26);
-    const lhExtraLen = buf.readUInt16LE(localOff + 28);
-    const dataStart = localOff + 30 + lhNameLen + lhExtraLen;
-    const compData = buf.slice(dataStart, dataStart + compSize);
-    let data;
-    if (method === 0) {
-      data = compData; // stored
-    } else if (method === 8) {
-      data = zlib.inflateRawSync(compData); // deflate
-    } else {
-      continue; // skip unsupported compression
-    }
-    entries.push({ name: strippedName, data });
+    entries.push({ name: strippedName, data: readZipEntry(buf, entry) });
   }
   return entries;
-}
-
-async function writeZipEntries(entries, destPath) {
-  const locals = [], chunks = [];
-  let pos = 0;
-  for (const { name, data } of entries) {
-    const nb = Buffer.from(name, "utf8");
-    const comp = zlib.deflateRawSync(data, { level: 6 });
-    const useComp = comp.length < data.length;
-    const fd = useComp ? comp : data;
-    const lh = Buffer.alloc(30);
-    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4);
-    lh.writeUInt16LE(0, 6); lh.writeUInt16LE(useComp ? 8 : 0, 8);
-    lh.writeUInt32LE(0, 10); lh.writeUInt32LE(0, 14);
-    lh.writeUInt32LE(fd.length, 18); lh.writeUInt32LE(data.length, 22);
-    lh.writeUInt16LE(nb.length, 26); lh.writeUInt16LE(0, 28);
-    locals.push({ offset: pos, nb, cs: fd.length, us: data.length });
-    chunks.push(lh, nb, fd);
-    pos += 30 + nb.length + fd.length;
-  }
-  const cdStart = pos;
-  for (let i = 0; i < entries.length; i++) {
-    const { nb, offset, cs, us } = locals[i];
-    const cd = Buffer.alloc(46);
-    cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(0x0014, 4); cd.writeUInt16LE(20, 6);
-    cd.writeUInt32LE(0, 16); cd.writeUInt32LE(cs, 20); cd.writeUInt32LE(us, 24);
-    cd.writeUInt16LE(nb.length, 28); cd.writeUInt32LE(offset, 42);
-    chunks.push(cd, nb); pos += 46 + nb.length;
-  }
-  const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(entries.length, 8);
-  eocd.writeUInt16LE(entries.length, 10); eocd.writeUInt32LE(pos - cdStart, 12);
-  eocd.writeUInt32LE(cdStart, 16);
-  chunks.push(eocd);
-  await fsp.writeFile(destPath, Buffer.concat(chunks));
 }
 
 async function findGitBin(cwd) {
@@ -310,50 +245,6 @@ async function execFileSafe(command, args, options = {}) {
   return execFileAsync(command, args, { ...options, cwd, env });
 }
 
-async function zipDirectoryToFile(srcDir, destPath) {
-  const files = [];
-  const collectFiles = async (dir) => {
-    for (const entry of await fsp.readdir(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) { await collectFiles(full); continue; }
-      const relPath = path.relative(srcDir, full).split(path.sep).join("/");
-      files.push({ name: relPath, data: await fsp.readFile(full) });
-    }
-  };
-  await collectFiles(srcDir);
-  const locals = [], chunks = [];
-  let pos = 0;
-  for (const { name, data } of files) {
-    const nb = Buffer.from(name, "utf8");
-    const comp = zlib.deflateRawSync(data, { level: 6 });
-    const useComp = comp.length < data.length;
-    const fd = useComp ? comp : data;
-    const lh = Buffer.alloc(30);
-    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4);
-    lh.writeUInt16LE(0, 6); lh.writeUInt16LE(useComp ? 8 : 0, 8);
-    lh.writeUInt32LE(0, 10); lh.writeUInt32LE(0, 14);
-    lh.writeUInt32LE(fd.length, 18); lh.writeUInt32LE(data.length, 22);
-    lh.writeUInt16LE(nb.length, 26); lh.writeUInt16LE(0, 28);
-    locals.push({ offset: pos, nb, cs: fd.length, us: data.length });
-    chunks.push(lh, nb, fd);
-    pos += 30 + nb.length + fd.length;
-  }
-  const cdStart = pos;
-  for (let i = 0; i < files.length; i++) {
-    const { nb, offset, cs, us } = locals[i];
-    const cd = Buffer.alloc(46);
-    cd.writeUInt32LE(0x02014b50, 0); cd.writeUInt16LE(0x0014, 4); cd.writeUInt16LE(20, 6);
-    cd.writeUInt32LE(0, 16); cd.writeUInt32LE(cs, 20); cd.writeUInt32LE(us, 24);
-    cd.writeUInt16LE(nb.length, 28); cd.writeUInt32LE(offset, 42);
-    chunks.push(cd, nb); pos += 46 + nb.length;
-  }
-  const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(files.length, 8);
-  eocd.writeUInt16LE(files.length, 10); eocd.writeUInt32LE(pos - cdStart, 12);
-  eocd.writeUInt32LE(cdStart, 16);
-  chunks.push(eocd);
-  await fsp.writeFile(destPath, Buffer.concat(chunks));
-}
 
 async function transferToPartial({ db, source, tmpPath, existingBytes, expected, diskBudgetBytes, fetchImpl, signal }) {
   const existingPartial = await fsp.stat(tmpPath).then((stat) => stat.size).catch(() => 0);

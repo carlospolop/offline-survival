@@ -4,7 +4,8 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ensureLibrary, openState } from "../app/backend/state.mjs";
 import net from "node:net";
-import { assertOllamaMemoryAllowed, detectRuntime, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
+import { ollamaInstallPlan } from "../app/backend/models.mjs";
+import { assertOllamaMemoryAllowed, detectRuntime, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, resolveRuntime, runtimeCandidates, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
 import { estimateModelRamBytes, recommendAi } from "../app/backend/system.mjs";
 
 let root;
@@ -39,6 +40,36 @@ describe("services", () => {
     expect(await detectRuntime("kiwix-serve")).toBe(true);
     if (old === undefined) delete process.env.SCA_SIDECAR_DIR;
     else process.env.SCA_SIDECAR_DIR = old;
+  });
+
+  it("knows common Ollama install locations on every supported OS", () => {
+    const home = path.join(root, "home");
+    const env = {
+      SCA_OLLAMA_BIN: path.join(root, "managed", "ollama"),
+      LOCALAPPDATA: "C:\\Users\\Test\\AppData\\Local"
+    };
+    expect(runtimeCandidates("ollama", { platform: "darwin", home, env })).toEqual(expect.arrayContaining([
+      path.join(home, "Applications", "Ollama.app", "Contents", "Resources", "ollama"),
+      "/Applications/Ollama.app/Contents/Resources/ollama",
+      "/opt/homebrew/bin/ollama"
+    ]));
+    expect(runtimeCandidates("ollama", { platform: "linux", home, env })).toEqual(expect.arrayContaining([
+      "/usr/local/bin/ollama",
+      "/usr/bin/ollama",
+      path.join(home, ".local", "bin", "ollama")
+    ]));
+    expect(runtimeCandidates("ollama", { platform: "win32", home, env })).toEqual(expect.arrayContaining([
+      "C:\\Users\\Test\\AppData\\Local/Programs/Ollama/ollama.exe",
+      "C:\\Program Files\\Ollama\\ollama.exe",
+      "ollama.exe"
+    ]));
+  });
+
+  it("prefers an existing managed Ollama runtime before falling back to PATH", async () => {
+    const managed = path.join(root, "raw", "runtimes", "ollama", "bin", "ollama");
+    await fs.mkdir(path.dirname(managed), { recursive: true });
+    await fs.writeFile(managed, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    expect(resolveRuntime("ollama", { env: { SCA_OLLAMA_BIN: managed }, platform: "linux", home: root })).toBe(managed);
   });
 
   it("selects a later port when the requested port is busy", async () => {
@@ -93,5 +124,13 @@ describe("services", () => {
     expect(recommendAi(8 * gib, models)).toEqual(["gemma3:4b", "nomic-embed-text"]);
     expect(recommendAi(16 * gib, models)).toEqual(["qwen3:8b", "bge-m3"]);
     expect(recommendAi(32 * gib, models)).toEqual(["mistral-small", "qwen3:8b", "bge-m3"]);
+  });
+
+  it("has managed Ollama install plans for Linux, macOS, and Windows", () => {
+    expect(ollamaInstallPlan("linux", "x64")).toMatchObject({ asset: "ollama-linux-amd64.tar.zst", bin: path.join("bin", "ollama") });
+    expect(ollamaInstallPlan("linux", "arm64")).toMatchObject({ asset: "ollama-linux-arm64.tar.zst", bin: path.join("bin", "ollama") });
+    expect(ollamaInstallPlan("darwin", "arm64")).toMatchObject({ asset: "Ollama-darwin.zip", bin: path.join("Ollama.app", "Contents", "Resources", "ollama") });
+    expect(ollamaInstallPlan("win32", "x64")).toMatchObject({ asset: "install.ps1", bin: "ollama.exe" });
+    expect(() => ollamaInstallPlan("freebsd", "x64")).toThrow(/Unsupported operating system/);
   });
 });

@@ -13,14 +13,57 @@ export const KIWIX_PORT_COUNT = 50;
 export const LOCAL_STATIC_PORT = 8195;
 export const LOCAL_STATIC_PORT_COUNT = 50;
 
-export function resolveRuntime(command) {
+export function runtimeCandidates(command, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const env = options.env ?? process.env;
+  const home = options.home ?? process.env.HOME ?? process.env.USERPROFILE ?? "";
+  const localAppData = env.LOCALAPPDATA ?? (home ? path.join(home, "AppData", "Local") : "");
   const candidates = [
-    command === "ollama" ? process.env.SCA_OLLAMA_BIN : null,
-    process.env.SCA_SIDECAR_DIR ? path.join(process.env.SCA_SIDECAR_DIR, command) : null,
-    process.env.APPDIR ? path.join(process.env.APPDIR, "usr", "bin", command) : null,
+    command === "ollama" ? env.SCA_OLLAMA_BIN : null,
+    env.SCA_SIDECAR_DIR ? path.join(env.SCA_SIDECAR_DIR, command) : null,
+    env.APPDIR ? path.join(env.APPDIR, "usr", "bin", command) : null,
+    ...platformRuntimeCandidates(command, platform, { home, localAppData }),
     command
   ].filter(Boolean);
+  return [...new Set(candidates)];
+}
+
+export function resolveRuntime(command, options = {}) {
+  const candidates = [
+    ...runtimeCandidates(command, options)
+  ];
   return candidates.find((candidate) => candidate === command || fs.existsSync(candidate)) ?? command;
+}
+
+function platformRuntimeCandidates(command, platform, { home, localAppData }) {
+  if (command !== "ollama") return [];
+  if (platform === "darwin") {
+    return [
+      path.join(home, "Applications", "Ollama.app", "Contents", "Resources", "ollama"),
+      "/Applications/Ollama.app/Contents/Resources/ollama",
+      "/usr/local/bin/ollama",
+      "/opt/homebrew/bin/ollama",
+      "/opt/local/bin/ollama"
+    ];
+  }
+  if (platform === "linux") {
+    return [
+      "/usr/local/bin/ollama",
+      "/usr/bin/ollama",
+      "/bin/ollama",
+      path.join(home, ".local", "bin", "ollama")
+    ];
+  }
+  if (platform === "win32") {
+    return [
+      path.join(localAppData, "Programs", "Ollama", "ollama.exe"),
+      path.join(localAppData, "Ollama", "ollama.exe"),
+      "C:\\Program Files\\Ollama\\ollama.exe",
+      "C:\\Program Files (x86)\\Ollama\\ollama.exe",
+      "ollama.exe"
+    ];
+  }
+  return [];
 }
 
 export function detectRuntime(command) {
@@ -178,8 +221,8 @@ async function waitForKiwix(port) {
 }
 
 export async function startOllama(db, options = {}) {
-  if (!options.model) throw new Error("Starting Local AI requires an installed chat model so RAM safety can be checked.");
-  await assertOllamaMemoryAllowed(db, options.model);
+  if (!options.model && !options.skipModelGuard) throw new Error("Starting Local AI requires an installed chat model so RAM safety can be checked.");
+  if (options.model) await assertOllamaMemoryAllowed(db, options.model);
   if (await ollamaResponds()) {
     upsertService(db, { name: "ollama", status: "running", port: 11434, url: "http://127.0.0.1:11434" });
     return { status: "running", port: 11434, url: "http://127.0.0.1:11434" };

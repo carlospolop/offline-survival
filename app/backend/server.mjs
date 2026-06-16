@@ -1,5 +1,6 @@
 import http from "node:http";
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -10,7 +11,7 @@ import { indexDownloadedSources, normalizeAndIndex, search, semanticSearch } fro
 import { exportManifest, integrityReport, writeLock } from "./archive.mjs";
 import { openSearchResult, openSourceWithAdapter, prepareSourceForUse, refreshAdapters, sourceOpenPlan } from "./adapters.mjs";
 import { writeAttributionReport } from "./license.mjs";
-import { installRecommendedAi, pullModel, refreshModels } from "./models.mjs";
+import { installRecommendedAi, ollamaInstallPlan, pullModel, refreshModels } from "./models.mjs";
 import { cleanupPartials, reconcileLibrary, writeKiwixLibraryXml } from "./recovery.mjs";
 import { buildPortableLayout, buildSharePackage, writeReleaseChecksums } from "./release.mjs";
 import { reviewSource, sourceReviewSummary } from "./review.mjs";
@@ -62,9 +63,18 @@ async function syncCatalog() {
 }
 
 function configureManagedRuntimes() {
-  const ollamaBin = path.join(libraryRoot, "raw", "runtimes", "ollama", "bin", "ollama");
-  process.env.SCA_OLLAMA_BIN = ollamaBin;
+  const ollamaBin = managedOllamaPath(libraryRoot);
+  if (ollamaBin && fsSync.existsSync(ollamaBin)) process.env.SCA_OLLAMA_BIN = ollamaBin;
+  else if (process.env.SCA_OLLAMA_BIN?.includes(path.join("raw", "runtimes", "ollama"))) delete process.env.SCA_OLLAMA_BIN;
   process.env.SCA_OLLAMA_MODELS = path.join(libraryRoot, "raw", "models", "ollama");
+}
+
+function managedOllamaPath(root) {
+  try {
+    return path.join(root, "raw", "runtimes", "ollama", ollamaInstallPlan(process.platform, process.arch).bin);
+  } catch {
+    return null;
+  }
 }
 
 async function json(req) {

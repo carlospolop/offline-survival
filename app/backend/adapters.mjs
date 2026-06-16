@@ -2,14 +2,12 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
-import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
-import { promisify } from "node:util";
 import { openPath } from "./system.mjs";
 import { findAvailablePort, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, startKiwix } from "./services.mjs";
 import { now, recordEvent } from "./state.mjs";
+import { estimateZipBytes, extractZipToDir } from "./zip.mjs";
 
-const execFileAsync = promisify(execFile);
 const runningFileServers = new Map();
 const requireFromAppRoot = createRequire(path.join(process.cwd(), "package.json"));
 const MarkdownIt = requireFromAppRoot("markdown-it");
@@ -252,17 +250,13 @@ function zimEntryPathFromSearchPath(resultPath, localPath) {
 
 async function estimateArchiveBytes(file) {
   if (!file.endsWith(".zip")) return (await fsp.stat(file)).size;
-  const { stdout } = await execFileAsync("unzip", ["-l", file], { maxBuffer: 20 * 1024 * 1024 });
-  const lines = stdout.trim().split(/\r?\n/).reverse();
-  const summary = lines.find((line) => /\d+\s+files?$/.test(line));
-  const match = summary?.match(/^\s*(\d+)\s+/);
-  return match ? Number(match[1]) : (await fsp.stat(file)).size;
+  return estimateZipBytes(file);
 }
 
 async function extractArchive(file, destination) {
   if (!file.endsWith(".zip")) throw new Error(`Cannot extract unsupported archive type: ${path.extname(file)}`);
   await fsp.mkdir(destination, { recursive: true });
-  await execFileAsync("unzip", ["-oq", file, "-d", destination], { maxBuffer: 20 * 1024 * 1024 });
+  await extractZipToDir(file, destination);
 }
 
 async function directoryBytes(dir) {
