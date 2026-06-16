@@ -251,6 +251,30 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
   return summary;
 }
 
+export async function repairCorruptRepoArchiveIndexes({ db, libraryRoot, catalogSources = [] }) {
+  const catalogById = new Map(catalogSources.map((source) => [source.id, source]));
+  const rows = db.prepare(`
+    SELECT s.id, s.title
+    FROM sources s
+    WHERE s.local_path IS NOT NULL
+      AND s.type='repo-archive'
+      AND s.status='indexed'
+      AND EXISTS (
+        SELECT 1
+        FROM chunks c
+        WHERE c.source_id=s.id
+          AND instr(c.body, char(65533)) > 0
+        LIMIT 1
+      )
+    ORDER BY s.title
+  `).all();
+  const results = [];
+  for (const row of rows) {
+    results.push(await normalizeAndIndex({ db, libraryRoot, sourceId: row.id, sourceConfig: catalogById.get(row.id) }));
+  }
+  return { repaired: results.length, results };
+}
+
 async function registerOriginalOnlyIndex({ db, libraryRoot, source, sourceConfig, sourceId, note }) {
   const text = [
     source.title,

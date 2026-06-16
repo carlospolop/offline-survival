@@ -9,7 +9,7 @@ import { openSourceWithAdapter, refreshAdapters, sourceOpenPlan } from "../app/b
 import { writeAttributionReport } from "../app/backend/license.mjs";
 import { cleanupPartials, reconcileLibrary, writeKiwixLibraryXml } from "../app/backend/recovery.mjs";
 import { ensureLibrary, openState, upsertSource } from "../app/backend/state.mjs";
-import { indexDownloadedSources, normalizeAndIndex, semanticSearch } from "../app/backend/indexer.mjs";
+import { indexDownloadedSources, normalizeAndIndex, repairCorruptRepoArchiveIndexes, semanticSearch } from "../app/backend/indexer.mjs";
 import { KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT } from "../app/backend/services.mjs";
 import { zipDirectoryToFile } from "../app/backend/zip.mjs";
 
@@ -177,6 +177,37 @@ describe("extended archive services", () => {
     expect(repaired.indexed).toBe(1);
     const chunk = db.prepare("SELECT body FROM chunks WHERE source_id=?").get(source.id);
     expect(chunk.body).toContain("Repair with clean text.");
+    db.close();
+  });
+
+  it("startup repair fixes only corrupted repo archive indexes", async () => {
+    const db = openState(root);
+    const source = {
+      id: "startup-repair-wiki",
+      title: "Startup Repair Wiki",
+      type: "repo-archive",
+      license: "CC0",
+      url: "https://example.test/wiki.zip",
+      expected_size_bytes: 1,
+      runtime: ["index"],
+      profiles: ["survival-essential"],
+      open: {
+        action: "extract_serve",
+        entry: "wiki"
+      }
+    };
+    const archiveRel = "raw/repos/startup-repair.zip";
+    const archive = path.join(root, archiveRel);
+    await fs.mkdir(path.dirname(archive), { recursive: true });
+    await fs.writeFile(archive, storedMethodDeflatedZip([{ name: "wiki/Home.md", data: Buffer.from("# Home\n\nStartup repair clean text.") }]));
+    upsertSource(db, source, { status: "indexed", local_path: archiveRel });
+    db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(`${source.id}:0`, source.id, source.title, archiveRel, "", "\uFFFD bad startup bytes", 4, "[]", "general", new Date().toISOString());
+
+    const repaired = await repairCorruptRepoArchiveIndexes({ db, libraryRoot: root, catalogSources: [source] });
+    expect(repaired.repaired).toBe(1);
+    const chunk = db.prepare("SELECT body FROM chunks WHERE source_id=?").get(source.id);
+    expect(chunk.body).toContain("Startup repair clean text.");
     db.close();
   });
 

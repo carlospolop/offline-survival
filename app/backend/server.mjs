@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { loadCatalog } from "./catalog.mjs";
 import { downloadProfile, downloadSource, pauseDownload, retryDownload, verifySource } from "./downloader.mjs";
-import { indexDownloadedSources, normalizeAndIndex, search, semanticSearch } from "./indexer.mjs";
+import { indexDownloadedSources, normalizeAndIndex, repairCorruptRepoArchiveIndexes, search, semanticSearch } from "./indexer.mjs";
 import { exportManifest, integrityReport, writeLock } from "./archive.mjs";
 import { openSearchResult, openSourceWithAdapter, prepareSourceForUse, refreshAdapters, sourceOpenPlan } from "./adapters.mjs";
 import { writeAttributionReport } from "./license.mjs";
@@ -47,6 +47,7 @@ configureManagedRuntimes();
   db.close();
 }
 await syncCatalog();
+scheduleStartupIndexRepair();
 
 async function syncCatalog() {
   configureManagedRuntimes();
@@ -60,6 +61,18 @@ async function syncCatalog() {
   const settings = db.prepare("SELECT key FROM settings WHERE key='lanSharing'").get();
   if (!settings) setSetting(db, "lanSharing", { enabled: false, bind: "127.0.0.1" });
   db.close();
+}
+
+function scheduleStartupIndexRepair() {
+  setTimeout(async () => {
+    try {
+      const catalog = await loadCatalog();
+      const repaired = await withDb((db) => repairCorruptRepoArchiveIndexes({ db, libraryRoot, catalogSources: catalog.sources }));
+      if (repaired.repaired) console.log(`Repaired ${repaired.repaired} corrupted repo archive search index(es).`);
+    } catch (error) {
+      console.warn(`Startup index repair skipped: ${String(error.message ?? error)}`);
+    }
+  }, 1500).unref?.();
 }
 
 function configureManagedRuntimes() {
