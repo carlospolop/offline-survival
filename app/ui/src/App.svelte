@@ -165,6 +165,8 @@
       searching: "Searching...",
       semanticSearching: "Semantic search...",
       searchInProgress: "Searching indexed resources.",
+      searchTooltip: "Keyword search: finds exact words in the local text index and uses the selected resource/license filters.",
+      semanticSearchTooltip: "Semantic search: finds passages by meaning across indexed resources, even when the exact words differ.",
       recommendedLocalAiSetup: "Recommended Local AI Setup",
       installAllRecommended: "Install All Recommended",
       installingAllRecommended: "Installing All Recommended",
@@ -466,6 +468,8 @@
       searching: "Buscando...",
       semanticSearching: "Búsqueda semántica...",
       searchInProgress: "Buscando en recursos indexados.",
+      searchTooltip: "Búsqueda por palabras clave: encuentra palabras exactas en el índice local y usa los filtros de recurso/licencia seleccionados.",
+      semanticSearchTooltip: "Búsqueda semántica: encuentra pasajes por significado en los recursos indexados, aunque las palabras exactas sean distintas.",
       recommendedLocalAiSetup: "Configuración de IA local recomendada",
       installAllRecommended: "Instalar todo lo recomendado",
       installingAllRecommended: "Instalando lo recomendado",
@@ -2449,7 +2453,7 @@
             </button>
           </span>
         </span>
-        <form on:submit|preventDefault={searchNow}>
+        <form class="searchForm" on:submit|preventDefault={searchNow}>
           <input placeholder={t("searchIndexed")} bind:value={query} />
           <select bind:value={searchSource}>
             <option value="">{t("allSearchable")}</option>
@@ -2463,22 +2467,28 @@
               <option value={license}>{licenseLabel(license)}</option>
             {/each}
           </select>
-          <button class="searchSubmitButton" disabled={searching || !query.trim()}>
-            {#if searching && searchMode === "keyword"}
-              <span class="spinner" aria-hidden="true"></span>
-              {t("searching")}
-            {:else}
-              {t("search")}
-            {/if}
-          </button>
-          <button class="searchSubmitButton" type="button" on:click={semanticSearchNow} disabled={searching || !query.trim()}>
-            {#if searching && searchMode === "semantic"}
-              <span class="spinner" aria-hidden="true"></span>
-              {t("semanticSearching")}
-            {:else}
-              {t("semantic")}
-            {/if}
-          </button>
+          <span class="searchModeActions">
+            <span class="tooltipHost" title={t("searchTooltip")}>
+              <button aria-label={t("searchTooltip")} class="searchSubmitButton" class:active={searching && searchMode === "keyword"} disabled={searching || !query.trim()}>
+                {#if searching && searchMode === "keyword"}
+                  <span class="spinner" aria-hidden="true"></span>
+                  {t("searching")}
+                {:else}
+                  {t("search")}
+                {/if}
+              </button>
+            </span>
+            <span class="tooltipHost" title={t("semanticSearchTooltip")}>
+              <button aria-label={t("semanticSearchTooltip")} class="searchSubmitButton" class:active={searching && searchMode === "semantic"} type="button" on:click={semanticSearchNow} disabled={searching || !query.trim()}>
+                {#if searching && searchMode === "semantic"}
+                  <span class="spinner" aria-hidden="true"></span>
+                  {t("semanticSearching")}
+                {:else}
+                  {t("semantic")}
+                {/if}
+              </button>
+            </span>
+          </span>
         </form>
       </div>
       <div class="resourceGrid">
