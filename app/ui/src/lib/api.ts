@@ -27,15 +27,29 @@ export type Profile = {
   addedPreparedSizeBytes?: number;
 };
 
-function apiOrigins() {
+declare global {
+  interface Window {
+    __SCA_API_PORT?: number;
+    __SCA_API_TOKEN?: string;
+    __TAURI_INTERNALS__?: unknown;
+  }
+}
+
+async function apiOrigins() {
+  const configuredPort = await packagedBackendPort();
+  if (configuredPort) return [`http://127.0.0.1:${configuredPort}`, `http://localhost:${configuredPort}`];
+  if (isPackagedTauri()) return [];
+
   const origins = ["http://127.0.0.1:8787", "http://localhost:8787"];
   if (typeof window === "undefined" || !window.location.origin.startsWith("http")) return origins;
   return [window.location.origin, ...origins.filter((origin) => origin !== window.location.origin)];
 }
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const targets = path.startsWith("/api") ? apiOrigins().map((origin) => `${origin}${path}`) : [path];
+  const targets = path.startsWith("/api") ? (await apiOrigins()).map((origin) => `${origin}${path}`) : [path];
   let lastError: unknown = null;
+
+  if (!targets.length) throw new Error("Could not connect to the packaged backend: the app did not provide a backend port.");
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     for (const target of targets) {
@@ -57,6 +71,44 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   throw new Error(readableApiError(lastError));
 }
 
+async function packagedBackendPort() {
+  const existing = backendPortFromWindow();
+  if (existing) return existing;
+  if (!isPackagedTauri()) return 0;
+  return await waitForBackendPort();
+}
+
+function backendPortFromWindow() {
+  if (typeof window === "undefined") return 0;
+  const port = Number(window.__SCA_API_PORT ?? 0);
+  return Number.isInteger(port) && port > 0 ? port : 0;
+}
+
+function isPackagedTauri() {
+  if (typeof window === "undefined") return false;
+  const origin = window.location.origin;
+  return Boolean(window.__TAURI_INTERNALS__) || window.location.protocol === "tauri:" || origin.includes("tauri.localhost");
+}
+
+function waitForBackendPort(timeoutMs = 5000) {
+  return new Promise<number>((resolve) => {
+    const ready = backendPortFromWindow();
+    if (ready) return resolve(ready);
+
+    let settled = false;
+    const finish = (port: number) => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("sca-backend-configured", onConfigured);
+      window.clearTimeout(timer);
+      resolve(port);
+    };
+    const onConfigured = () => finish(backendPortFromWindow());
+    const timer = window.setTimeout(() => finish(backendPortFromWindow()), timeoutMs);
+    window.addEventListener("sca-backend-configured", onConfigured, { once: true });
+  });
+}
+
 async function parseJson(response: Response) {
   const text = await response.text();
   if (!text) return {};
@@ -74,7 +126,7 @@ function wait(ms: number) {
 function readableApiError(err: unknown) {
   const message = String((err as Error)?.message ?? err);
   if (message === "Load failed" || message === "Failed to fetch") {
-    return "Could not connect to the local backend on this app URL or 127.0.0.1:8787 after several retries.";
+    return "Could not connect to the local backend after several retries.";
   }
   return message;
 }

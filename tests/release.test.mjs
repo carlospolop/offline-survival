@@ -23,4 +23,19 @@ describe("desktop release workflow", () => {
     expect(site).toContain("releases/latest/download/Offline-Survival-all-platforms.zip");
     expect(workflow).toContain("Offline-Survival-all-platforms.zip");
   });
+
+  it("uses a per-launch packaged backend port instead of stale port 8787", async () => {
+    const launcher = await fs.readFile("app/src-tauri/src/main.rs", "utf8");
+    const api = await fs.readFile("app/ui/src/lib/api.ts", "utf8");
+    const server = await fs.readFile("app/backend/server.mjs", "utf8");
+
+    expect(launcher).toContain("reserve_backend_port()");
+    expect(launcher).toContain(".env(\"PORT\", backend_port.to_string())");
+    expect(launcher).toContain("window.__SCA_API_PORT");
+    expect(launcher).not.toContain(".env(\"PORT\", \"8787\")");
+    expect(api).toContain("function isPackagedTauri()");
+    expect(api).toContain("window.__SCA_API_PORT");
+    expect(api).toContain("if (isPackagedTauri()) return [];");
+    expect(server).toContain("url.pathname === \"/api/health\"");
+  });
 });

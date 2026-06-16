@@ -121,6 +121,14 @@ async function route(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
     if (req.method === "OPTIONS") return send(res, 204, "");
+    if (url.pathname === "/api/health") return send(res, 200, {
+      status: "ok",
+      pid: process.pid,
+      port,
+      packaged: process.env.SCA_PACKAGED === "1",
+      token: process.env.SCA_BACKEND_TOKEN ?? "",
+      backendDir
+    });
     if (url.pathname === "/api/catalog") return send(res, 200, await loadCatalog());
     if (url.pathname === "/api/system") {
       const catalog = await loadCatalog();
