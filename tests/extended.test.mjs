@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import zlib from "node:zlib";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -112,6 +113,37 @@ describe("extended archive services", () => {
     const opened = await openSourceWithAdapter({ db, libraryRoot: root, source });
     const html = await (await fetch(opened.url)).text();
     expect(html).toContain("Old archive still opens.");
+    db.close();
+  });
+
+  it("indexes repo ZIP entries whose deflated bytes are marked as stored", async () => {
+    const db = openState(root);
+    const source = {
+      id: "stored-method-deflated-wiki",
+      title: "Stored Method Deflated Wiki",
+      type: "repo-archive",
+      license: "CC0",
+      url: "https://example.test/wiki.zip",
+      expected_size_bytes: 1,
+      runtime: ["index"],
+      profiles: ["survival-essential"],
+      open: {
+        action: "extract_serve",
+        entry: "wiki"
+      }
+    };
+    const fixture = path.join(root, "fixture-stored-method-deflated");
+    const archive = path.join(root, "raw/repos/stored-method-deflated.zip");
+    await fs.mkdir(path.join(fixture, "wiki"), { recursive: true });
+    await fs.writeFile(path.join(fixture, "wiki/Home.md"), "# Home\n\nUse a signal mirror.");
+    await fs.mkdir(path.dirname(archive), { recursive: true });
+    await fs.writeFile(archive, storedMethodDeflatedZip([{ name: "wiki/Home.md", data: Buffer.from("# Home\n\nUse a signal mirror.") }]));
+
+    upsertSource(db, source, { status: "downloaded", local_path: "raw/repos/stored-method-deflated.zip" });
+    const indexed = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id, sourceConfig: source });
+    expect(indexed.chunks).toBe(1);
+    const chunk = db.prepare("SELECT body FROM chunks WHERE source_id=?").get(source.id);
+    expect(chunk.body).toContain("Use a signal mirror.");
     db.close();
   });
 
@@ -382,6 +414,58 @@ function zeroZipCrcFields(buffer) {
     if (signature === 0x04034b50 && index + 18 <= buffer.length) buffer.writeUInt32LE(0, index + 14);
     if (signature === 0x02014b50 && index + 20 <= buffer.length) buffer.writeUInt32LE(0, index + 16);
   }
+}
+
+function storedMethodDeflatedZip(files) {
+  const locals = [];
+  const chunks = [];
+  let pos = 0;
+  for (const { name, data } of files) {
+    const nb = Buffer.from(name, "utf8");
+    const deflated = zlib.deflateRawSync(data);
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0);
+    lh.writeUInt16LE(20, 4);
+    lh.writeUInt16LE(0, 6);
+    lh.writeUInt16LE(0, 8);
+    lh.writeUInt32LE(0, 10);
+    lh.writeUInt32LE(0, 14);
+    lh.writeUInt32LE(deflated.length, 18);
+    lh.writeUInt32LE(data.length, 22);
+    lh.writeUInt16LE(nb.length, 26);
+    lh.writeUInt16LE(0, 28);
+    locals.push({ offset: pos, nb, compSize: deflated.length, size: data.length });
+    chunks.push(lh, nb, deflated);
+    pos += 30 + nb.length + deflated.length;
+  }
+  const cdStart = pos;
+  for (const { nb, offset, compSize, size } of locals) {
+    const cd = Buffer.alloc(46);
+    cd.writeUInt32LE(0x02014b50, 0);
+    cd.writeUInt16LE(0x0014, 4);
+    cd.writeUInt16LE(20, 6);
+    cd.writeUInt16LE(0, 8);
+    cd.writeUInt16LE(0, 10);
+    cd.writeUInt32LE(0, 12);
+    cd.writeUInt32LE(0, 16);
+    cd.writeUInt32LE(compSize, 20);
+    cd.writeUInt32LE(size, 24);
+    cd.writeUInt16LE(nb.length, 28);
+    cd.writeUInt16LE(0, 30);
+    cd.writeUInt16LE(0, 32);
+    cd.writeUInt32LE(0, 38);
+    cd.writeUInt32LE(offset, 42);
+    chunks.push(cd, nb);
+    pos += 46 + nb.length;
+  }
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(locals.length, 8);
+  eocd.writeUInt16LE(locals.length, 10);
+  eocd.writeUInt32LE(pos - cdStart, 12);
+  eocd.writeUInt32LE(cdStart, 16);
+  chunks.push(eocd);
+  return Buffer.concat(chunks);
 }
 
 function minimalPdf(text) {
