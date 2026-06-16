@@ -143,6 +143,10 @@ export function migrate(db) {
     );
   `);
   ensureSearchTable(db);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS documents_source_id_idx ON documents(source_id);
+    CREATE INDEX IF NOT EXISTS chunks_source_id_idx ON chunks(source_id);
+  `);
   addColumn(db, "sources", "review_status", "TEXT NOT NULL DEFAULT 'candidate'");
   addColumn(db, "sources", "license_status", "TEXT NOT NULL DEFAULT 'unverified'");
   addColumn(db, "sources", "duplicate_of", "TEXT");

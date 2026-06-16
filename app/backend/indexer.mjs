@@ -504,34 +504,46 @@ export function semanticSearch(db, query, limit = 20) {
 export function search(db, query, limit = 20, filters = {}) {
   const q = query.trim();
   if (!q) return [];
+  const safeLimit = Math.max(1, Number(limit) || 20);
+  try {
+    const rows = ftsSearchRows(db, q, safeLimit, filters);
+    if (rows.length) return rows;
+  } catch {
+    // Fall back below when FTS5 is unavailable or when an existing DB contains
+    // an FTS table that this SQLite build cannot load.
+  }
+  return fallbackSearchRows(db, q, safeLimit, filters).slice(0, safeLimit);
+}
+
+function ftsSearchRows(db, query, limit, filters = {}) {
+  const filter = buildSearchFilter(filters);
   const sql = `
     SELECT source_id, title, snippet(fts, 2, '<mark>', '</mark>', '...', 16) AS snippet, path, rank
     FROM fts
     WHERE fts MATCH ?
+      ${filter.sql ? `AND ${filter.sql}` : ""}
     ORDER BY rank
     LIMIT ?
   `;
-  try {
-    return filterResults(db, db.prepare(sql).all(q.replace(/"/g, ""), Math.max(limit * 4, limit)), filters).slice(0, limit);
-  } catch {
-    return filterResults(db, fallbackSearchRows(db, q, Math.max(limit * 4, limit)), filters).slice(0, limit);
-  }
+  return db.prepare(sql).all(query.replace(/"/g, ""), ...filter.args, limit);
 }
 
-function fallbackSearchRows(db, query, limit) {
+function fallbackSearchRows(db, query, limit, filters = {}) {
   const terms = query.split(/\s+/).map((term) => term.trim()).filter(Boolean).slice(0, 12);
   if (!terms.length) return [];
   const where = terms.map(() => "(body LIKE ? OR title LIKE ? OR path LIKE ?)").join(" OR ");
+  const filter = buildSearchFilter(filters);
   const args = terms.flatMap((term) => {
     const like = `%${term}%`;
     return [like, like, like];
   });
   const candidates = db.prepare(`
     SELECT source_id, title, body, path
-    FROM fts
-    WHERE ${where}
+    FROM chunks
+    WHERE (${where})
+      ${filter.sql ? `AND ${filter.sql}` : ""}
     LIMIT ?
-  `).all(...args, Math.max(limit * 8, limit));
+  `).all(...args, ...filter.args, Math.max(limit * 8, limit));
   const loweredTerms = terms.map((term) => term.toLowerCase());
   const minimumMatches = terms.length > 1 ? 2 : 1;
   return candidates
@@ -557,6 +569,24 @@ function filterResults(db, rows, filters) {
     if (filters.category && !row.source_id.includes(filters.category) && !row.title.toLowerCase().includes(filters.category.toLowerCase())) return false;
     return true;
   });
+}
+
+function buildSearchFilter(filters = {}) {
+  const clauses = [];
+  const args = [];
+  if (filters.sourceId) {
+    clauses.push("source_id=?");
+    args.push(filters.sourceId);
+  }
+  if (filters.license) {
+    clauses.push("source_id IN (SELECT id FROM sources WHERE license=?)");
+    args.push(filters.license);
+  }
+  if (filters.category) {
+    clauses.push("(source_id LIKE ? OR title LIKE ?)");
+    args.push(`%${filters.category}%`, `%${filters.category}%`);
+  }
+  return { sql: clauses.join(" AND "), args };
 }
 
 export function chunkText(text, size = 2600, overlap = 250) {

@@ -52,7 +52,18 @@ export function readZipEntry(buffer, entry) {
   const extraLen = buffer.readUInt16LE(p + 28);
   const dataStart = p + 30 + nameLen + extraLen;
   const compressed = buffer.subarray(dataStart, dataStart + entry.compSize);
-  if (entry.method === 0) return compressed;
+  if (entry.method === 0) {
+    if (entry.uncompSize && entry.compSize !== entry.uncompSize) {
+      try {
+        const inflated = zlib.inflateRawSync(compressed);
+        if (inflated.length === entry.uncompSize) return inflated;
+      } catch {
+        // Some repo archives have bad method/CRC metadata. If the bytes are not
+        // actually deflated, keep the normal stored-entry behavior below.
+      }
+    }
+    return compressed;
+  }
   if (entry.method === 8) return zlib.inflateRawSync(compressed);
   throw new Error(`Unsupported ZIP compression: ${entry.method}`);
 }

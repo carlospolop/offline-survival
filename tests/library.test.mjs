@@ -75,6 +75,43 @@ describe("library workflows", () => {
     db.close();
   });
 
+  it("searches inside the selected source before applying broad result limits", async () => {
+    const noisy = {
+      id: "noisy-zim",
+      title: "Noisy ZIM",
+      type: "zim",
+      license: "CC0",
+      url: "https://example.test/noisy.zim",
+      expected_size_bytes: 1,
+      runtime: ["index"]
+    };
+    const selected = {
+      ...noisy,
+      id: "selected-manual",
+      title: "Selected Manual",
+      type: "pdf",
+      url: "https://example.test/selected.pdf"
+    };
+    const db = openState(root);
+    upsertSource(db, noisy, { status: "indexed", local_path: "raw/zim/noisy.zim" });
+    upsertSource(db, selected, { status: "indexed", local_path: "raw/pdf/selected.pdf" });
+    const insertFts = db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)");
+    const insertChunk = db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    const timestamp = new Date().toISOString();
+    for (let index = 0; index < 80; index += 1) {
+      const body = `a noisy result ${index}`;
+      insertFts.run(noisy.id, noisy.title, body, `raw/zim/noisy.zim#${index}`);
+      insertChunk.run(`${noisy.id}:${index}`, noisy.id, noisy.title, `raw/zim/noisy.zim#${index}`, "", body, 4, "[]", "general", timestamp);
+    }
+    insertFts.run(selected.id, selected.title, "a selected source answer", "raw/pdf/selected.pdf");
+    insertChunk.run(`${selected.id}:0`, selected.id, selected.title, "raw/pdf/selected.pdf", "", "a selected source answer", 4, "[]", "general", timestamp);
+
+    const results = search(db, "a", 5, { sourceId: selected.id });
+    expect(results).toHaveLength(1);
+    expect(results[0].source_id).toBe(selected.id);
+    db.close();
+  });
+
   it("rejects downloads that exceed the configured disk budget", async () => {
     const source = {
       id: "too-large",
