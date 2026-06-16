@@ -172,12 +172,27 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
   // Re-index any source that has never been indexed (d.source_id IS NULL) OR was
   // previously registered as original-only (extraction may have failed in a prior
   // app version — always retry so upgraded versions can produce full-text indexes).
+  // Also repair repo archives whose chunks contain replacement-character garbage
+  // from older ZIP metadata handling.
   const rows = db.prepare(`
     SELECT s.id, s.title
     FROM sources s
     LEFT JOIN documents d ON d.source_id=s.id
     WHERE s.local_path IS NOT NULL
-      AND (d.source_id IS NULL OR s.status='indexed-original-only')
+      AND (
+        d.source_id IS NULL
+        OR s.status='indexed-original-only'
+        OR (
+          s.type='repo-archive'
+          AND EXISTS (
+            SELECT 1
+            FROM chunks c
+            WHERE c.source_id=s.id
+              AND instr(c.body, char(65533)) > 0
+            LIMIT 1
+          )
+        )
+      )
       AND s.status NOT IN ('missing', 'broken', 'paused')
     ORDER BY s.title
   `).all();

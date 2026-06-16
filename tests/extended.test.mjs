@@ -147,6 +147,39 @@ describe("extended archive services", () => {
     db.close();
   });
 
+  it("repairs already-indexed repo archives that contain decoded ZIP garbage", async () => {
+    const db = openState(root);
+    const source = {
+      id: "repair-garbage-wiki",
+      title: "Repair Garbage Wiki",
+      type: "repo-archive",
+      license: "CC0",
+      url: "https://example.test/wiki.zip",
+      expected_size_bytes: 1,
+      runtime: ["index"],
+      profiles: ["survival-essential"],
+      open: {
+        action: "extract_serve",
+        entry: "wiki"
+      }
+    };
+    const archiveRel = "raw/repos/repair-garbage.zip";
+    const archive = path.join(root, archiveRel);
+    await fs.mkdir(path.dirname(archive), { recursive: true });
+    await fs.writeFile(archive, storedMethodDeflatedZip([{ name: "wiki/Home.md", data: Buffer.from("# Home\n\nRepair with clean text.") }]));
+    upsertSource(db, source, { status: "indexed", local_path: archiveRel });
+    db.prepare("INSERT INTO documents (id, source_id, title, path, text_path, chunk_count, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(source.id, source.id, source.title, archiveRel, `normalized/text/${source.id}.txt`, 1, new Date().toISOString());
+    db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run(`${source.id}:0`, source.id, source.title, archiveRel, "", "\uFFFD\uFFFD\uFFFD compressed bytes", 4, "[]", "general", new Date().toISOString());
+
+    const repaired = await indexDownloadedSources({ db, libraryRoot: root, catalogSources: [source] });
+    expect(repaired.indexed).toBe(1);
+    const chunk = db.prepare("SELECT body FROM chunks WHERE source_id=?").get(source.id);
+    expect(chunk.body).toContain("Repair with clean text.");
+    db.close();
+  });
+
   it("writes app-created ZIP archives with valid CRC headers", async () => {
     const fixture = path.join(root, "fixture-good-crc");
     const archive = path.join(root, "raw/repos/good-crc.zip");
