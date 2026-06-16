@@ -329,6 +329,16 @@
       totalSizeUnknown: "total size unknown",
       completeCount: "complete",
       activeCount: "{count} active",
+      indexingNow: "Indexing Now",
+      indexingNowHelp: "Sources currently being prepared for Search and Local AI context.",
+      indexingCurrent: "Indexing now",
+      indexingQueued: "Queued",
+      indexingCompleted: "Indexed",
+      indexingRegistered: "Registered for basic search",
+      indexingFailed: "Index failed",
+      indexProgressSummary: "{done}/{total} indexed · {failed} failed",
+      chunksIndexed: "{count} chunks",
+      pagesIndexed: "{count} pages",
       easyDownloadLine: "Downloading profile sources with up to 4 parallel downloads",
       easyPrepareLine: "Extracting archives and preparing downloaded files for offline use.",
       easyIndexLine: "Building local search and Local AI context indexes.",
@@ -614,6 +624,16 @@
       totalSizeUnknown: "tamaño total desconocido",
       completeCount: "completas",
       activeCount: "{count} activas",
+      indexingNow: "Indexando ahora",
+      indexingNowHelp: "Fuentes que se están preparando para Búsqueda y contexto de IA local.",
+      indexingCurrent: "Indexando ahora",
+      indexingQueued: "En cola",
+      indexingCompleted: "Indexada",
+      indexingRegistered: "Registrada para búsqueda básica",
+      indexingFailed: "Falló el índice",
+      indexProgressSummary: "{done}/{total} indexadas · {failed} fallidas",
+      chunksIndexed: "{count} fragmentos",
+      pagesIndexed: "{count} páginas",
       easyDownloadLine: "Descargando fuentes del perfil con hasta 4 descargas paralelas",
       easyPrepareLine: "Extrayendo archivos y preparando descargas para uso offline.",
       easyIndexLine: "Creando índices de búsqueda local y contexto de IA local.",
@@ -930,6 +950,9 @@
   $: aiInstallProgress = progressObject(stateSettings.aiInstallProgress);
   $: easyInstallProgress = progressObject(stateSettings.easyInstallProgress);
   $: sharePackageProgress = progressObject(stateSettings.sharePackageProgress);
+  $: indexingProgress = progressObject(stateSettings.indexingProgress);
+  $: activeIndexingProgress = activeIndexProgress(easyInstallProgress, indexingProgress);
+  $: activeIndexItems = Array.isArray(activeIndexingProgress?.items) ? activeIndexingProgress.items : [];
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
   $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy.has("ai-install"));
   $: aiInstallComplete = aiInstallProgress?.status === "complete";
@@ -1100,6 +1123,7 @@
     if (_uiT !== uiText.es) return value; // only map when Spanish is active
     const mapped = catalogText.es?.details?.[value];
     if (mapped) return mapped;
+    if (value.startsWith("Indexing ") && value.endsWith(".")) return value.replace("Indexing ", "Indexando ");
     if (value.startsWith("Downloading ")) return value.replace("Downloading ", "Descargando ");
     if (value.startsWith("Pulling ")) return value.replace("Pulling ", "Descargando ");
     if (value.startsWith("Finished ")) return value.replace("Finished ", "Finalizado ");
@@ -1649,6 +1673,43 @@
     return { local, downloadRow, complete, total, received, progress, totalKnown, status };
   }
 
+  function activeIndexProgress(easyProgress: Record<string, any> | null, globalProgress: Record<string, any> | null) {
+    const easyIndexing = progressObject(easyProgress?.indexing);
+    if (easyIndexing && ["running", "failed"].includes(String(easyIndexing.status ?? ""))) return easyIndexing;
+    if (globalProgress && ["running", "failed"].includes(String(globalProgress.status ?? ""))) return globalProgress;
+    return easyIndexing ?? globalProgress;
+  }
+
+  function sourceIndexInfo(sourceId: unknown) {
+    const id = String(sourceId ?? "");
+    const item = activeIndexItems.find((entry: any) => entry.sourceId === id);
+    const current = activeIndexingProgress?.currentSourceId === id && activeIndexingProgress?.status === "running";
+    if (!item && !current) return null;
+    const status = current ? "indexing" : String(item?.status ?? "pending");
+    const complete = ["indexed", "registered"].includes(status);
+    const failed = status === "failed";
+    const label = indexStatusLabel(status);
+    return {
+      ...item,
+      sourceId: id,
+      status,
+      current,
+      complete,
+      failed,
+      label,
+      progress: complete ? 100 : failed ? 100 : 0
+    };
+  }
+
+  function indexStatusLabel(status: unknown) {
+    const value = String(status ?? "");
+    if (value === "indexing") return t("indexingCurrent");
+    if (value === "indexed") return t("indexingCompleted");
+    if (value === "registered") return t("indexingRegistered");
+    if (value === "failed") return t("indexingFailed");
+    return t("indexingQueued");
+  }
+
   function profileProgressInfo(profile: Profile) {
     const items = profile.sourceIds.map((id) => sourceCatalog.get(id)).filter((source): source is Source => Boolean(source)).map(sourceProgressInfo);
     const received = items.reduce((sum, item) => sum + item.received, 0);
@@ -1947,11 +2008,36 @@
             <strong>{phaseLabel(easyInstallProgress.phase) || t("easyInstallProgressTitle")}</strong>
             <span>{easyInstallProgress.percent ?? 0}%</span>
           </div>
-          <progress max="100" value={easyInstallProgress.percent ?? 0}></progress>
-          <small>{detailLabel(easyInstallProgress.detail)}</small>
-          <small>{easyInstallProgressLine(easyInstallProgress)}</small>
-        </div>
-      {/if}
+	          <progress max="100" value={easyInstallProgress.percent ?? 0}></progress>
+	          <small>{detailLabel(easyInstallProgress.detail)}</small>
+	          <small>{easyInstallProgressLine(easyInstallProgress)}</small>
+	          {#if easyInstallProgress.phase === "index" && activeIndexItems.length}
+	            <div class="indexingList">
+	              {#each activeIndexItems as item}
+	                {@const indexInfo = sourceIndexInfo(item.sourceId)}
+	                <div class="resourceRow compactResource">
+	                  <span>
+	                    <strong>{sourceTitleById(item.sourceId, item.title)}</strong>
+	                    <small>
+	                      {indexInfo?.label ?? t("indexingQueued")}
+	                      {#if item.chunks} · {t("chunksIndexed", { count: item.chunks })}{/if}
+	                      {#if item.pages} · {t("pagesIndexed", { count: item.pages })}{/if}
+	                      {#if item.error} · {item.error}{/if}
+	                    </small>
+	                  </span>
+	                  <span class="sourceProgress">
+	                    {#if indexInfo?.current}
+	                      <progress></progress>
+	                    {:else}
+	                      <progress max="100" value={indexInfo?.progress ?? 0}></progress>
+	                    {/if}
+	                  </span>
+	                </div>
+	              {/each}
+	            </div>
+	          {/if}
+	        </div>
+	      {/if}
       {#if showEasyAiProgress}
         <div class="progressPanel aiProgress">
           <div class="progressHeader">
@@ -1988,15 +2074,44 @@
         <span>{state.blobs.length} {t("uniqueBlobs")}</span>
         <span>{state.services.filter((service) => service.status === "running").length} {t("servicesRunning")}</span>
       </div>
-      {#if system}
-        <div class="stats">
-          <span>{system.platform}/{system.arch}</span>
+	      {#if system}
+	        <div class="stats">
+	          <span>{system.platform}/{system.arch}</span>
           <span>{system.cpuCount} {t("cpuThreads")}</span>
           <span>{gb(system.totalMemBytes)} RAM</span>
           <span>{t("aiRecommendations")}: {system.aiRecommendation.join(", ") || t("aiNone")}</span>
-        </div>
-      {/if}
-    </section>
+	        </div>
+	      {/if}
+	      {#if activeIndexingProgress?.status === "running"}
+	        <div class="progressPanel">
+	          <div class="progressHeader">
+	            <strong>{t("indexingNow")}</strong>
+	            <span>{activeIndexingProgress.percent ?? 0}%</span>
+	          </div>
+	          <progress max="100" value={activeIndexingProgress.percent ?? 0}></progress>
+	          <small>{t("indexProgressSummary", { done: activeIndexingProgress.completed ?? 0, total: activeIndexingProgress.total ?? 0, failed: activeIndexingProgress.failed ?? 0 })}</small>
+	          <small>{detailLabel(activeIndexingProgress.detail)}</small>
+	          <div class="indexingList">
+	            {#each activeIndexItems as item}
+	              {@const indexInfo = sourceIndexInfo(item.sourceId)}
+	              <div class="resourceRow compactResource">
+	                <span>
+	                  <strong>{sourceTitleById(item.sourceId, item.title)}</strong>
+	                  <small>{indexInfo?.label ?? t("indexingQueued")}</small>
+	                </span>
+	                <span class="sourceProgress">
+	                  {#if indexInfo?.current}
+	                    <progress></progress>
+	                  {:else}
+	                    <progress max="100" value={indexInfo?.progress ?? 0}></progress>
+	                  {/if}
+	                </span>
+	              </div>
+	            {/each}
+	          </div>
+	        </div>
+	      {/if}
+	    </section>
 
     {#if loadingCatalog}
       <section class="band emptyState">
@@ -2053,11 +2168,12 @@
           <div class="row head">
             <span>{t("addonSource")}</span><span>{t("type")}</span><span>{t("preparedDiskColumn")}</span><span>{t("status")}</span><span>{t("actions")}</span>
           </div>
-          {#each added as source}
-            {@const info = sourceProgressInfo(source)}
-            {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
-            {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(info.downloadRow?.status ?? ""))}
-            {@const downloaded = sourceIsDownloaded(info.local ?? {})}
+	          {#each added as source}
+	            {@const info = sourceProgressInfo(source)}
+	            {@const indexInfo = sourceIndexInfo(source.id)}
+	            {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
+	            {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(info.downloadRow?.status ?? ""))}
+	            {@const downloaded = sourceIsDownloaded(info.local ?? {})}
             {@const verifyNotice = verifyFeedback[source.id]}
             <div class="row">
               <span>
@@ -2066,11 +2182,14 @@
               </span>
               <span>{sourceTypeLabel(source.type)}</span>
               <span>{gb(preparedSize(source))}</span>
-              <span class="sourceProgress">
-                <span class:ok={statusTone(info.status) === "ok"} class:warn={statusTone(info.status) === "warn"} class:bad={statusTone(info.status) === "bad"}>{statusLabel(info.status)}</span>
-                {#if info.totalKnown}
-                  <progress max="100" value={info.progress}></progress>
-                  <small>{info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
+	              <span class="sourceProgress">
+	                <span class:ok={indexInfo?.complete || statusTone(info.status) === "ok"} class:warn={indexInfo?.current || statusTone(info.status) === "warn"} class:bad={indexInfo?.failed || statusTone(info.status) === "bad"}>{indexInfo?.label ?? statusLabel(info.status)}</span>
+	                {#if indexInfo?.current}
+	                  <progress></progress>
+	                  <small>{t("indexingLargeFiles")}</small>
+	                {:else if info.totalKnown}
+	                  <progress max="100" value={info.progress}></progress>
+	                  <small>{info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
                 {:else}
                   <progress></progress>
                   <small>{t("downloadedTotalUnknown", { size: gb(info.received) })}</small>
@@ -2087,9 +2206,9 @@
                 <span class="tooltipHost" title={verifyTooltip(source)}>
                   <button aria-label={verifyTooltip(source)} on:click={() => verify(source.id)} disabled={!info.local?.local_path || sourceBusy || sourceDownloading}>{t("verify")}</button>
                 </span>
-                <span class="tooltipHost" title={indexTooltip(source)}>
-                  <button aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={!info.local?.local_path || sourceBusy || sourceDownloading}>{indexActionLabel(source.id)}</button>
-                </span>
+	                <span class="tooltipHost" title={indexTooltip(source)}>
+	                  <button aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={!info.local?.local_path || sourceBusy || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
+	                </span>
                 <span class="tooltipHost" title={openTooltip(source)}>
                   <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || sourceBusy}>{t("open")}</button>
                 </span>
@@ -2291,8 +2410,8 @@
         </form>
       </div>
       <div class="resourceGrid">
-        <article class="infoCard">
-          <h3>{t("searchableResources")}</h3>
+	        <article class="infoCard">
+	          <h3>{t("searchableResources")}</h3>
           <small class="cardIntro">{searchableSources.length ? t("searchableResourcesReady") : t("searchableResourcesEmpty")}</small>
           {#if searchableSources.length}
             <div class="actions">
@@ -2301,10 +2420,37 @@
               {/each}
               <button type="button" class:active={!searchSource} on:click={() => searchSource = ""}>{t("all")}</button>
             </div>
-          {/if}
-        </article>
-        <article class="infoCard">
-          <h3>{t("downloadingNow")}</h3>
+	          {/if}
+	        </article>
+	        {#if activeIndexingProgress?.status === "running"}
+	          <article class="infoCard">
+	            <h3>{t("indexingNow")}</h3>
+	            <small class="cardIntro">{t("indexingNowHelp")}</small>
+	            <small>{t("indexProgressSummary", { done: activeIndexingProgress.completed ?? 0, total: activeIndexingProgress.total ?? 0, failed: activeIndexingProgress.failed ?? 0 })}</small>
+	            {#each activeIndexItems as item}
+	              {@const indexInfo = sourceIndexInfo(item.sourceId)}
+	              <div class="resourceRow">
+	                <span>
+	                  <strong>{sourceTitleById(item.sourceId, item.title)}</strong>
+	                  <small>
+	                    {indexInfo?.label ?? t("indexingQueued")}
+	                    {#if item.chunks} · {t("chunksIndexed", { count: item.chunks })}{/if}
+	                    {#if item.pages} · {t("pagesIndexed", { count: item.pages })}{/if}
+	                  </small>
+	                </span>
+	                <span class="sourceProgress">
+	                  {#if indexInfo?.current}
+	                    <progress></progress>
+	                  {:else}
+	                    <progress max="100" value={indexInfo?.progress ?? 0}></progress>
+	                  {/if}
+	                </span>
+	              </div>
+	            {/each}
+	          </article>
+	        {/if}
+	        <article class="infoCard">
+	          <h3>{t("downloadingNow")}</h3>
           <small class="cardIntro">{t("downloadingNowHelp")}</small>
           {#if activeDownloadSources.length}
             {#each activeDownloadSources as source}
@@ -2327,23 +2473,30 @@
           <h3>{t("downloadedNeedsIndex")}</h3>
           <small class="cardIntro">{t("downloadedNeedsIndexHelp")}</small>
           {#if notSearchableDownloads.length}
-            {#each notSearchableDownloads as source}
-              {@const downloadRow = downloadState.get(source.id)}
-              {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
-              {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(downloadRow?.status ?? ""))}
+	            {#each notSearchableDownloads as source}
+	              {@const downloadRow = downloadState.get(source.id)}
+	              {@const indexInfo = sourceIndexInfo(source.id)}
+	              {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
+	              {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(downloadRow?.status ?? ""))}
               {@const verifyNotice = verifyFeedback[source.id]}
               <div class="resourceRow">
-                <span>
-                  <strong>{sourceTitle(source)}</strong>
-                  <small>{source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch")}</small>
-                </span>
-                <span class="actions">
+	                <span>
+	                  <strong>{sourceTitle(source)}</strong>
+	                  <small>{indexInfo?.label ?? (source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch"))}</small>
+	                  {#if indexInfo?.current}
+	                    <span class="sourceProgress">
+	                      <progress></progress>
+	                      <small>{t("indexingLargeFiles")}</small>
+	                    </span>
+	                  {/if}
+	                </span>
+	                <span class="actions">
                   <span class="tooltipHost" title={openTooltip(source)}>
                     <button type="button" aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={sourceBusy}>{t("openButton")}</button>
                   </span>
-                  <span class="tooltipHost" title={indexTooltip(source)}>
-                    <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading}>{indexActionLabel(source.id)}</button>
-                  </span>
+	                  <span class="tooltipHost" title={indexTooltip(source)}>
+	                    <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
+	                  </span>
                   {#if busy.has(`index-${source.id}`)}
                     <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                   {/if}

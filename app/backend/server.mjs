@@ -206,12 +206,58 @@ async function route(req, res) {
     if (url.pathname === "/api/index" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
-      const result = await withDb((db) => normalizeAndIndex({ db, libraryRoot, sourceId: body.sourceId, sourceConfig: sourceConfigForRequest(db, catalog, body.sourceId) }));
+      const result = await withDb(async (db) => {
+        const sourceConfig = sourceConfigForRequest(db, catalog, body.sourceId);
+        const startedAt = Date.now();
+        setIndexingProgress(db, indexProgressPayload({
+          stage: "source-start",
+          sourceId: body.sourceId,
+          title: sourceConfig.title,
+          total: 1,
+          completed: 0,
+          current: 1
+        }, { startedAt, queue: [{ sourceId: body.sourceId, title: sourceConfig.title, status: "pending" }] }));
+        try {
+          const indexed = await normalizeAndIndex({ db, libraryRoot, sourceId: body.sourceId, sourceConfig });
+          setIndexingProgress(db, indexProgressPayload({
+            stage: "complete",
+            total: 1,
+            completed: 1,
+            current: 1,
+            summary: { results: [indexed], indexed: indexed.documents > 0 ? 1 : 0, registeredOriginalOnly: indexed.originalOnly ? 1 : 0, skipped: 0 }
+          }, { startedAt, queue: [{ sourceId: body.sourceId, title: sourceConfig.title, status: indexed.originalOnly ? "registered" : "indexed", result: indexed }] }));
+          return indexed;
+        } catch (error) {
+          setIndexingProgress(db, indexProgressPayload({
+            stage: "source-failed",
+            sourceId: body.sourceId,
+            title: sourceConfig.title,
+            total: 1,
+            completed: 0,
+            current: 1,
+            error: String(error.message ?? error)
+          }, { startedAt, queue: [{ sourceId: body.sourceId, title: sourceConfig.title, status: "failed", error: String(error.message ?? error) }] }));
+          throw error;
+        }
+      });
       return send(res, 200, result);
     }
     if (url.pathname === "/api/index/downloaded" && req.method === "POST") {
       const catalog = await loadCatalog();
-      const result = await withDb((db) => indexDownloadedSources({ db, libraryRoot, catalogSources: catalog.sources }));
+      const result = await withDb((db) => {
+        const startedAt = Date.now();
+        let queue = [];
+        return indexDownloadedSources({
+          db,
+          libraryRoot,
+          catalogSources: catalog.sources,
+          onProgress: (progress) => {
+            const payload = indexProgressPayload(progress, { startedAt, queue });
+            queue = payload.items ?? queue;
+            setIndexingProgress(db, payload);
+          }
+        });
+      });
       return send(res, 200, result);
     }
     if (url.pathname === "/api/search") {
@@ -581,7 +627,29 @@ async function easyInstall({ db, catalog, selectedProfiles, installAi, concurren
         sourceCount: selectedIds.length,
         percent: 65
       });
-      indexed = await indexDownloadedSources({ db, libraryRoot, catalogSources: catalog.sources });
+      let indexQueue = [];
+      indexed = await indexDownloadedSources({
+        db,
+        libraryRoot,
+        catalogSources: catalog.sources,
+        onProgress: (progress) => {
+          const indexing = indexProgressPayload(progress, { startedAt, queue: indexQueue });
+          indexQueue = indexing.items ?? indexQueue;
+          const total = Number(indexing.total ?? 0);
+          const completed = Number(indexing.completed ?? 0);
+          setIndexingProgress(db, indexing);
+          setEasyInstallProgress(db, {
+            status: "running",
+            phase: "index",
+            detail: installAi ? "Indexing downloaded sources while Local AI continues installing." : "Indexing downloaded sources for Search and Local AI context.",
+            startedAt,
+            profileIds,
+            sourceCount: selectedIds.length,
+            percent: total > 0 ? 65 + Math.round((completed / total) * 15) : 65,
+            indexing
+          });
+        }
+      });
       if (indexed.remainingUnindexed?.length) {
         throw new Error(`Indexing incomplete: ${indexed.remainingUnindexed.length} downloaded sources still have no search/AI index entry`);
       }
@@ -655,7 +723,7 @@ async function cleanSources(db) {
     UPDATE sources SET status='missing', size_bytes=0, sha256=NULL, local_path=NULL, duplicate_of=NULL, updated_at=datetime('now');
     UPDATE models SET status='missing', updated_at=datetime('now');
     UPDATE adapters SET status='not_ready', local_url=NULL, port=NULL, last_error=NULL, last_probe_at=datetime('now');
-    DELETE FROM settings WHERE key IN ('aiInstallProgress', 'easyInstallProgress', 'sharePackageProgress');
+    DELETE FROM settings WHERE key IN ('aiInstallProgress', 'easyInstallProgress', 'sharePackageProgress', 'indexingProgress');
   `);
   setSetting(db, "libraryRoot", libraryRoot);
   setSetting(db, "lanSharing", { enabled: false, bind: "127.0.0.1" });
@@ -796,6 +864,71 @@ async function pickFolder() {
 
 function setEasyInstallProgress(db, progress) {
   setSetting(db, "easyInstallProgress", { ...progress, updatedAt: Date.now() });
+}
+
+function setIndexingProgress(db, progress) {
+  setSetting(db, "indexingProgress", { ...progress, updatedAt: Date.now() });
+}
+
+function indexProgressPayload(progress, { startedAt, queue = [] }) {
+  const total = Number(progress.total ?? queue.length ?? 0);
+  const completed = Number(progress.completed ?? 0);
+  const current = Number(progress.current ?? (completed ? completed : 0));
+  const stage = String(progress.stage ?? "source-start");
+  const currentSourceId = progress.sourceId ? String(progress.sourceId) : null;
+  const currentTitle = progress.title ?? (currentSourceId ? queue.find((item) => item.sourceId === currentSourceId)?.title : "");
+  const result = progress.result ?? null;
+  const items = updateIndexQueue(queue, progress);
+  const failed = items.filter((item) => item.status === "failed").length;
+  const registeredOriginalOnly = items.filter((item) => item.status === "registered").length;
+  const indexed = items.filter((item) => item.status === "indexed").length;
+  const status = stage === "complete" ? "complete" : stage === "source-failed" ? "failed" : "running";
+  const percent = total > 0 ? Math.min(100, Math.round((Math.max(completed, indexed + registeredOriginalOnly) / total) * 100)) : status === "complete" ? 100 : 0;
+  return {
+    status,
+    phase: "index",
+    detail: status === "complete" ? "Indexing completed." : currentTitle ? `Indexing ${currentTitle}.` : "Building local search and Local AI context indexes.",
+    startedAt,
+    total,
+    current,
+    completed: Math.max(completed, indexed + registeredOriginalOnly),
+    failed,
+    indexed,
+    registeredOriginalOnly,
+    percent,
+    currentSourceId,
+    currentSourceTitle: currentTitle,
+    items,
+    summary: progress.summary ?? null,
+    result,
+    error: progress.error ?? null
+  };
+}
+
+function updateIndexQueue(queue, progress) {
+  let next = Array.isArray(queue) ? queue.map((item) => ({ ...item })) : [];
+  if (progress.stage === "start") {
+    next = (progress.queue ?? []).map((item) => ({ ...item, status: item.status ?? "pending" }));
+  }
+  const sourceId = progress.sourceId ? String(progress.sourceId) : "";
+  if (!sourceId) return next;
+  const index = next.findIndex((item) => item.sourceId === sourceId);
+  const existing = index >= 0 ? next[index] : { sourceId, title: progress.title ?? sourceId };
+  const updated = { ...existing, title: progress.title ?? existing.title };
+  if (progress.stage === "source-start") updated.status = "indexing";
+  if (progress.stage === "source-complete") {
+    updated.status = progress.result?.originalOnly ? "registered" : "indexed";
+    updated.result = progress.result;
+    updated.chunks = progress.result?.chunks ?? progress.result?.chunkCount ?? null;
+    updated.pages = progress.result?.pages ?? null;
+  }
+  if (progress.stage === "source-failed") {
+    updated.status = "failed";
+    updated.error = progress.error;
+  }
+  if (index >= 0) next[index] = updated;
+  else next.push(updated);
+  return next;
 }
 
 function updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds }) {

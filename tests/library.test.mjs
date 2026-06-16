@@ -264,9 +264,13 @@ describe("library workflows", () => {
     await fs.writeFile(path.join(root, "raw/html/b.html"), "<h1>Fire</h1> Keep tinder dry.");
     upsertSource(db, first, { status: "downloaded", local_path: "raw/html/a.html" });
     upsertSource(db, second, { status: "downloaded", local_path: "raw/html/b.html" });
-    const result = await indexDownloadedSources({ db, libraryRoot: root });
+    const progress = [];
+    const result = await indexDownloadedSources({ db, libraryRoot: root, onProgress: (event) => progress.push(event) });
     expect(result.indexed).toBe(2);
     expect(result.remainingUnindexed).toHaveLength(0);
+    expect(progress.map((event) => event.stage)).toEqual(["start", "source-start", "source-complete", "source-start", "source-complete", "complete"]);
+    expect(progress.filter((event) => event.sourceId).map((event) => event.sourceId)).toEqual([first.id, first.id, second.id, second.id]);
+    expect(progress.at(-1).summary.indexed).toBe(2);
     expect(search(db, "tinder")[0].source_id).toBe(second.id);
     const secondRun = await indexDownloadedSources({ db, libraryRoot: root });
     expect(secondRun.results).toHaveLength(0);

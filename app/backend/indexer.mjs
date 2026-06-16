@@ -167,13 +167,13 @@ async function normalizeAndIndexZim({ db, libraryRoot, source, sourceId, fullPat
   return { sourceId, documents: 1, pages: pageCount, chunks: chunkCount, skippedLarge, skippedUnreadable, zim: true };
 }
 
-export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [] }) {
+export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [], onProgress = null }) {
   const catalogById = new Map(catalogSources.map((source) => [source.id, source]));
   // Re-index any source that has never been indexed (d.source_id IS NULL) OR was
   // previously registered as original-only (extraction may have failed in a prior
   // app version — always retry so upgraded versions can produce full-text indexes).
   const rows = db.prepare(`
-    SELECT s.id
+    SELECT s.id, s.title
     FROM sources s
     LEFT JOIN documents d ON d.source_id=s.id
     WHERE s.local_path IS NOT NULL
@@ -181,9 +181,40 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
       AND s.status NOT IN ('missing', 'broken', 'paused')
     ORDER BY s.title
   `).all();
+  const queue = rows.map((row) => ({
+    sourceId: row.id,
+    title: catalogById.get(row.id)?.title ?? row.id,
+    status: "pending"
+  }));
+  onProgress?.({ stage: "start", total: rows.length, completed: 0, current: 0, queue });
   const results = [];
-  for (const row of rows) {
-    results.push(await normalizeAndIndex({ db, libraryRoot, sourceId: row.id, sourceConfig: catalogById.get(row.id) }));
+  for (const [index, row] of rows.entries()) {
+    const title = catalogById.get(row.id)?.title ?? row.id;
+    onProgress?.({ stage: "source-start", sourceId: row.id, title, total: rows.length, completed: index, current: index + 1 });
+    try {
+      const result = await normalizeAndIndex({ db, libraryRoot, sourceId: row.id, sourceConfig: catalogById.get(row.id) });
+      results.push(result);
+      onProgress?.({
+        stage: "source-complete",
+        sourceId: row.id,
+        title,
+        total: rows.length,
+        completed: index + 1,
+        current: index + 1,
+        result
+      });
+    } catch (error) {
+      onProgress?.({
+        stage: "source-failed",
+        sourceId: row.id,
+        title,
+        total: rows.length,
+        completed: index,
+        current: index + 1,
+        error: String(error.message ?? error)
+      });
+      throw error;
+    }
   }
   const remainingUnindexed = db.prepare(`
     SELECT s.id, s.title, s.status, s.type
@@ -194,13 +225,15 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
       AND s.status NOT IN ('missing', 'broken', 'paused')
     ORDER BY s.title
   `).all();
-  return {
+  const summary = {
     indexed: results.filter((result) => result.documents > 0).length,
     registeredOriginalOnly: results.filter((result) => result.originalOnly).length,
     skipped: remainingUnindexed.length,
     remainingUnindexed,
     results
   };
+  onProgress?.({ stage: "complete", total: rows.length, completed: rows.length, current: rows.length, summary });
+  return summary;
 }
 
 async function registerOriginalOnlyIndex({ db, libraryRoot, source, sourceConfig, sourceId, note }) {
