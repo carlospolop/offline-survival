@@ -38,6 +38,9 @@
   let logsPoller = 0;
   let logsRefreshing = false;
   let searchResults: any[] = [];
+  let searching = false;
+  let searchMode = "";
+  let searchRequestId = 0;
   let busy = new Set<string>();
   let error = "";
   let catalogError = "";
@@ -159,6 +162,9 @@
       allSearchable: "All searchable resources",
       allLicenses: "All licenses",
       semantic: "Semantic",
+      searching: "Searching...",
+      semanticSearching: "Semantic search...",
+      searchInProgress: "Searching indexed resources.",
       recommendedLocalAiSetup: "Recommended Local AI Setup",
       installAllRecommended: "Install All Recommended",
       installingAllRecommended: "Installing All Recommended",
@@ -457,6 +463,9 @@
       allSearchable: "Todos los recursos buscables",
       allLicenses: "Todas las licencias",
       semantic: "Semántica",
+      searching: "Buscando...",
+      semanticSearching: "Búsqueda semántica...",
+      searchInProgress: "Buscando en recursos indexados.",
       recommendedLocalAiSetup: "Configuración de IA local recomendada",
       installAllRecommended: "Instalar todo lo recomendado",
       installingAllRecommended: "Instalando lo recomendado",
@@ -1445,16 +1454,41 @@
   }
 
   async function searchNow() {
+    if (!query.trim()) {
+      searchResults = [];
+      return;
+    }
     const params = new URLSearchParams({ q: query, limit: "20" });
     if (searchSource) params.set("sourceId", searchSource);
     if (searchLicense) params.set("license", searchLicense);
-    const data = await api<{ results: any[] }>(`/api/search?${params.toString()}`);
-    searchResults = data.results;
+    await runSearch("keyword", () => api<{ results: any[] }>(`/api/search?${params.toString()}`));
   }
 
   async function semanticSearchNow() {
-    const data = await api<{ results: any[] }>(`/api/search/semantic?q=${encodeURIComponent(query)}&limit=20`);
-    searchResults = data.results;
+    if (!query.trim()) {
+      searchResults = [];
+      return;
+    }
+    await runSearch("semantic", () => api<{ results: any[] }>(`/api/search/semantic?q=${encodeURIComponent(query)}&limit=20`));
+  }
+
+  async function runSearch(mode: string, request: () => Promise<{ results: any[] }>) {
+    const requestId = searchRequestId + 1;
+    searchRequestId = requestId;
+    searching = true;
+    searchMode = mode;
+    error = "";
+    try {
+      const data = await request();
+      if (requestId === searchRequestId) searchResults = data.results;
+    } catch (err) {
+      if (requestId === searchRequestId) error = String((err as Error).message ?? err);
+    } finally {
+      if (requestId === searchRequestId) {
+        searching = false;
+        searchMode = "";
+      }
+    }
   }
 
   async function ask() {
@@ -2429,8 +2463,22 @@
               <option value={license}>{licenseLabel(license)}</option>
             {/each}
           </select>
-          <button>{t("search")}</button>
-          <button type="button" on:click={semanticSearchNow}>{t("semantic")}</button>
+          <button class="searchSubmitButton" disabled={searching || !query.trim()}>
+            {#if searching && searchMode === "keyword"}
+              <span class="spinner" aria-hidden="true"></span>
+              {t("searching")}
+            {:else}
+              {t("search")}
+            {/if}
+          </button>
+          <button class="searchSubmitButton" type="button" on:click={semanticSearchNow} disabled={searching || !query.trim()}>
+            {#if searching && searchMode === "semantic"}
+              <span class="spinner" aria-hidden="true"></span>
+              {t("semanticSearching")}
+            {:else}
+              {t("semantic")}
+            {/if}
+          </button>
         </form>
       </div>
       <div class="resourceGrid">
@@ -2542,6 +2590,13 @@
         </article>
       </div>
       <div class="results">
+        {#if searching}
+          <article class="answer searchBusyPanel">
+            <span class="spinner largeSpinner" aria-hidden="true"></span>
+            <strong>{searchMode === "semantic" ? t("semanticSearching") : t("searching")}</strong>
+            <small>{t("searchInProgress")}</small>
+          </article>
+        {/if}
         {#each searchResults as result}
           <button
             type="button"

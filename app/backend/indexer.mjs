@@ -15,7 +15,22 @@ const excludedIndexExtensions = new Set([
   ".css", ".scss", ".sass", ".less", ".styl", ".stylus", ".pcss", ".postcss", ".sss",
   ".map"
 ]);
-const excludedZimMimePattern = /^(text\/css|text\/javascript|application\/javascript|application\/x-javascript|text\/x-scss|text\/x-sass|text\/less)/i;
+const excludedZimMimeTypes = new Set([
+  "application/ecmascript",
+  "application/javascript",
+  "application/x-javascript",
+  "text/css",
+  "text/ecmascript",
+  "text/javascript",
+  "text/less",
+  "text/sass",
+  "text/scss",
+  "text/stylus",
+  "text/x-less",
+  "text/x-sass",
+  "text/x-scss",
+  "text/x-stylus"
+]);
 const zimMaxEntryBytes = Number(process.env.SCA_ZIM_MAX_ENTRY_BYTES ?? 50 * 1024 * 1024);
 const zimMaxEntries = Number(process.env.SCA_ZIM_MAX_ENTRIES ?? 0);
 
@@ -480,10 +495,14 @@ function readableZimItem(entry) {
   } catch {
     return null;
   }
-  const mimetype = String(item.mimetype ?? "");
-  if (excludedZimMimePattern.test(mimetype)) return null;
+  const mimetype = normalizedMimetype(item.mimetype);
+  if (excludedZimMimeTypes.has(mimetype)) return null;
   if (!zimTextMimePattern.test(mimetype)) return null;
   return item;
+}
+
+function normalizedMimetype(mimetype) {
+  return String(mimetype ?? "").split(";")[0].trim().toLowerCase();
 }
 
 function flushChunks(db, insertFts, insertChunk, chunks) {

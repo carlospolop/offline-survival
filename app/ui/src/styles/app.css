@@ -456,6 +456,47 @@ small {
   padding: 4px 9px;
 }
 
+.searchSubmitButton {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: 104px;
+}
+
+.spinner {
+  animation: spin .8s linear infinite;
+  border: 2px solid rgba(255, 255, 255, .46);
+  border-radius: 999px;
+  border-top-color: currentColor;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 14px;
+  width: 14px;
+}
+
+.largeSpinner {
+  border-color: #cdd4c7;
+  border-top-color: #244f3a;
+  height: 22px;
+  width: 22px;
+}
+
+.searchBusyPanel {
+  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.searchBusyPanel small {
+  grid-column: 2;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .liveFeedback {
   background: #fff7d8;
   border-color: #d9be63;
