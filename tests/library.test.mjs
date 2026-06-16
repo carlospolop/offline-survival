@@ -486,6 +486,42 @@ describe("library workflows", () => {
     }
   });
 
+  it("does not index script or stylesheet ZIM entries", async () => {
+    const db = openState(root);
+    try {
+      const zimPath = path.join(root, "raw/zim/no-style-script.zim");
+      await fs.mkdir(path.dirname(zimPath), { recursive: true });
+      const creator = new Creator()
+        .configNbWorkers(1)
+        .configIndexing(true, "en")
+        .startZimCreation(zimPath);
+      await creator.addItem(new StringItem("Article", "text/html", "Article", { FRONT_ARTICLE: 1, COMPRESS: 1 }, "<h1>Article</h1><p>Find safe water before storage.</p>"));
+      await creator.addItem(new StringItem("assets/site.css", "text/css", "Site Styles", { COMPRESS: 1 }, ".secretZimStyleToken { color: red; }"));
+      await creator.addItem(new StringItem("assets/app.js", "text/javascript", "Site Script", { COMPRESS: 1 }, "const secretZimScriptToken = 'do not index';"));
+      creator.setMainPath("Article");
+      await creator.finishZimCreation();
+
+      const source = {
+        id: "no-style-script-zim",
+        title: "No Style Script ZIM",
+        type: "zim",
+        license: "CC0",
+        url: "https://example.test/no-style-script.zim",
+        expected_size_bytes: 1024,
+        runtime: ["kiwix", "index", "search"]
+      };
+      upsertSource(db, source, { status: "downloaded", local_path: "raw/zim/no-style-script.zim" });
+      const indexed = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id, sourceConfig: source });
+      expect(indexed.zim).toBe(true);
+      expect(indexed.pages).toBe(1);
+      expect(search(db, "safe water", 5)[0].source_id).toBe(source.id);
+      expect(search(db, "secretZimStyleToken", 5)).toHaveLength(0);
+      expect(search(db, "secretZimScriptToken", 5)).toHaveLength(0);
+    } finally {
+      db.close();
+    }
+  });
+
   it("downloads profile sources with bounded parallelism", async () => {
     const sources = Array.from({ length: 5 }, (_, index) => ({
       id: `parallel-${index}`,

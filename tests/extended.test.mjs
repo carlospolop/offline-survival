@@ -352,6 +352,44 @@ describe("extended archive services", () => {
     db.close();
   });
 
+  it("does not index script or stylesheet files from extracted archive sources", async () => {
+    const db = openState(root);
+    const source = {
+      id: "style-script-free-wiki",
+      title: "Style Script Free Wiki",
+      type: "repo-archive",
+      license: "CC0",
+      url: "https://example.test/style-script-free.zip",
+      expected_size_bytes: 1,
+      runtime: ["browse", "index"],
+      profiles: ["survival-essential"],
+      open: {
+        action: "extract_serve",
+        entry: "wiki"
+      }
+    };
+    const fixture = path.join(root, "fixture-style-script-free");
+    const archive = path.join(root, "raw/repos/style-script-free.zip");
+    await fs.mkdir(path.join(fixture, "wiki/assets"), { recursive: true });
+    await fs.writeFile(path.join(fixture, "wiki/Home.md"), "# Home\n\nUseful clean water notes.");
+    await fs.writeFile(path.join(fixture, "wiki/assets/app.js"), "const secretScriptToken = 'do not index';");
+    await fs.writeFile(path.join(fixture, "wiki/assets/site.css"), ".secretStyleToken { color: red; }");
+    await fs.writeFile(path.join(fixture, "wiki/assets/theme.scss"), "$secretScssToken: red;");
+    await fs.mkdir(path.dirname(archive), { recursive: true });
+    await execFileAsync("zip", ["-qr", archive, "wiki"], { cwd: fixture });
+    upsertSource(db, source, { status: "downloaded", local_path: "raw/repos/style-script-free.zip" });
+
+    const indexed = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id, sourceConfig: source });
+    expect(indexed.chunks).toBe(1);
+    const normalized = await fs.readFile(path.join(root, "normalized/text", `${source.id}.txt`), "utf8");
+    expect(normalized).toContain("Useful clean water notes.");
+    expect(normalized).not.toContain("secretScriptToken");
+    expect(normalized).not.toContain("secretStyleToken");
+    expect(normalized).not.toContain("secretScssToken");
+    expect(semanticSearch(db, "clean water", 1)[0].source_id).toBe(source.id);
+    db.close();
+  });
+
   it("rejects configured extracted files that are missing", async () => {
     const db = openState(root);
     const source = {

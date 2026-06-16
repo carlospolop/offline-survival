@@ -10,6 +10,12 @@ const textExtensions = new Set([".txt", ".md", ".markdown", ".csv", ".json", ".h
 const epubTextExtensions = new Set([".xhtml", ".xml", ...textExtensions]);
 const extractableBinaryExtensions = new Set([".pdf"]);
 const zimTextMimePattern = /^(text\/|application\/xhtml\+xml|application\/xml|application\/json)/i;
+const excludedIndexExtensions = new Set([
+  ".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx",
+  ".css", ".scss", ".sass", ".less", ".styl", ".stylus", ".pcss", ".postcss", ".sss",
+  ".map"
+]);
+const excludedZimMimePattern = /^(text\/css|text\/javascript|application\/javascript|application\/x-javascript|text\/x-scss|text\/x-sass|text\/less)/i;
 const zimMaxEntryBytes = Number(process.env.SCA_ZIM_MAX_ENTRY_BYTES ?? 50 * 1024 * 1024);
 const zimMaxEntries = Number(process.env.SCA_ZIM_MAX_ENTRIES ?? 0);
 
@@ -343,6 +349,7 @@ async function extractSourceText({ libraryRoot, source, sourceConfig, fullPath }
 
 function isReadableTextPath(file) {
   const ext = path.extname(file).toLowerCase();
+  if (excludedIndexExtensions.has(ext)) return false;
   return textExtensions.has(ext) || extractableBinaryExtensions.has(ext) || ext === ".epub";
 }
 
@@ -466,13 +473,16 @@ async function missingSiblingLibzim(nodeFile) {
 }
 
 function readableZimItem(entry) {
+  if (excludedIndexExtensions.has(path.extname(String(entry.path ?? "")).toLowerCase())) return null;
   let item;
   try {
     item = entry.item;
   } catch {
     return null;
   }
-  if (!zimTextMimePattern.test(String(item.mimetype ?? ""))) return null;
+  const mimetype = String(item.mimetype ?? "");
+  if (excludedZimMimePattern.test(mimetype)) return null;
+  if (!zimTextMimePattern.test(mimetype)) return null;
   return item;
 }
 
