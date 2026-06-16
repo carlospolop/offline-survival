@@ -1080,6 +1080,13 @@ sources:
       label: Start the local Kiwix server and open the ZIM library in a browser.
     profiles: [ civilization-max-es ]
 models:
+  - id: qwen2_5-1_5b
+    title: Qwen2.5 1.5B
+    runtime: ollama
+    pull: qwen2.5:1.5b
+    expected_size_bytes: 986000000
+    license: Apache-2.0
+    role: chat
   - id: qwen3-8b
     title: Qwen3 8B
     runtime: ollama

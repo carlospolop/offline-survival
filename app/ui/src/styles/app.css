@@ -807,6 +807,13 @@ small {
   max-width: 900px;
 }
 
+.askSubmitButton {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+}
+
 textarea {
   min-height: 96px;
   resize: vertical;

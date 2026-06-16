@@ -1,7 +1,10 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 export async function systemInfo(libraryRoot, profiles = [], models = []) {
   const disk = await diskSpaceBytes(libraryRoot);
@@ -62,12 +65,14 @@ function classifyTier(memoryBytes, freeBytes) {
 export function recommendAi(memoryBytes, models = []) {
   const gb = memoryBytes / 1024 ** 3;
   const preferred = gb >= 32
-    ? ["mistral-small", "qwen3:8b", "bge-m3"]
+    ? ["qwen2.5:1.5b", "mistral-small", "qwen3:8b", "bge-m3"]
     : gb >= 16
-      ? ["qwen3:8b", "bge-m3"]
+      ? ["qwen2.5:1.5b", "qwen3:8b", "bge-m3"]
       : gb >= 8
-        ? ["gemma3:4b", "nomic-embed-text"]
-        : [];
+        ? ["qwen2.5:1.5b", "gemma3:4b", "nomic-embed-text"]
+        : gb >= 4
+          ? ["qwen2.5:1.5b"]
+          : [];
   if (!models.length) return preferred;
 
   const safeBudget = memoryBytes;
@@ -101,6 +106,10 @@ export async function memorySnapshot() {
       // Fall through to the portable Node.js values below.
     }
   }
+  if (process.platform === "darwin") {
+    const darwin = await darwinMemorySnapshot().catch(() => null);
+    if (darwin) return darwin;
+  }
   return {
     totalBytes: os.totalmem(),
     availableBytes: os.freemem(),
@@ -110,11 +119,49 @@ export async function memorySnapshot() {
   };
 }
 
+async function darwinMemorySnapshot() {
+  const [{ stdout: vmStat }, sysctl] = await Promise.all([
+    execFileAsync("vm_stat"),
+    execFileAsync("sysctl", ["-n", "hw.memsize"]).catch(() => null)
+  ]);
+  const totalBytes = Number(String(sysctl?.stdout ?? "").trim()) || os.totalmem();
+  const parsed = parseDarwinVmStat(vmStat, totalBytes);
+  return {
+    totalBytes,
+    availableBytes: parsed.availableBytes,
+    freeBytes: parsed.freeBytes,
+    swapTotalBytes: 0,
+    swapFreeBytes: 0
+  };
+}
+
+export function parseDarwinVmStat(text, totalBytes = os.totalmem()) {
+  const pageSize = Number(/\(page size of (\d+) bytes\)/i.exec(String(text))?.[1] ?? 0);
+  if (!pageSize) throw new Error("Could not read macOS VM page size");
+  const pages = new Map();
+  for (const line of String(text).split("\n")) {
+    const match = /^([^:]+):\s+([0-9.]+)\.?$/.exec(line.trim());
+    if (!match) continue;
+    pages.set(match[1].toLowerCase(), Number(match[2].replace(/\./g, "")));
+  }
+  const bytes = (label) => Number(pages.get(label) ?? 0) * pageSize;
+  const freeBytes = Math.max(os.freemem(), bytes("pages free"));
+  const reclaimableBytes = bytes("pages inactive") + bytes("pages speculative") + bytes("pages purgeable") + bytes("file-backed pages");
+  const availableBytes = Math.min(totalBytes, Math.max(freeBytes, freeBytes + Math.floor(reclaimableBytes * 0.75)));
+  return { freeBytes, availableBytes };
+}
+
 export function estimateModelRamBytes(model) {
   const modelBytes = Number(model?.expected_size_bytes ?? 0);
   if (!modelBytes) return 10 * 1024 ** 3;
   if (model?.role === "embedding") {
     return Math.ceil(Math.max(3 * 1024 ** 3, modelBytes * 1.2 + 1536 * 1024 ** 2));
+  }
+  if (modelBytes <= 1536 * 1024 ** 2) {
+    return Math.ceil(Math.max(2560 * 1024 ** 2, modelBytes * 1.3 + 1280 * 1024 ** 2));
+  }
+  if (modelBytes <= 4 * 1024 ** 3) {
+    return Math.ceil(Math.max(4608 * 1024 ** 2, modelBytes * 1.35 + 2 * 1024 ** 3));
   }
   const overheadBytes = modelBytes >= 12 * 1024 ** 3 ? 5 * 1024 ** 3 : 3 * 1024 ** 3;
   const multiplier = modelBytes >= 12 * 1024 ** 3 ? 1.45 : 1.35;

@@ -175,6 +175,10 @@
       models: "Models",
       refreshModels: "Refresh Models",
       askOllama: "Ask Ollama",
+      askingOllama: "Asking Ollama...",
+      askInProgress: "Local AI is preparing an answer.",
+      askStartingOllama: "Starting Ollama and loading the selected model. The first answer can take longer.",
+      askBlockedHelp: "Local AI is blocked by the RAM safety guard. Free memory or install a smaller chat model, then try again.",
       sharePackage: "Generate Share Package",
       generatingSharePackage: "Generating Share Package",
       updates: "Updates",
@@ -478,6 +482,10 @@
       models: "Modelos",
       refreshModels: "Actualizar modelos",
       askOllama: "Preguntar a Ollama",
+      askingOllama: "Preguntando a Ollama...",
+      askInProgress: "La IA local está preparando una respuesta.",
+      askStartingOllama: "Iniciando Ollama y cargando el modelo seleccionado. La primera respuesta puede tardar más.",
+      askBlockedHelp: "La IA local está bloqueada por la protección de RAM. Libera memoria o instala un modelo de chat más pequeño y prueba de nuevo.",
       sharePackage: "Generar paquete",
       generatingSharePackage: "Generando paquete",
       updates: "Actualizaciones",
@@ -950,6 +958,7 @@
     url: "http://127.0.0.1:11434",
     message: aiInstallProgress?.detail
   }];
+  $: ollamaService = aiServiceCards.find((service) => service.name === "ollama") ?? null;
   $: kiwixService = stateServices.find((service) => service.name === "kiwix") ?? {
     name: "kiwix",
     status: "missing",
@@ -975,6 +984,7 @@
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
   $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy.has("ai-install"));
   $: aiInstallComplete = aiInstallProgress?.status === "complete";
+  $: askBusy = busy.has("ask");
   $: selectedEasyProfiles = contentProfiles.filter((profile) => easyProfileSelections[profile.id]);
   $: selectedEasySourceIds = [...new Set(selectedEasyProfiles.flatMap((profile) => profile.sourceIds ?? []))];
   $: selectedEasyDownloadBytes = selectedEasySourceIds.reduce((sum, id) => sum + Number(sourceCatalog.get(id)?.expected_size_bytes ?? 0), 0);
@@ -1193,7 +1203,7 @@
   async function run(label: string, fn: () => Promise<unknown>) {
     busy = new Set([...busy, label]);
     error = "";
-    const shouldPoll = label.startsWith("profile-") || label.startsWith("download-") || label.startsWith("retry-") || label.startsWith("model-") || label.startsWith("index-") || label === "ai-install" || label === "index-all-downloaded" || label === "easy-install" || label === "clean-sources" || label === "share-package";
+    const shouldPoll = label.startsWith("profile-") || label.startsWith("download-") || label.startsWith("retry-") || label.startsWith("model-") || label.startsWith("index-") || label === "ask" || label === "ai-install" || label === "index-all-downloaded" || label === "easy-install" || label === "clean-sources" || label === "share-package";
     const poller = shouldPoll ? window.setInterval(() => {
       refreshState().catch(() => {});
     }, 1000) : 0;
@@ -1497,6 +1507,7 @@
 
   async function ask() {
     await run("ask", async () => {
+      answer = null;
       answer = await api("/api/ask", { method: "POST", body: JSON.stringify({ question, sourceId: questionSource || undefined }) });
     });
   }
@@ -2768,8 +2779,31 @@
           {/each}
         </select>
         <textarea placeholder={t("askPlaceholder")} bind:value={question}></textarea>
-        <button disabled={!!busy.size || !question.trim()}>{t("askOllama")}</button>
+        <button class="askSubmitButton" disabled={!!busy.size || !question.trim()}>
+          {#if askBusy}
+            <span class="spinner" aria-hidden="true"></span>
+            {t("askingOllama")}
+          {:else}
+            {t("askOllama")}
+          {/if}
+        </button>
       </form>
+      {#if askBusy}
+        <article class="answer searchBusyPanel">
+          <span class="spinner largeSpinner" aria-hidden="true"></span>
+          <strong>{t("askingOllama")}</strong>
+          <small>
+            {ollamaService?.status === "starting" || ollamaService?.status === "installing"
+              ? t("askStartingOllama")
+              : ollamaService?.status === "blocked"
+                ? t("askBlockedHelp")
+                : t("askInProgress")}
+          </small>
+          {#if ollamaService?.message}
+            <small>{detailLabel(ollamaService.message)}</small>
+          {/if}
+        </article>
+      {/if}
       {#if answer}
         <article class="answer">
           <p>{answer.answer}</p>

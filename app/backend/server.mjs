@@ -17,7 +17,7 @@ import { buildPortableLayout, buildSharePackage, writeReleaseChecksums } from ".
 import { reviewSource, sourceReviewSummary } from "./review.mjs";
 import { importExtraKnowledgeFiles, scanExtraKnowledgeFolder, supportedExtraKnowledgeExtensions } from "./extraKnowledge.mjs";
 import { askOllama, serviceStatus, startKiwix, startOllama, stopService, upsertService } from "./services.mjs";
-import { systemInfo } from "./system.mjs";
+import { estimateModelRamBytes, memorySnapshot, systemInfo } from "./system.mjs";
 import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, openState, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
 import { refreshCatalogSnapshot, updateStatus } from "./updates.mjs";
 
@@ -389,10 +389,11 @@ async function route(req, res) {
           await refreshModels(db, catalog.models);
           const model = selectedChatModel(db, body.model, catalog.models);
           if (!model) throw new Error("Install a chat model before starting Local AI.");
+          const usableModel = await bestUsableInstalledChatModel(db, model);
           return startOllama(db, {
             modelsDir: path.join(libraryRoot, "raw", "models", "ollama"),
             logPath: path.join(libraryRoot, "logs", "ollama.log"),
-            model
+            model: usableModel ?? model
           });
         });
         return send(res, 200, result);
@@ -423,18 +424,20 @@ async function route(req, res) {
           await refreshModels(db, catalog.models);
           const chatModel = selectedChatModel(db, body.model);
           if (!chatModel) return body.model ?? "qwen3:8b";
+          const usableModel = await bestUsableInstalledChatModel(db, chatModel);
+          const activeChatModel = usableModel ?? chatModel;
           try {
             await startOllama(db, {
               modelsDir: path.join(libraryRoot, "raw", "models", "ollama"),
               logPath: path.join(libraryRoot, "logs", "ollama.log"),
-              model: chatModel
+              model: activeChatModel
             });
           } catch (error) {
             if (error.code === "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
-            return body.model ?? chatModel.pull ?? "qwen3:8b";
+            return body.model ?? activeChatModel.pull ?? "qwen3:8b";
           }
           await refreshModels(db, catalog.models);
-          return body.model ?? installedChatModelPull(db) ?? chatModel.pull ?? "qwen3:8b";
+          return activeChatModel.pull ?? activeChatModel.id ?? installedChatModelPull(db) ?? "qwen3:8b";
         });
       } catch (error) {
         if (error.code !== "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
@@ -847,6 +850,21 @@ function selectedChatModel(db, requested) {
     return db.prepare("SELECT * FROM models WHERE role='chat' AND status='installed' AND (id=? OR pull=?)").get(requested, requested) ?? null;
   }
   return installedChatModel(db);
+}
+
+async function bestUsableInstalledChatModel(db, preferredModel) {
+  const memory = await memorySnapshot();
+  const swapPressure = memory.swapTotalBytes > 0 && memory.swapFreeBytes < Math.max(1024 ** 3, memory.swapTotalBytes * 0.4);
+  if (swapPressure) return preferredModel;
+  const preferredRequired = estimateModelRamBytes(preferredModel);
+  if (memory.availableBytes >= preferredRequired) return preferredModel;
+  const rows = db.prepare(`
+    SELECT *
+    FROM models
+    WHERE role='chat' AND status='installed'
+    ORDER BY expected_size_bytes ASC
+  `).all();
+  return rows.find((model) => estimateModelRamBytes(model) <= memory.availableBytes) ?? preferredModel;
 }
 
 async function pickFolder() {

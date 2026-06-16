@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ensureLibrary, openState } from "../app/backend/state.mjs";
 import net from "node:net";
 import { ollamaInstallPlan } from "../app/backend/models.mjs";
-import { assertOllamaMemoryAllowed, detectRuntime, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, resolveRuntime, runtimeCandidates, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
-import { estimateModelRamBytes, recommendAi } from "../app/backend/system.mjs";
+import { askOllama, assertOllamaMemoryAllowed, detectRuntime, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, resolveRuntime, runtimeCandidates, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
+import { estimateModelRamBytes, parseDarwinVmStat, recommendAi } from "../app/backend/system.mjs";
 
 let root;
 
@@ -110,6 +110,30 @@ describe("services", () => {
     db.close();
   });
 
+  it("returns a clear timeout when Ollama generation does not finish", async () => {
+    const oldTimeout = process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS;
+    process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS = "1";
+    try {
+      const result = await askOllama({
+        question: "How do I store water?",
+        contexts: [{ source_id: "test", title: "Test Source", path: "water.md", snippet: "Store water in clean sealed containers." }],
+        model: "test-chat",
+        fetchImpl: (_url, options = {}) => new Promise((_resolve, reject) => {
+          options.signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        })
+      });
+      expect(result.timedOut).toBe(true);
+      expect(result.answer).toMatch(/did not answer/);
+    } finally {
+      if (oldTimeout === undefined) delete process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS;
+      else process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS = oldTimeout;
+    }
+  });
+
   it("refuses to start Local AI without an installed chat model for the RAM guard", async () => {
     const db = openState(root);
     await expect(startOllama(db)).rejects.toThrow(/requires an installed chat model/);
@@ -118,24 +142,42 @@ describe("services", () => {
 
   it("uses bounded per-model RAM estimates for chat and embedding models", () => {
     const gib = 1024 ** 3;
+    expect(estimateModelRamBytes({ role: "chat", expected_size_bytes: 986e6 })).toBeLessThan(3 * gib);
     expect(estimateModelRamBytes({ role: "chat", expected_size_bytes: 3.3e9 })).toBeGreaterThanOrEqual(6 * gib);
     expect(estimateModelRamBytes({ role: "chat", expected_size_bytes: 5.6e9 })).toBeLessThan(12 * gib);
     expect(estimateModelRamBytes({ role: "chat", expected_size_bytes: 15e9 })).toBeGreaterThan(24 * gib);
     expect(estimateModelRamBytes({ role: "embedding", expected_size_bytes: 300e6 })).toBe(3 * gib);
   });
 
+  it("counts macOS reclaimable memory as available for the Local AI guard", () => {
+    const gib = 1024 ** 3;
+    const snapshot = parseDarwinVmStat(`
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                               20480.
+Pages inactive:                          327680.
+Pages speculative:                       65536.
+Pages purgeable:                         32768.
+File-backed pages:                       262144.
+`, 16 * gib);
+    expect(snapshot.freeBytes).toBeGreaterThanOrEqual(320 * 1024 ** 2);
+    expect(snapshot.availableBytes).toBeGreaterThan(7 * gib);
+    expect(snapshot.availableBytes).toBeLessThanOrEqual(16 * gib);
+  });
+
   it("only recommends Local AI models that fit the per-model RAM budget", () => {
     const gib = 1024 ** 3;
     const models = [
+      { id: "qwen2_5-1_5b", pull: "qwen2.5:1.5b", role: "chat", expected_size_bytes: 986e6 },
       { id: "gemma3-4b", pull: "gemma3:4b", role: "chat", expected_size_bytes: 3.3e9 },
       { id: "qwen3-8b", pull: "qwen3:8b", role: "chat", expected_size_bytes: 5.6e9 },
       { id: "bge-m3", pull: "bge-m3", role: "embedding", expected_size_bytes: 1.3e9 },
       { id: "nomic-embed-text", pull: "nomic-embed-text", role: "embedding", expected_size_bytes: 300e6 },
       { id: "mistral-small-24b", pull: "mistral-small", role: "chat", expected_size_bytes: 15e9 }
     ];
-    expect(recommendAi(8 * gib, models)).toEqual(["gemma3:4b", "nomic-embed-text"]);
-    expect(recommendAi(16 * gib, models)).toEqual(["qwen3:8b", "bge-m3"]);
-    expect(recommendAi(32 * gib, models)).toEqual(["mistral-small", "qwen3:8b", "bge-m3"]);
+    expect(recommendAi(4 * gib, models)).toEqual(["qwen2.5:1.5b"]);
+    expect(recommendAi(8 * gib, models)).toEqual(["qwen2.5:1.5b", "gemma3:4b", "nomic-embed-text"]);
+    expect(recommendAi(16 * gib, models)).toEqual(["qwen2.5:1.5b", "qwen3:8b", "bge-m3"]);
+    expect(recommendAi(32 * gib, models)).toEqual(["qwen2.5:1.5b", "mistral-small", "qwen3:8b", "bge-m3"]);
   });
 
   it("has managed Ollama install plans for Linux, macOS, and Windows", () => {

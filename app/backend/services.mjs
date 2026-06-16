@@ -353,18 +353,32 @@ export async function askOllama({ question, contexts, model = "qwen3:8b", fetchI
     `Question: ${question}`
   ].join("\n");
   let response;
+  const timeoutMs = Number(process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS ?? 120000);
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
     response = await fetchImpl("http://127.0.0.1:11434/api/generate", {
       method: "POST",
       headers: { "content-type": "application/json" },
+      signal: controller?.signal,
       body: JSON.stringify({ model, prompt, stream: false, options: { temperature: 0.1, num_predict: 384 } })
     });
-  } catch {
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return {
+        answer: `Local AI found relevant indexed sources, but Ollama did not answer within ${Math.round(timeoutMs / 1000)} seconds. The model may still be loading; try again, or use a smaller installed chat model.`,
+        citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
+        unsupported: true,
+        timedOut: true
+      };
+    }
     return {
       answer: "Local AI found relevant indexed sources, but Ollama is not running. Use Local AI -> Install All Recommended, or start Ollama, then ask again.",
       citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
       unsupported: true
     };
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
