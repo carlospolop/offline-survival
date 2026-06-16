@@ -10,6 +10,7 @@ describe("desktop release workflow", () => {
     expect(workflow).toContain('tag="main-${GITHUB_RUN_NUMBER}-${short_sha}"');
     expect(workflow).toContain("make_latest: true");
     expect(workflow).toContain("target_commitish: ${{ github.sha }}");
+    expect(workflow).not.toContain("paths:");
     expect(site).toContain('id="download-os-select"');
     expect(site).toContain('id="download-os-select-bottom"');
     expect(site).toContain("function applyDownloadOption(option)");

@@ -339,7 +339,10 @@ async function startFileServer(sourceId, root) {
       const decoded = decodeURIComponent(url.pathname);
       const target = await resolveRequestTarget(root, decoded === "/" ? "" : decoded.slice(1));
       const stat = await fsp.stat(target);
-      if (stat.isDirectory()) return sendDirectoryOrIndex(res, root, target, url.pathname);
+      if (stat.isDirectory()) {
+        await sendDirectoryOrIndex(res, root, target, url.pathname);
+        return;
+      }
       const content = await fsp.readFile(target);
       if (path.extname(target).toLowerCase() === ".md") return sendMarkdown(res, root, target, content.toString("utf8"));
       if (isHtmlPath(target)) return sendHtml(res, root, target, content.toString("utf8"));
