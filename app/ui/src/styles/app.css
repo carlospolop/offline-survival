@@ -546,6 +546,27 @@ small {
   padding-bottom: 8px;
 }
 
+.resourceScroll {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.resourceButtonScroll {
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 210px;
+}
+
+.resourceScroll > .resourceRow:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
 .emptyNote {
   color: #7a8675;
 }

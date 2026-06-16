@@ -2414,7 +2414,7 @@
 	          <h3>{t("searchableResources")}</h3>
           <small class="cardIntro">{searchableSources.length ? t("searchableResourcesReady") : t("searchableResourcesEmpty")}</small>
           {#if searchableSources.length}
-            <div class="actions">
+            <div class="actions resourceScroll resourceButtonScroll">
               {#each searchableSources as source}
                 <button type="button" class:active={searchSource === source.id} on:click={() => searchSource = source.id}>{sourceTitle(source)}</button>
               {/each}
@@ -2424,91 +2424,97 @@
 	        </article>
 	        {#if activeIndexingProgress?.status === "running"}
 	          <article class="infoCard">
-	            <h3>{t("indexingNow")}</h3>
-	            <small class="cardIntro">{t("indexingNowHelp")}</small>
-	            <small>{t("indexProgressSummary", { done: activeIndexingProgress.completed ?? 0, total: activeIndexingProgress.total ?? 0, failed: activeIndexingProgress.failed ?? 0 })}</small>
-	            {#each activeIndexItems as item}
-	              {@const indexInfo = sourceIndexInfo(item.sourceId)}
-	              <div class="resourceRow">
-	                <span>
-	                  <strong>{sourceTitleById(item.sourceId, item.title)}</strong>
-	                  <small>
-	                    {indexInfo?.label ?? t("indexingQueued")}
-	                    {#if item.chunks} · {t("chunksIndexed", { count: item.chunks })}{/if}
-	                    {#if item.pages} · {t("pagesIndexed", { count: item.pages })}{/if}
-	                  </small>
-	                </span>
-	                <span class="sourceProgress">
-	                  {#if indexInfo?.current}
-	                    <progress></progress>
-	                  {:else}
-	                    <progress max="100" value={indexInfo?.progress ?? 0}></progress>
-	                  {/if}
-	                </span>
-	              </div>
-	            {/each}
-	          </article>
-	        {/if}
+		            <h3>{t("indexingNow")}</h3>
+		            <small class="cardIntro">{t("indexingNowHelp")}</small>
+		            <small>{t("indexProgressSummary", { done: activeIndexingProgress.completed ?? 0, total: activeIndexingProgress.total ?? 0, failed: activeIndexingProgress.failed ?? 0 })}</small>
+		            <div class="resourceScroll">
+		              {#each activeIndexItems as item}
+		                {@const indexInfo = sourceIndexInfo(item.sourceId)}
+		                <div class="resourceRow">
+		                  <span>
+		                    <strong>{sourceTitleById(item.sourceId, item.title)}</strong>
+		                    <small>
+		                      {indexInfo?.label ?? t("indexingQueued")}
+		                      {#if item.chunks} · {t("chunksIndexed", { count: item.chunks })}{/if}
+		                      {#if item.pages} · {t("pagesIndexed", { count: item.pages })}{/if}
+		                    </small>
+		                  </span>
+		                  <span class="sourceProgress">
+		                    {#if indexInfo?.current}
+		                      <progress></progress>
+		                    {:else}
+		                      <progress max="100" value={indexInfo?.progress ?? 0}></progress>
+		                    {/if}
+		                  </span>
+		                </div>
+		              {/each}
+		            </div>
+		          </article>
+		        {/if}
 	        <article class="infoCard">
 	          <h3>{t("downloadingNow")}</h3>
-          <small class="cardIntro">{t("downloadingNowHelp")}</small>
-          {#if activeDownloadSources.length}
-            {#each activeDownloadSources as source}
-              {@const info = sourceProgressInfo(source)}
-              <div class="resourceRow">
-                <span>
-                  <strong>{sourceTitle(source)}</strong>
-                  <small>{statusLabel(info.downloadRow?.status ?? "queued")} · {info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
-                </span>
-                <span class="sourceProgress">
-                  <progress max="100" value={info.progress}></progress>
-                </span>
-              </div>
-            {/each}
-          {:else}
-            <small class="emptyNote">{t("noActiveDownloads")}</small>
-          {/if}
+	          <small class="cardIntro">{t("downloadingNowHelp")}</small>
+	          {#if activeDownloadSources.length}
+	            <div class="resourceScroll">
+	              {#each activeDownloadSources as source}
+	                {@const info = sourceProgressInfo(source)}
+	                <div class="resourceRow">
+	                  <span>
+	                    <strong>{sourceTitle(source)}</strong>
+	                    <small>{statusLabel(info.downloadRow?.status ?? "queued")} · {info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
+	                  </span>
+	                  <span class="sourceProgress">
+	                    <progress max="100" value={info.progress}></progress>
+	                  </span>
+	                </div>
+	              {/each}
+	            </div>
+	          {:else}
+	            <small class="emptyNote">{t("noActiveDownloads")}</small>
+	          {/if}
         </article>
         <article class="infoCard">
           <h3>{t("downloadedNeedsIndex")}</h3>
-          <small class="cardIntro">{t("downloadedNeedsIndexHelp")}</small>
-          {#if notSearchableDownloads.length}
-	            {#each notSearchableDownloads as source}
-	              {@const downloadRow = downloadState.get(source.id)}
-	              {@const indexInfo = sourceIndexInfo(source.id)}
-	              {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
-	              {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(downloadRow?.status ?? ""))}
-              {@const verifyNotice = verifyFeedback[source.id]}
-              <div class="resourceRow">
-	                <span>
-	                  <strong>{sourceTitle(source)}</strong>
-	                  <small>{indexInfo?.label ?? (source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch"))}</small>
-	                  {#if indexInfo?.current}
-	                    <span class="sourceProgress">
-	                      <progress></progress>
-	                      <small>{t("indexingLargeFiles")}</small>
+	          <small class="cardIntro">{t("downloadedNeedsIndexHelp")}</small>
+	          {#if notSearchableDownloads.length}
+	            <div class="resourceScroll">
+		            {#each notSearchableDownloads as source}
+		              {@const downloadRow = downloadState.get(source.id)}
+		              {@const indexInfo = sourceIndexInfo(source.id)}
+		              {@const sourceBusy = [...busy].some(b => b.endsWith(source.id))}
+		              {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(downloadRow?.status ?? ""))}
+	                {@const verifyNotice = verifyFeedback[source.id]}
+	                <div class="resourceRow">
+		                  <span>
+		                    <strong>{sourceTitle(source)}</strong>
+		                    <small>{indexInfo?.label ?? (source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch"))}</small>
+		                    {#if indexInfo?.current}
+		                      <span class="sourceProgress">
+		                        <progress></progress>
+		                        <small>{t("indexingLargeFiles")}</small>
+		                      </span>
+		                    {/if}
+		                  </span>
+		                  <span class="actions">
+	                    <span class="tooltipHost" title={openTooltip(source)}>
+	                      <button type="button" aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={sourceBusy}>{t("openButton")}</button>
 	                    </span>
-	                  {/if}
-	                </span>
-	                <span class="actions">
-                  <span class="tooltipHost" title={openTooltip(source)}>
-                    <button type="button" aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={sourceBusy}>{t("openButton")}</button>
-                  </span>
-	                  <span class="tooltipHost" title={indexTooltip(source)}>
-	                    <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
+		                    <span class="tooltipHost" title={indexTooltip(source)}>
+		                      <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={sourceBusy || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
+		                    </span>
+	                    {#if busy.has(`index-${source.id}`)}
+	                      <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
+	                    {/if}
+	                    {#if verifyNotice}
+	                      <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
+	                    {/if}
 	                  </span>
-                  {#if busy.has(`index-${source.id}`)}
-                    <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
-                  {/if}
-                  {#if verifyNotice}
-                    <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
-                  {/if}
-                </span>
-              </div>
-            {/each}
-          {:else}
-            <small>{t("noDownloadedNeedsIndex")}</small>
-          {/if}
+	                </div>
+	              {/each}
+	            </div>
+	          {:else}
+	            <small>{t("noDownloadedNeedsIndex")}</small>
+	          {/if}
         </article>
       </div>
       <div class="results">
