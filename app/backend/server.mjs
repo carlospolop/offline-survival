@@ -16,10 +16,9 @@ import { cleanupPartials, reconcileLibrary, writeKiwixLibraryXml } from "./recov
 import { buildPortableLayout, buildSharePackage, writeReleaseChecksums } from "./release.mjs";
 import { reviewSource, sourceReviewSummary } from "./review.mjs";
 import { importExtraKnowledgeFiles, scanExtraKnowledgeFolder, supportedExtraKnowledgeExtensions } from "./extraKnowledge.mjs";
-import { askOllama, serviceStatus, startKiwix, startOllama, stopService, upsertService } from "./services.mjs";
+import { askOllama, ensureOllamaRuntimePermissions, serviceStatus, startKiwix, startOllama, stopService, upsertService } from "./services.mjs";
 import { estimateModelRamBytes, memorySnapshot, systemInfo } from "./system.mjs";
-import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, openState, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
-import { refreshCatalogSnapshot, updateStatus } from "./updates.mjs";
+import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, openState, pruneOldEvents, pruneOldLogFiles, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 const root = process.cwd();
@@ -40,10 +39,12 @@ const execFileAsync = promisify(execFile);
 
 let libraryRoot = process.env.SCA_LIBRARY_ROOT ? path.resolve(process.env.SCA_LIBRARY_ROOT) : defaultLibraryRoot();
 await ensureLibrary(libraryRoot);
+await pruneOldLogFiles(libraryRoot);
 configureManagedRuntimes();
 {
   const db = openState(libraryRoot);
   markInterruptedDownloads(db);
+  pruneOldEvents(db);
   db.close();
 }
 await syncCatalog();
@@ -58,8 +59,6 @@ async function syncCatalog() {
   for (const model of catalog.models) upsertModel(db, model);
   refreshAdapters(db, catalog.sources);
   setSetting(db, "libraryRoot", libraryRoot);
-  const settings = db.prepare("SELECT key FROM settings WHERE key='lanSharing'").get();
-  if (!settings) setSetting(db, "lanSharing", { enabled: false, bind: "127.0.0.1" });
   db.close();
 }
 
@@ -158,12 +157,6 @@ async function route(req, res) {
       await syncCatalog();
       return send(res, 200, { libraryRoot });
     }
-    if (url.pathname === "/api/settings/network" && req.method === "POST") {
-      const body = await json(req);
-      if (body.enabled) throw new Error("LAN sharing is intentionally disabled in this v1 build; services remain bound to 127.0.0.1.");
-      await withDb((db) => setSetting(db, "lanSharing", { enabled: false, bind: "127.0.0.1" }));
-      return send(res, 200, { enabled: false, bind: "127.0.0.1" });
-    }
     if (url.pathname === "/api/download" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
@@ -256,6 +249,7 @@ async function route(req, res) {
       return send(res, 200, result);
     }
     if (url.pathname === "/api/index/downloaded" && req.method === "POST") {
+      const body = await json(req);
       const catalog = await loadCatalog();
       const result = await withDb((db) => {
         const startedAt = Date.now();
@@ -264,6 +258,7 @@ async function route(req, res) {
           db,
           libraryRoot,
           catalogSources: catalog.sources,
+          reindexAll: Boolean(body.reindexAll),
           onProgress: (progress) => {
             const payload = indexProgressPayload(progress, { startedAt, queue });
             queue = payload.items ?? queue;
@@ -415,8 +410,9 @@ async function route(req, res) {
     if (url.pathname === "/api/ask" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
-      const contexts = await withDb((db) => retrieveAskContexts(db, body));
-      if (!contexts.length) return send(res, 200, await askOllama({ question: body.question, contexts, model: body.model ?? "qwen3:8b" }));
+      const history = normalizeAskHistory(body.history);
+      const contexts = await withDb((db) => retrieveAskContexts(db, { ...body, history }));
+      if (!contexts.length) return send(res, 200, await askOllama({ question: body.question, contexts, history, model: body.model ?? "qwen3:8b" }));
       let model;
       try {
         model = await withDb(async (db) => {
@@ -450,7 +446,7 @@ async function route(req, res) {
           requiredBytes: error.requiredBytes
         });
       }
-      return send(res, 200, await askOllama({ question: body.question, contexts, model }));
+      return send(res, 200, await askWithOllamaPermissionRepair({ question: body.question, contexts, history, model }));
     }
     if (url.pathname === "/api/lock" && req.method === "POST") {
       const body = await json(req);
@@ -530,20 +526,14 @@ async function route(req, res) {
       const result = await withDb((db) => reviewSource(db, body));
       return send(res, 200, result);
     }
-    if (url.pathname === "/api/updates/status") {
-      const catalog = await loadCatalog();
-      const result = await withDb((db) => updateStatus({ db, catalog }));
-      return send(res, 200, result);
-    }
-    if (url.pathname === "/api/catalog/refresh" && req.method === "POST") {
-      await syncCatalog();
-      const result = await withDb((db) => refreshCatalogSnapshot(db));
-      return send(res, 200, result);
-    }
     if (url.pathname === "/api/logs") {
-      const logs = await withDb((db) => db.prepare("SELECT * FROM events ORDER BY created_at DESC LIMIT ?").all(Number(url.searchParams.get("limit") ?? 200)));
+      const logs = await withDb((db) => {
+        pruneOldEvents(db);
+        return db.prepare("SELECT * FROM events ORDER BY created_at DESC LIMIT ?").all(Number(url.searchParams.get("limit") ?? 200));
+      });
       return send(res, 200, { logs });
     }
+    if (url.pathname.startsWith("/api/")) return send(res, 404, { error: "Unknown API endpoint" });
     return await serveUi(url, res);
   } catch (error) {
     send(res, 500, { error: String(error.message ?? error) });
@@ -724,8 +714,8 @@ async function easyInstall({ db, catalog, selectedProfiles, installAi, concurren
 }
 
 async function cleanSources(db) {
-  stopService(db, "kiwix");
-  stopService(db, "ollama");
+  await stopService(db, "kiwix");
+  await stopService(db, "ollama");
   for (const dir of cleanableLibraryDirs) await fs.rm(path.join(libraryRoot, dir), { recursive: true, force: true });
   db.exec(`
     DELETE FROM downloads;
@@ -742,7 +732,6 @@ async function cleanSources(db) {
     DELETE FROM settings WHERE key IN ('aiInstallProgress', 'easyInstallProgress', 'sharePackageProgress', 'indexingProgress');
   `);
   setSetting(db, "libraryRoot", libraryRoot);
-  setSetting(db, "lanSharing", { enabled: false, bind: "127.0.0.1" });
   return { status: "cleaned", removed: cleanableLibraryDirs };
 }
 
@@ -790,9 +779,10 @@ function retrieveAskContexts(db, body) {
   const question = String(body.question ?? "").trim();
   if (!question) return [];
   const filters = { sourceId: body.sourceId || undefined, license: body.license || undefined };
+  const contextQuestion = askContextQuery(question, body.history);
   const lexical = [
-    ...search(db, question, 8, filters),
-    ...search(db, askKeywordQuery(question), 12, filters)
+    ...search(db, contextQuestion, 8, filters),
+    ...search(db, askKeywordQuery(contextQuestion), 12, filters)
   ];
   const byKey = new Map();
   for (const context of lexical) {
@@ -800,6 +790,23 @@ function retrieveAskContexts(db, body) {
     if (!byKey.has(key)) byKey.set(key, enrichAskContext(db, context));
   }
   return [...byKey.values()].slice(0, 5);
+}
+
+function normalizeAskHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history.slice(-8).map((turn) => ({
+    question: cleanPromptText(turn?.question ?? turn?.user ?? "").slice(0, 1200),
+    answer: cleanPromptText(turn?.answer ?? turn?.assistant ?? "").slice(0, 1600)
+  })).filter((turn) => turn.question || turn.answer);
+}
+
+function askContextQuery(question, history) {
+  const priorQuestions = (Array.isArray(history) ? history : [])
+    .slice(-3)
+    .map((turn) => turn.question)
+    .filter(Boolean)
+    .join(" ");
+  return `${priorQuestions} ${question}`.trim();
 }
 
 function enrichAskContext(db, context) {
@@ -865,6 +872,21 @@ async function bestUsableInstalledChatModel(db, preferredModel) {
     ORDER BY expected_size_bytes ASC
   `).all();
   return rows.find((model) => estimateModelRamBytes(model) <= memory.availableBytes) ?? preferredModel;
+}
+
+async function askWithOllamaPermissionRepair({ question, contexts, history, model }) {
+  const first = await askOllama({ question, contexts, history, model });
+  if (!ollamaPermissionDenied(first)) return first;
+  await ensureOllamaRuntimePermissions();
+  const retry = await askOllama({ question, contexts, history, model });
+  return {
+    ...retry,
+    repairedRuntimePermissions: true
+  };
+}
+
+function ollamaPermissionDenied(answer) {
+  return Boolean(answer?.unsupported && /llama-server/i.test(String(answer.answer ?? "")) && /permission denied/i.test(String(answer.answer ?? "")));
 }
 
 async function pickFolder() {

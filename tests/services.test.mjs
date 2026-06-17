@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ensureLibrary, openState } from "../app/backend/state.mjs";
 import net from "node:net";
 import { ollamaInstallPlan } from "../app/backend/models.mjs";
-import { askOllama, assertOllamaMemoryAllowed, detectRuntime, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, resolveRuntime, runtimeCandidates, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
+import { askOllama, assertOllamaMemoryAllowed, detectRuntime, ensureOllamaRuntimePermissions, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, resolveRuntime, runtimeCandidates, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
 import { estimateModelRamBytes, parseDarwinVmStat, recommendAi } from "../app/backend/system.mjs";
 
 let root;
@@ -82,6 +82,33 @@ describe("services", () => {
     await fs.mkdir(path.dirname(managed), { recursive: true });
     await fs.writeFile(managed, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
     expect(resolveRuntime("ollama", { env: { SCA_OLLAMA_BIN: managed }, platform: "linux", home: root })).toBe(managed);
+  });
+
+  it("repairs executable permissions for nested managed Ollama helpers", async () => {
+    if (process.platform === "win32") return;
+    const resources = path.join(root, "raw", "runtimes", "ollama", "Ollama.app", "Contents", "Resources");
+    const ollama = path.join(resources, "ollama");
+    const helperDir = path.join(resources, "lib");
+    const helper = path.join(helperDir, "llama-server");
+    await fs.mkdir(helperDir, { recursive: true });
+    await fs.writeFile(ollama, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+    await fs.writeFile(helper, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+    await ensureOllamaRuntimePermissions(ollama);
+    expect((await fs.stat(ollama)).mode & 0o111).toBeTruthy();
+    expect((await fs.stat(helper)).mode & 0o111).toBeTruthy();
+  });
+
+  it("does not recurse through unrelated system binary directories when repairing Ollama permissions", async () => {
+    if (process.platform === "win32") return;
+    const bin = path.join(root, "system-bin");
+    const ollama = path.join(bin, "ollama");
+    const neighbor = path.join(bin, "other-tool");
+    await fs.mkdir(bin, { recursive: true });
+    await fs.writeFile(ollama, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+    await fs.writeFile(neighbor, "#!/bin/sh\nexit 0\n", { mode: 0o644 });
+    await ensureOllamaRuntimePermissions(ollama);
+    expect((await fs.stat(ollama)).mode & 0o111).toBeTruthy();
+    expect((await fs.stat(neighbor)).mode & 0o111).toBeFalsy();
   });
 
   it("selects a later port when the requested port is busy", async () => {

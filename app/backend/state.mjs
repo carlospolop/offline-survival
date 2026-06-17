@@ -21,6 +21,7 @@ const dirs = [
   "logs",
   "tmp"
 ];
+export const eventRetentionDays = 90;
 
 export function defaultLibraryRoot() {
   const legacyName = "SurvivalCivilizationArchive";
@@ -279,8 +280,38 @@ export function removeSourcesNotInCatalog(db, catalogSources) {
 }
 
 export function recordEvent(db, kind, message, data = null) {
+  pruneOldEvents(db);
   db.prepare("INSERT INTO events (kind, message, data, created_at) VALUES (?, ?, ?, ?)")
     .run(kind, message, data ? JSON.stringify(data) : null, now());
+}
+
+export function pruneOldEvents(db, retentionDays = eventRetentionDays) {
+  const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+  return db.prepare("DELETE FROM events WHERE created_at < ?").run(cutoff).changes;
+}
+
+export async function pruneOldLogFiles(root = defaultLibraryRoot(), retentionDays = eventRetentionDays) {
+  const logsDir = path.join(root, "logs");
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  let removed = 0;
+  let entries = [];
+  try {
+    entries = await fs.readdir(logsDir, { withFileTypes: true });
+  } catch {
+    return removed;
+  }
+  await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => {
+    const file = path.join(logsDir, entry.name);
+    try {
+      const stat = await fs.stat(file);
+      if (stat.mtimeMs >= cutoff) return;
+      await fs.rm(file, { force: true });
+      removed += 1;
+    } catch {
+      // Ignore races with services rotating logs.
+    }
+  }));
+  return removed;
 }
 
 export function getSettings(db) {
@@ -303,6 +334,7 @@ export function markInterruptedDownloads(db) {
 }
 
 export function summarizeState(db) {
+  pruneOldEvents(db);
   return {
     settings: getSettings(db),
     sources: db.prepare("SELECT * FROM sources ORDER BY title").all(),

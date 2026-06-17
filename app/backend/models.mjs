@@ -4,7 +4,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { getSettings, now, recordEvent, setSetting } from "./state.mjs";
-import { resolveRuntime, startOllama, upsertService } from "./services.mjs";
+import { ensureOllamaRuntimePermissions, resolveRuntime, startOllama, upsertService } from "./services.mjs";
 import { extractZipToDir } from "./zip.mjs";
 
 export async function refreshModels(db, catalogModels, fetchImpl = fetch) {
@@ -51,8 +51,10 @@ function localInstalledModelAliases() {
   }
 }
 
-export function pullModel(db, model) {
-  const child = spawn(resolveRuntime("ollama"), ["pull", model.pull], { env: ollamaEnv(), stdio: "ignore" });
+export async function pullModel(db, model) {
+  const runtime = resolveRuntime("ollama");
+  await ensureOllamaRuntimePermissions(runtime);
+  const child = spawn(runtime, ["pull", model.pull], { env: ollamaEnv(), stdio: "ignore" });
   db.prepare("UPDATE models SET status=?, updated_at=? WHERE id=?").run("pulling", now(), model.id);
   recordEvent(db, "model-pull", `Started pulling ${model.pull}`, { modelId: model.id, pull: model.pull, pid: child.pid });
   child.on("exit", (code) => {
@@ -143,6 +145,7 @@ export async function installRecommendedAi({ db, libraryRoot, models }) {
 async function ensureOllamaInstalled({ db, libraryRoot, progress }) {
   const existing = resolveRuntime("ollama");
   if (existing !== "ollama" || await commandWorks(existing)) {
+    await ensureOllamaRuntimePermissions(existing);
     process.env.SCA_OLLAMA_BIN = existing;
     updateAiProgress(db, {
       status: "running",
@@ -208,7 +211,7 @@ async function ensureOllamaInstalled({ db, libraryRoot, progress }) {
   await fsp.rm(archive, { force: true });
 
   const ollamaBin = path.join(installDir, plan.bin);
-  if (process.platform !== "win32") await fsp.chmod(ollamaBin, 0o755);
+  await ensureOllamaRuntimePermissions(ollamaBin);
   process.env.SCA_OLLAMA_BIN = ollamaBin;
   recordEvent(db, "ollama-install", "Installed app-managed Ollama runtime", { ollamaBin });
   return { status: "installed", path: ollamaBin };

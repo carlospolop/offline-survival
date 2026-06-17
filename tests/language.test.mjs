@@ -56,7 +56,6 @@ describe("language selectors", () => {
     for (const phrase of forbiddenDynamicEnglish) expect(withoutTranslationMap).not.toContain(phrase);
     expect(source).toContain("function profileTitle(profile");
     expect(source).toContain("function sourceTitle(source");
-    expect(source).toContain("function updateStatusLabel(status");
     expect(source).toContain('\"survival-essential-es\":');
     expect(source).toContain('title: \"Supervivencia esencial ES\"');
     expect(source).toContain('\"wikipedia-es-top-zim\":');

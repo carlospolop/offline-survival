@@ -564,6 +564,70 @@ small {
   min-width: 260px;
 }
 
+.logTableWrap {
+  border: 1px solid #d8ded2;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.logTable {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+}
+
+.logTable th,
+.logTable td {
+  border-top: 1px solid #e8ece4;
+  line-height: 1.25;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.logTable th {
+  background: #eef3ea;
+  border-top: 0;
+  padding: 6px 8px;
+}
+
+.logTable th:first-child,
+.logTable td:first-child {
+  width: 24%;
+}
+
+.logTable th:last-child,
+.logTable td:last-child {
+  white-space: nowrap;
+  width: 190px;
+}
+
+.logTable th button {
+  background: transparent;
+  color: #244f3a;
+  font-weight: 900;
+  min-height: 28px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.logDetails {
+  display: grid;
+  gap: 6px;
+}
+
+.logDetails summary {
+  color: #244f3a;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.logDetails p {
+  color: #334137;
+  overflow-wrap: anywhere;
+}
+
 .results article,
 .results .resultCard,
 .serviceGrid article,
@@ -814,6 +878,11 @@ small {
   justify-content: center;
 }
 
+.chatThread {
+  display: grid;
+  gap: 10px;
+}
+
 textarea {
   min-height: 96px;
   resize: vertical;
@@ -846,6 +915,10 @@ mark {
 
   .table > .row {
     min-width: 0;
+  }
+
+  .logTable {
+    min-width: 620px;
   }
 
   .row {

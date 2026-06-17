@@ -3,7 +3,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
-import { getSettings, now, recordEvent } from "./state.mjs";
+import { eventRetentionDays, getSettings, now, recordEvent } from "./state.mjs";
 import { estimateModelRamBytes, memorySnapshot } from "./system.mjs";
 
 const running = new Map();
@@ -37,6 +37,52 @@ export function resolveRuntime(command, options = {}) {
     ...runtimeCandidates(command, options)
   ];
   return candidates.find((candidate) => names.includes(candidate) || fs.existsSync(candidate)) ?? command;
+}
+
+export async function ensureOllamaRuntimePermissions(runtime = resolveRuntime("ollama")) {
+  if (process.platform === "win32" || runtime === "ollama") return;
+  await chmodIfPresent(runtime);
+  const repairRoot = ollamaManagedPermissionRoot(runtime);
+  if (repairRoot) await chmodTree(repairRoot);
+}
+
+function ollamaManagedPermissionRoot(runtime) {
+  const parts = path.resolve(runtime).split(path.sep);
+  const rawIndex = parts.lastIndexOf("raw");
+  if (rawIndex >= 0 && parts[rawIndex + 1] === "runtimes" && parts[rawIndex + 2] === "ollama") {
+    return parts.slice(0, rawIndex + 3).join(path.sep) || path.sep;
+  }
+  const appIndex = parts.lastIndexOf("Ollama.app");
+  if (appIndex >= 0 && parts[appIndex + 1] === "Contents" && parts[appIndex + 2] === "Resources") {
+    return parts.slice(0, appIndex + 3).join(path.sep) || path.sep;
+  }
+  return null;
+}
+
+async function chmodIfPresent(file) {
+  try {
+    await fsp.chmod(file, 0o755);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+
+async function chmodTree(root) {
+  let entries = [];
+  try {
+    entries = await fsp.readdir(root, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  await Promise.all(entries.map(async (entry) => {
+    const entryPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      await chmodIfPresent(entryPath);
+      await chmodTree(entryPath);
+    } else if (entry.isFile()) {
+      await chmodIfPresent(entryPath);
+    }
+  }));
 }
 
 function runtimeCommandNames(command, platform) {
@@ -142,11 +188,10 @@ export async function startKiwix(db, zimPaths = [], port = KIWIX_PORT, options =
   if (!zimPaths.length) throw new Error("No downloaded ZIM files available");
   const actualPort = await findAvailablePort(port, "127.0.0.1", KIWIX_PORT_COUNT);
   if (actualPort !== port) recordEvent(db, "port-conflict", `Port ${port} was busy; Kiwix will use ${actualPort}`, { requested: port, actual: actualPort });
-  const logPath = options.logPath ?? null;
+  const logPath = options.logPath ? await prepareServiceLogPath(options.logPath) : null;
   const stdio = logPath ? ["ignore", "ignore", "pipe"] : "ignore";
   const child = spawn(resolveRuntime("kiwix-serve"), ["--port", String(actualPort), "--address", "127.0.0.1", ...zimPaths], { stdio });
   if (logPath && child.stderr) {
-    await fsp.mkdir(path.dirname(logPath), { recursive: true });
     child.stderr.on("data", (chunk) => fs.appendFileSync(logPath, chunk));
   }
   running.set("kiwix", child);
@@ -177,13 +222,30 @@ export async function startKiwix(db, zimPaths = [], port = KIWIX_PORT, options =
   return service;
 }
 
-export function stopService(db, name) {
+export async function stopService(db, name) {
   const child = running.get(name);
   if (child) child.kill();
+  const row = db.prepare("SELECT * FROM services WHERE name=?").get(name);
+  if (row?.pid) {
+    try {
+      process.kill(Number(row.pid));
+    } catch {
+      // It may already be gone or owned by a previous backend process.
+    }
+  }
   running.delete(name);
   runningMeta.delete(name);
   upsertService(db, { name, status: "stopped" });
+  if (name === "ollama") await waitForPortClosed(11434);
+  if (name === "kiwix" && row?.port) await waitForPortClosed(Number(row.port));
   return { name, status: "stopped" };
+}
+
+async function waitForPortClosed(port, host = "127.0.0.1") {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (await canBind(port, host)) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 }
 
 async function currentKiwixService(db, runtimeAvailable) {
@@ -252,8 +314,9 @@ export async function startOllama(db, options = {}) {
     upsertService(db, { name: "ollama", status: "missing", port: 11434, url: "http://127.0.0.1:11434", message: "Ollama runtime is not installed" });
     throw new Error("Ollama runtime is not installed");
   }
+  await ensureOllamaRuntimePermissions(runtime);
 
-  const logPath = options.logPath ?? null;
+  const logPath = options.logPath ? await prepareServiceLogPath(options.logPath) : null;
   const env = {
     ...process.env,
     OLLAMA_HOST: "127.0.0.1:11434",
@@ -262,7 +325,6 @@ export async function startOllama(db, options = {}) {
   const stdio = logPath ? ["ignore", "ignore", "pipe"] : "ignore";
   const child = spawn(runtime, ["serve"], { env, stdio });
   if (logPath && child.stderr) {
-    await fsp.mkdir(path.dirname(logPath), { recursive: true });
     child.stderr.on("data", (chunk) => fs.appendFileSync(logPath, chunk));
   }
   running.set("ollama", child);
@@ -279,6 +341,42 @@ export async function startOllama(db, options = {}) {
   await waitForOllama();
   upsertService(db, { name: "ollama", status: "running", pid: child.pid, port: 11434, url: "http://127.0.0.1:11434", message: logPath ? `stderr: ${logPath}` : null });
   return { status: "running", pid: child.pid, port: 11434, url: "http://127.0.0.1:11434" };
+}
+
+async function prepareServiceLogPath(basePath) {
+  const dir = path.dirname(basePath);
+  const ext = path.extname(basePath) || ".log";
+  const stem = path.basename(basePath, ext);
+  await fsp.mkdir(dir, { recursive: true });
+  await pruneServiceLogs(dir, stem, ext);
+  return path.join(dir, `${stem}-${new Date().toISOString().slice(0, 10)}${ext}`);
+}
+
+async function pruneServiceLogs(dir, stem, ext) {
+  const cutoff = Date.now() - eventRetentionDays * 24 * 60 * 60 * 1000;
+  let entries = [];
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => {
+    const fullPath = path.join(dir, entry.name);
+    try {
+      const stat = await fsp.stat(fullPath);
+      if (stat.mtimeMs >= cutoff) return;
+      const legacyName = `${stem}${ext}`;
+      const rotatedPattern = new RegExp(`^${escapeRegExp(stem)}-\\d{4}-\\d{2}-\\d{2}${escapeRegExp(ext)}$`);
+      if (entry.name !== legacyName && !rotatedPattern.test(entry.name)) return;
+      await fsp.rm(fullPath, { force: true });
+    } catch {
+      // Ignore races with services writing logs.
+    }
+  }));
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export async function assertOllamaMemoryAllowed(db, model) {
@@ -337,7 +435,7 @@ async function waitForOllama() {
   throw new Error("Ollama did not start on 127.0.0.1:11434");
 }
 
-export async function askOllama({ question, contexts, model = "qwen3:8b", fetchImpl = fetch }) {
+export async function askOllama({ question, contexts, history = [], model = "qwen3:8b", fetchImpl = fetch }) {
   if (!contexts.length) {
     return {
       answer: "No indexed local source matched that question. Try a more specific question, choose All indexed resources, or index the relevant downloaded source.",
@@ -347,6 +445,8 @@ export async function askOllama({ question, contexts, model = "qwen3:8b", fetchI
   }
   const prompt = [
     "Answer using only the cited context. If the context is insufficient, say what is missing. Give a complete, practical answer and cite the relevant source numbers inline.",
+    "",
+    ...conversationPromptLines(history),
     "",
     ...contexts.map((context, index) => `[${index + 1}] ${context.title}\n${context.snippet ?? context.body}`),
     "",
@@ -397,6 +497,25 @@ export async function askOllama({ question, contexts, model = "qwen3:8b", fetchI
     citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
     unsupported: false
   };
+}
+
+function conversationPromptLines(history) {
+  const turns = Array.isArray(history) ? history.slice(-8) : [];
+  if (!turns.length) return [];
+  return [
+    "Recent conversation:",
+    ...turns.flatMap((turn) => [
+      `User: ${cleanPromptText(turn.question ?? turn.user ?? "")}`.slice(0, 1200),
+      `Assistant: ${cleanPromptText(turn.answer ?? turn.assistant ?? "")}`.slice(0, 1600)
+    ])
+  ];
+}
+
+function cleanPromptText(text) {
+  return String(text)
+    .replace(/<\/?mark>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function highRiskPrefix(question) {

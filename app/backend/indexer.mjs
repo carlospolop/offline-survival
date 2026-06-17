@@ -188,7 +188,7 @@ async function normalizeAndIndexZim({ db, libraryRoot, source, sourceId, fullPat
   return { sourceId, documents: 1, pages: pageCount, chunks: chunkCount, skippedLarge, skippedUnreadable, zim: true };
 }
 
-export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [], onProgress = null }) {
+export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [], onProgress = null, reindexAll = false }) {
   const catalogById = new Map(catalogSources.map((source) => [source.id, source]));
   // Re-index any source that has never been indexed (d.source_id IS NULL) OR was
   // previously registered as original-only (extraction may have failed in a prior
@@ -201,6 +201,8 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
     LEFT JOIN documents d ON d.source_id=s.id
     WHERE s.local_path IS NOT NULL
       AND (
+        (? = 1 AND s.status IN ('downloaded', 'verified', 'downloaded_unverified', 'indexed', 'indexed-original-only'))
+        OR
         d.source_id IS NULL
         OR s.status='indexed-original-only'
         OR (
@@ -216,16 +218,16 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
       )
       AND s.status NOT IN ('missing', 'broken', 'paused')
     ORDER BY s.title
-  `).all();
+  `).all(reindexAll ? 1 : 0);
   const queue = rows.map((row) => ({
     sourceId: row.id,
-    title: catalogById.get(row.id)?.title ?? row.id,
+    title: catalogById.get(row.id)?.title ?? row.title ?? row.id,
     status: "pending"
   }));
   onProgress?.({ stage: "start", total: rows.length, completed: 0, current: 0, queue });
   const results = [];
   for (const [index, row] of rows.entries()) {
-    const title = catalogById.get(row.id)?.title ?? row.id;
+    const title = catalogById.get(row.id)?.title ?? row.title ?? row.id;
     onProgress?.({ stage: "source-start", sourceId: row.id, title, total: rows.length, completed: index, current: index + 1 });
     try {
       const result = await normalizeAndIndex({ db, libraryRoot, sourceId: row.id, sourceConfig: catalogById.get(row.id) });

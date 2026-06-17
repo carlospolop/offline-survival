@@ -27,14 +27,18 @@
   let searchLicense = "";
   let question = "";
   let questionSource = "";
+  let questionModel = "";
+  let chatTurns: any[] = [];
   let answer: any = null;
   let integrity: any = null;
   let licenseReport: any = null;
   let recovery: any = null;
   let review: any = null;
-  let updates: any = null;
   let sharePackage: any = null;
+  let showSharePackageProgress = false;
   let logs: any[] = [];
+  let logSortKey: "title" | "description" | "date" = "date";
+  let logSortDir: "asc" | "desc" = "desc";
   let logsPoller = 0;
   let logsRefreshing = false;
   let searchResults: any[] = [];
@@ -127,7 +131,6 @@
       retryLoadingProfiles: "Retry Loading Profiles",
       noProfilesFound: "No Profiles Found",
       noProfilesFoundHelp: "The source catalog loaded, but it did not contain any configured profiles.",
-      refreshCatalog: "Refresh Catalog",
       downloadFullProfile: "Download Full Profile",
       profileDownloaded: "Profile Downloaded",
       addonSourcesShown: "{count} add-on sources shown",
@@ -173,6 +176,7 @@
       aiService: "AI Service",
       refresh: "Refresh",
       models: "Models",
+      chatModel: "Chat model",
       refreshModels: "Refresh Models",
       askOllama: "Ask Ollama",
       askingOllama: "Asking Ollama...",
@@ -181,10 +185,12 @@
       askBlockedHelp: "Local AI is blocked by the RAM safety guard. Free memory or install a smaller chat model, then try again.",
       sharePackage: "Generate Share Package",
       generatingSharePackage: "Generating Share Package",
-      updates: "Updates",
-      localhostOnly: "Localhost Only",
       logs: "Logs",
       refreshLogs: "Refresh Logs",
+      title: "Title",
+      description: "Description",
+      date: "Date",
+      details: "Details",
       destructiveAction: "Destructive action",
       confirmation: "Confirmation",
       cancel: "Cancel",
@@ -221,8 +227,10 @@
       importedLocalSourcesHelp: "These local files are now part of the app library.",
       importedLocalSourcesEmpty: "No extra local files imported yet.",
       indexAllDownloadedTooltip: "Index all downloaded sources that are not indexed yet. This uses built-in text extraction and does not require an embedding model.",
+      reindexAllDownloadedTooltip: "Rebuild the search and Local AI text index for every downloaded source.",
       indexDownloadedCount: "Index {count} Downloaded",
       allDownloadedIndexed: "All Downloaded Indexed",
+      reindexAllDownloaded: "Re-Index All",
       searchableResources: "Searchable Resources",
       searchableResourcesReady: "Indexed sources that can be searched now.",
       searchableResourcesEmpty: "No indexed resources yet. Open or index downloaded sources first.",
@@ -313,7 +321,10 @@
       indexOriginalOnlyError: "Could not build a full-text index for this source. It is registered for basic search only. {note}",
       indexAllDownloadedTitle: "Index {count} Downloaded",
       indexAllDownloadedBody: "The app will index every downloaded source that is not searchable yet. This makes them appear in Search and gives Local AI local context.",
+      reindexAllDownloadedTitle: "Re-Index All Downloaded",
+      reindexAllDownloadedBody: "The app will rebuild the searchable index for every downloaded source. It will not download anything new.",
       indexFindDownloadedStep: "Find downloaded sources that are not indexed yet.",
+      reindexFindDownloadedStep: "Find every downloaded source.",
       indexResultsStep: "Store the results in the local search database.",
       sourcesToIndex: "Sources to index",
       downloadedDataToScan: "Downloaded data to scan",
@@ -434,7 +445,6 @@
       retryLoadingProfiles: "Reintentar carga",
       noProfilesFound: "No se encontraron perfiles",
       noProfilesFoundHelp: "El catálogo de fuentes cargó, pero no contiene perfiles configurados.",
-      refreshCatalog: "Actualizar catálogo",
       downloadFullProfile: "Descargar perfil completo",
       profileDownloaded: "Perfil descargado",
       addonSourcesShown: "{count} fuentes añadidas mostradas",
@@ -480,6 +490,7 @@
       aiService: "Servicio de IA",
       refresh: "Actualizar",
       models: "Modelos",
+      chatModel: "Modelo de chat",
       refreshModels: "Actualizar modelos",
       askOllama: "Preguntar a Ollama",
       askingOllama: "Preguntando a Ollama...",
@@ -488,10 +499,12 @@
       askBlockedHelp: "La IA local está bloqueada por la protección de RAM. Libera memoria o instala un modelo de chat más pequeño y prueba de nuevo.",
       sharePackage: "Generar paquete",
       generatingSharePackage: "Generando paquete",
-      updates: "Actualizaciones",
-      localhostOnly: "Solo localhost",
       logs: "Registros",
       refreshLogs: "Actualizar registros",
+      title: "Título",
+      description: "Descripción",
+      date: "Fecha",
+      details: "Detalles",
       destructiveAction: "Acción destructiva",
       confirmation: "Confirmación",
       cancel: "Cancelar",
@@ -528,8 +541,10 @@
       importedLocalSourcesHelp: "Estos archivos locales ya forman parte de la biblioteca.",
       importedLocalSourcesEmpty: "Aún no hay archivos locales importados.",
       indexAllDownloadedTooltip: "Indexa todas las fuentes descargadas que aún no están indexadas. Usa extracción de texto integrada y no requiere un modelo de embeddings.",
+      reindexAllDownloadedTooltip: "Reconstruye el índice de búsqueda e IA local de todas las fuentes descargadas.",
       indexDownloadedCount: "Indexar {count} descargados",
       allDownloadedIndexed: "Todos los descargados indexados",
+      reindexAllDownloaded: "Reindexar todo",
       searchableResources: "Recursos buscables",
       searchableResourcesReady: "Fuentes indexadas que ya se pueden buscar.",
       searchableResourcesEmpty: "Aún no hay recursos indexados. Abre o indexa fuentes descargadas primero.",
@@ -620,7 +635,10 @@
       indexOriginalOnlyError: "No se pudo crear un índice de texto completo para esta fuente. Queda registrada para búsqueda básica. {note}",
       indexAllDownloadedTitle: "Indexar {count} descargados",
       indexAllDownloadedBody: "La app indexará cada fuente descargada que aún no sea buscable. Así aparece en Búsqueda y da contexto a la IA local.",
+      reindexAllDownloadedTitle: "Reindexar todo lo descargado",
+      reindexAllDownloadedBody: "La app reconstruirá el índice buscable de cada fuente descargada. No descargará nada nuevo.",
       indexFindDownloadedStep: "Encontrar fuentes descargadas que aún no están indexadas.",
+      reindexFindDownloadedStep: "Encontrar todas las fuentes descargadas.",
       indexResultsStep: "Guardar los resultados en la base de datos de búsqueda local.",
       sourcesToIndex: "Fuentes a indexar",
       downloadedDataToScan: "Datos descargados a escanear",
@@ -852,14 +870,6 @@
         ready_for_kiwix: "listo para Kiwix",
         not_ready: "no listo"
       },
-      updateStatuses: {
-        "manual-release-check": "comprobación manual de versiones",
-        "current-local-snapshot": "copia local actual",
-        not_refreshed: "sin actualizar",
-        user_approved_only: "solo con aprobación del usuario",
-        manual: "manual",
-        "local-manifest-snapshot": "copia local de manifiestos"
-      },
       phases: {
         download: "Descarga",
         prepare: "Preparación",
@@ -946,6 +956,10 @@
     return downloaded && !fullyIndexedSourceIds.has(source.id);
   });
   $: indexableDownloadedSources = notSearchableDownloads.filter((source) => !["queued", "downloading", "resuming"].includes(String(downloadState.get(source.id)?.status ?? "")));
+  $: downloadedIndexSources = stateSources.filter((source) => {
+    const status = String(source.status ?? "");
+    return Boolean(source.local_path) && ["downloaded", "verified", "indexed", "indexed-original-only", "downloaded_unverified"].includes(status);
+  });
   $: extraFiles = Array.isArray(extraScan?.files) ? extraScan.files : [];
   $: selectedExtraFiles = extraFiles.filter((file) => extraSelections[file.path]);
   $: extraImportedSources = stateSources.filter((source) => String(source.id ?? "").startsWith("extra-"));
@@ -970,6 +984,7 @@
   $: recommendedEmbeddingModel = recommendedModel(system, availableModels, "embedding");
   $: recommendedAiModels = recommendedModels(system, availableModels, recommendedChatModel, recommendedEmbeddingModel);
   $: installedChatModels = availableModels.filter((model) => model.role === "chat" && model.status === "installed");
+  $: keepQuestionModelValid(installedChatModels, questionModel);
   $: startAiModel = [...installedChatModels].sort((a, b) => Number(a.expected_size_bytes ?? 0) - Number(b.expected_size_bytes ?? 0))[0] ?? null;
   $: startAiRequiredBytes = estimateAiRamBytes(startAiModel);
   $: startAiSwapPressure = Boolean(system?.swapTotalBytes > 0 && system?.swapFreeBytes < Math.max(1024 ** 3, system.swapTotalBytes * 0.4));
@@ -984,6 +999,9 @@
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
   $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy.has("ai-install"));
   $: aiInstallComplete = aiInstallProgress?.status === "complete";
+  $: showSharePackageProgress = Boolean(sharePackageProgress) && (
+    busy.has("share-package") || ["running", "failed", "complete"].includes(String(sharePackageProgress?.status ?? ""))
+  );
   $: askBusy = busy.has("ask");
   $: selectedEasyProfiles = contentProfiles.filter((profile) => easyProfileSelections[profile.id]);
   $: selectedEasySourceIds = [...new Set(selectedEasyProfiles.flatMap((profile) => profile.sourceIds ?? []))];
@@ -1009,9 +1027,10 @@
       sourceCount: profile.sourceIds?.length ?? 0
     }))
   ];
+  $: sortedLogs = sortLogs(logs, logSortKey, logSortDir);
   $: keepShareProfileValid(shareOptions, shareProfile);
-  $: if (activeTab === "settings") startLogsPolling();
-  $: if (activeTab !== "settings") stopLogsPolling();
+  $: if (activeTab === "logs") startLogsPolling();
+  $: if (activeTab !== "logs") stopLogsPolling();
 
   onMount(() => {
     setUiLanguage(uiLanguage);
@@ -1141,10 +1160,52 @@
     return _catT?.tiers?.[value] ?? value;
   }
 
-  function updateStatusLabel(status: unknown) {
-    const value = String(status ?? "");
-    if (!value) return "";
-    return _catT?.updateStatuses?.[value] ?? value.replace(/[-_]/g, " ");
+  function logTitle(log: Record<string, any>) {
+    return phaseLabel(log.kind) || String(log.kind ?? "");
+  }
+
+  function logDescription(log: Record<string, any>) {
+    return detailLabel(log.message);
+  }
+
+  function logDateValue(log: Record<string, any>) {
+    const parsed = Date.parse(String(log.created_at ?? ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function logDateLabel(log: Record<string, any>) {
+    const value = String(log.created_at ?? "");
+    const parsed = Date.parse(value);
+    if (!Number.isFinite(parsed)) return value;
+    return new Intl.DateTimeFormat(uiLanguage === "es" ? "es-ES" : "en-US", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(parsed));
+  }
+
+  function sortLogs(items: any[], key: "title" | "description" | "date", direction: "asc" | "desc") {
+    const multiplier = direction === "asc" ? 1 : -1;
+    return [...items].sort((a, b) => {
+      let result = 0;
+      if (key === "date") result = logDateValue(a) - logDateValue(b);
+      else if (key === "title") result = logTitle(a).localeCompare(logTitle(b), uiLanguage);
+      else result = logDescription(a).localeCompare(logDescription(b), uiLanguage);
+      return result * multiplier || (logDateValue(b) - logDateValue(a));
+    });
+  }
+
+  function sortLogsBy(key: "title" | "description" | "date") {
+    if (logSortKey === key) {
+      logSortDir = logSortDir === "asc" ? "desc" : "asc";
+      return;
+    }
+    logSortKey = key;
+    logSortDir = key === "date" ? "desc" : "asc";
+  }
+
+  function logSortIndicator(key: "title" | "description" | "date") {
+    if (logSortKey !== key) return "";
+    return logSortDir === "asc" ? " ^" : " v";
   }
 
   function detailLabel(detail: unknown) {
@@ -1176,12 +1237,22 @@
     shareProfile = options[0].id;
   }
 
+  function keepQuestionModelValid(models: Array<Record<string, any>>, current: string) {
+    if (!models.length) {
+      if (current) questionModel = "";
+      return;
+    }
+    if (current && models.some((model) => model.id === current || model.pull === current)) return;
+    questionModel = models[0].id;
+  }
+
   async function load() {
     error = "";
     catalogError = "";
     loadingCatalog = true;
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
-    if (requestedTab && ["dashboard", "downloads", "search", "extra", "ai", "share", "settings", "easy"].includes(requestedTab)) activeTab = requestedTab;
+    if (requestedTab === "settings") activeTab = "logs";
+    else if (requestedTab && ["dashboard", "downloads", "search", "extra", "ai", "share", "logs", "easy"].includes(requestedTab)) activeTab = requestedTab;
     try {
       [catalog, state, system] = await Promise.all([api("/api/catalog"), api("/api/state"), api("/api/system")]);
       libraryPath = String(state.settings.libraryRoot ?? "");
@@ -1346,13 +1417,15 @@
   }
 
   async function indexAllDownloaded() {
-    const sources = indexableDownloadedSources;
+    const reindexAll = indexableDownloadedSources.length === 0 && downloadedIndexSources.length > 0;
+    const sources = reindexAll ? downloadedIndexSources : indexableDownloadedSources;
+    if (!sources.length) return;
     const accepted = await requestConfirm({
       tone: "normal",
-      title: t("indexAllDownloadedTitle", { count: sources.length }),
-      body: t("indexAllDownloadedBody"),
+      title: reindexAll ? t("reindexAllDownloadedTitle") : t("indexAllDownloadedTitle", { count: sources.length }),
+      body: reindexAll ? t("reindexAllDownloadedBody") : t("indexAllDownloadedBody"),
       steps: [
-        t("indexFindDownloadedStep"),
+        t(reindexAll ? "reindexFindDownloadedStep" : "indexFindDownloadedStep"),
         t("indexExtractStep"),
         t("indexResultsStep")
       ],
@@ -1362,11 +1435,14 @@
         [t("indexLocation"), t("localAppDatabase")],
         [t("embeddingModelRequired"), t("embeddingNotRequired")]
       ],
-      confirmLabel: t("indexDownloadedSources"),
+      confirmLabel: reindexAll ? t("reindexAllDownloaded") : t("indexDownloadedSources"),
       cancelLabel: t("cancel")
     });
     if (!accepted) return;
-    await run("index-all-downloaded", () => api("/api/index/downloaded", { method: "POST" }));
+    await run("index-all-downloaded", () => api("/api/index/downloaded", {
+      method: "POST",
+      body: JSON.stringify({ reindexAll })
+    }));
   }
 
   async function openOriginal(sourceId: string) {
@@ -1459,7 +1535,7 @@
   async function startOllama() {
     await run("ollama-start", () => api("/api/ollama/start", {
       method: "POST",
-      body: JSON.stringify({ model: startAiModel?.id ?? startAiModel?.pull })
+      body: JSON.stringify({ model: questionModel || startAiModel?.id || startAiModel?.pull })
     }));
   }
 
@@ -1506,9 +1582,14 @@
   }
 
   async function ask() {
+    const currentQuestion = question.trim();
+    if (!currentQuestion) return;
+    const history = chatTurns.map((turn) => ({ question: turn.question, answer: turn.answer }));
     await run("ask", async () => {
       answer = null;
-      answer = await api("/api/ask", { method: "POST", body: JSON.stringify({ question, sourceId: questionSource || undefined }) });
+      answer = await api("/api/ask", { method: "POST", body: JSON.stringify({ question: currentQuestion, history, sourceId: questionSource || undefined, model: questionModel || undefined }) });
+      chatTurns = [...chatTurns, { question: currentQuestion, ...answer }];
+      question = "";
     });
   }
 
@@ -1576,16 +1657,6 @@
     });
   }
 
-  async function updatesStatus() {
-    await run("updates", async () => {
-      updates = await api("/api/updates/status");
-    });
-  }
-
-  async function refreshCatalog() {
-    await run("catalog-refresh", () => api("/api/catalog/refresh", { method: "POST" }));
-  }
-
   async function generateSharePackage() {
     if (!shareProfile) return;
     sharePackage = null;
@@ -1644,10 +1715,6 @@
       }
       await load();
     });
-  }
-
-  async function keepLocalhostOnly() {
-    await run("network", () => api("/api/settings/network", { method: "POST", body: JSON.stringify({ enabled: false }) }));
   }
 
   async function loadLogs() {
@@ -2014,7 +2081,7 @@
       <button type="button" class:active={activeTab === "extra"} on:click={() => activeTab = "extra"}>{t("extraKnowledge")}</button>
       <button type="button" class:active={activeTab === "ai"} on:click={() => activeTab = "ai"}>{t("localAi")}</button>
       <button type="button" class:active={activeTab === "share"} on:click={() => activeTab = "share"}>{t("share")}</button>
-      <button type="button" class:active={activeTab === "settings"} on:click={() => activeTab = "settings"}>{t("settings")}</button>
+      <button type="button" class:active={activeTab === "logs"} on:click={() => activeTab = "logs"}>{t("logs")}</button>
     </nav>
     {#if error}<div class="alert">{error}</div>{/if}
     {#if busy.size}<div class="busy">{t("working", { busy: [...busy].join(", ") })}</div>{/if}
@@ -2197,7 +2264,7 @@
       <section class="band emptyState">
         <h2>{t("noProfilesFound")}</h2>
         <p>{t("noProfilesFoundHelp")}</p>
-        <button type="button" on:click={refreshCatalog}>{t("refreshCatalog")}</button>
+        <button type="button" on:click={load}>{t("retryLoadingProfiles")}</button>
       </section>
     {:else}
     {#each contentProfiles as profile, index}
@@ -2458,9 +2525,9 @@
       <div class="sectionHeader">
         <h2>{t("search")}</h2>
         <span class="actions">
-          <span class="tooltipHost" title={t("indexAllDownloadedTooltip")}>
-            <button type="button" on:click={indexAllDownloaded} disabled={!!busy.size || !indexableDownloadedSources.length}>
-              {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : t("allDownloadedIndexed")}
+          <span class="tooltipHost" title={indexableDownloadedSources.length || !downloadedIndexSources.length ? t("indexAllDownloadedTooltip") : t("reindexAllDownloadedTooltip")}>
+            <button type="button" on:click={indexAllDownloaded} disabled={!!busy.size || (!indexableDownloadedSources.length && !downloadedIndexSources.length)}>
+              {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : downloadedIndexSources.length ? t("reindexAllDownloaded") : t("allDownloadedIndexed")}
             </button>
           </span>
         </span>
@@ -2765,8 +2832,8 @@
         <h2>{t("localAi")}</h2>
         <span class="actions">
           <span>{t("indexedResourcesAvailable", { count: indexedSources.length })}</span>
-          <button type="button" on:click={indexAllDownloaded} disabled={!!busy.size || !indexableDownloadedSources.length}>
-            {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : t("allDownloadedIndexed")}
+          <button type="button" on:click={indexAllDownloaded} disabled={!!busy.size || (!indexableDownloadedSources.length && !downloadedIndexSources.length)}>
+            {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : downloadedIndexSources.length ? t("reindexAllDownloaded") : t("allDownloadedIndexed")}
           </button>
         </span>
       </div>
@@ -2778,8 +2845,17 @@
             <option value={source.id}>{sourceTitle(source)}</option>
           {/each}
         </select>
+        <select bind:value={questionModel} aria-label={t("chatModel")} disabled={!installedChatModels.length}>
+          {#if installedChatModels.length}
+            {#each installedChatModels as model}
+              <option value={model.id}>{modelTitle(model)} · {model.pull}</option>
+            {/each}
+          {:else}
+            <option value="">{t("installChatModelFirst")}</option>
+          {/if}
+        </select>
         <textarea placeholder={t("askPlaceholder")} bind:value={question}></textarea>
-        <button class="askSubmitButton" disabled={!!busy.size || !question.trim()}>
+        <button class="askSubmitButton" disabled={!!busy.size || !question.trim() || !questionModel}>
           {#if askBusy}
             <span class="spinner" aria-hidden="true"></span>
             {t("askingOllama")}
@@ -2804,13 +2880,18 @@
           {/if}
         </article>
       {/if}
-      {#if answer}
-        <article class="answer">
-          <p>{answer.answer}</p>
-          {#each answer.citations as citation}
-            <small>[{citation.index}] {sourceTitleById(citation.source_id, citation.title)} · {citation.path}</small>
+      {#if chatTurns.length}
+        <div class="chatThread">
+          {#each chatTurns as turn}
+            <article class="answer">
+              <strong>{turn.question}</strong>
+              <p>{turn.answer}</p>
+              {#each turn.citations as citation}
+                <small>[{citation.index}] {sourceTitleById(citation.source_id, citation.title)} · {citation.path}</small>
+              {/each}
+            </article>
           {/each}
-        </article>
+        </div>
       {/if}
     </section>
     {/if}
@@ -2850,7 +2931,7 @@
       {:else}
         <small class="pathHint">{t("appBundleFolderHelp")}</small>
       {/if}
-      {#if sharePackageProgress && (busy.has("share-package") || ["running", "failed", "complete"].includes(String(sharePackageProgress.status ?? "")))}
+      {#if showSharePackageProgress}
         <div class="progressPanel">
           <div class="progressHeader">
             <strong>{profileTitleById(sharePackageProgress.profileId, sharePackageProgress.profileTitle ?? t("sharePackageProgressTitle"))}</strong>
@@ -2900,45 +2981,39 @@
 
     {/if}
 
-    {#if activeTab === "settings"}
-    <section id="settings" class="band">
-      <div class="sectionHeader">
-        <h2>{t("settings")}</h2>
-        <span class="actions">
-          <button on:click={updatesStatus} disabled={!!busy.size}>{t("updates")}</button>
-          <button on:click={refreshCatalog} disabled={!!busy.size}>{t("refreshCatalog")}</button>
-          <button on:click={keepLocalhostOnly} disabled={!!busy.size}>{t("localhostOnly")}</button>
-        </span>
-      </div>
-      {#if updates}
-        <article class="answer">
-          <strong>{t("updateChannels")}</strong>
-          <small>{t("appUpdate")}: {updateStatusLabel(updates.app_update)}</small>
-          <small>{t("manifestsUpdate")}: {updateStatusLabel(updates.manifest_update)}</small>
-          <small>{t("contentUpdate")}: {updateStatusLabel(updates.content_snapshot_update)}</small>
-          <small>{t("openServicesUpdate")}: {updateStatusLabel(updates.runtime_update)}</small>
-          <small>{t("modelsUpdate")}: {updateStatusLabel(updates.model_update)}</small>
-        </article>
-      {/if}
-      <article class="answer">
-        <strong>{t("networkPolicy")}</strong>
-        <small>{t("networkPolicyHelp")}</small>
-      </article>
-    </section>
-
+    {#if activeTab === "logs"}
     <section id="logs" class="band">
       <div class="sectionHeader">
         <h2>{t("logs")}</h2>
         <button on:click={loadLogs} disabled={!!busy.size}>{t("refreshLogs")}</button>
       </div>
-      <div class="results">
-        {#each logs as log}
-          <article>
-            <h3>{phaseLabel(log.kind)}</h3>
-            <p>{detailLabel(log.message)}</p>
-            <small>{log.created_at}</small>
-          </article>
-        {/each}
+      <div class="logTableWrap">
+        <table class="logTable">
+          <thead>
+            <tr>
+              <th><button type="button" on:click={() => sortLogsBy("title")}>{t("title")}{logSortIndicator("title")}</button></th>
+              <th><button type="button" on:click={() => sortLogsBy("description")}>{t("description")}{logSortIndicator("description")}</button></th>
+              <th><button type="button" on:click={() => sortLogsBy("date")}>{t("date")}{logSortIndicator("date")}</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each sortedLogs as log}
+              <tr>
+                <td><strong>{logTitle(log)}</strong></td>
+                <td>
+                  <details class="logDetails">
+                    <summary>{t("details")}</summary>
+                    <p>{logDescription(log)}</p>
+                    {#if log.data}
+                      <small>{log.data}</small>
+                    {/if}
+                  </details>
+                </td>
+                <td><time datetime={log.created_at}>{logDateLabel(log)}</time></td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </section>
     {/if}

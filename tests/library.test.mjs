@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Creator, StringItem } from "@openzim/libzim";
-import { ensureLibrary, openState, removeSourcesNotInCatalog, upsertSource } from "../app/backend/state.mjs";
+import { ensureLibrary, openState, pruneOldEvents, pruneOldLogFiles, recordEvent, removeSourcesNotInCatalog, upsertSource } from "../app/backend/state.mjs";
 import { downloadProfile, downloadSource, verifySource } from "../app/backend/downloader.mjs";
 import { indexDownloadedSources, loadLibzim, normalizeAndIndex, search } from "../app/backend/indexer.mjs";
 import { exportManifest, integrityReport, writeLock } from "../app/backend/archive.mjs";
@@ -44,6 +44,31 @@ async function writeFakeAllPlatformApps(projectRoot) {
 }
 
 describe("library workflows", () => {
+  it("prunes log events older than 90 days", async () => {
+    const db = openState(root);
+    try {
+      const oldDate = new Date(Date.now() - 91 * 24 * 60 * 60 * 1000).toISOString();
+      db.prepare("INSERT INTO events (kind, message, data, created_at) VALUES (?, ?, ?, ?)").run("old", "too old", null, oldDate);
+      recordEvent(db, "new", "fresh event");
+      expect(pruneOldEvents(db)).toBe(0);
+      expect(db.prepare("SELECT kind FROM events ORDER BY created_at").all().map((row) => row.kind)).toEqual(["new"]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("prunes log files older than 90 days", async () => {
+    const oldLog = path.join(root, "logs", "kiwix-2000-01-01.log");
+    const freshLog = path.join(root, "logs", "ollama.log");
+    await fs.writeFile(oldLog, "old");
+    await fs.writeFile(freshLog, "fresh");
+    const oldDate = new Date(Date.now() - 91 * 24 * 60 * 60 * 1000);
+    await fs.utimes(oldLog, oldDate, oldDate);
+    expect(await pruneOldLogFiles(root)).toBe(1);
+    await expect(fs.stat(oldLog)).rejects.toThrow();
+    expect(await fs.readFile(freshLog, "utf8")).toBe("fresh");
+  });
+
   it("downloads, verifies, indexes, and searches a text artifact", async () => {
     const source = {
       id: "test-manual",
@@ -311,6 +336,12 @@ describe("library workflows", () => {
     expect(search(db, "tinder")[0].source_id).toBe(second.id);
     const secondRun = await indexDownloadedSources({ db, libraryRoot: root });
     expect(secondRun.results).toHaveLength(0);
+
+    await fs.writeFile(path.join(root, "raw/html/b.html"), "<h1>Smoke</h1> Signal smoke clearly.");
+    const reindexed = await indexDownloadedSources({ db, libraryRoot: root, reindexAll: true });
+    expect(reindexed.results).toHaveLength(2);
+    expect(search(db, "smoke clearly")[0].source_id).toBe(second.id);
+    expect(search(db, "tinder", 5)).toHaveLength(0);
     db.close();
   });
 
