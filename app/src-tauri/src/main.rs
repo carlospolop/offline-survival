@@ -52,9 +52,14 @@ pub fn run() {
                     resource_dir.join("kiwix").to_string_lossy().to_string(),
                 )
                 .spawn()?;
+            let backend_process = BackendProcess {
+                child,
+                port: backend_port,
+                token: backend_token.clone(),
+            };
             *setup_backend_child
                 .lock()
-                .expect("backend child lock poisoned") = Some(child);
+                .expect("backend child lock poisoned") = Some(backend_process);
             tauri::async_runtime::spawn(async move {
                 while let Some(event) = rx.recv().await {
                     if let tauri_plugin_shell::process::CommandEvent::Stderr(line) = event {
@@ -101,14 +106,44 @@ fn main() {
     run();
 }
 
-type BackendChild = Arc<Mutex<Option<CommandChild>>>;
+type BackendChild = Arc<Mutex<Option<BackendProcess>>>;
 
-fn kill_backend_child(child: &BackendChild) {
-    let Some(child) = child.lock().expect("backend child lock poisoned").take() else {
+struct BackendProcess {
+    child: CommandChild,
+    port: u16,
+    token: String,
+}
+
+fn kill_backend_child(backend: &BackendChild) {
+    let Some(backend) = backend.lock().expect("backend child lock poisoned").take() else {
         return;
     };
-    if let Err(error) = child.kill() {
+    request_backend_shutdown(backend.port, &backend.token);
+    if let Err(error) = backend.child.kill() {
         eprintln!("failed to stop backend sidecar: {error}");
+    }
+}
+
+fn request_backend_shutdown(port: u16, token: &str) {
+    let Ok(mut stream) = TcpStream::connect_timeout(
+        &format!("127.0.0.1:{port}")
+            .parse()
+            .expect("valid backend address"),
+        Duration::from_millis(300),
+    ) else {
+        return;
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(6)));
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(2)));
+    let request = format!(
+        "POST /api/shutdown HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nX-SCA-Backend-Token: {token}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    );
+    if stream.write_all(request.as_bytes()).is_err() {
+        return;
+    }
+    let mut response = Vec::new();
+    if let Err(error) = stream.read_to_end(&mut response) {
+        eprintln!("failed to read backend shutdown response: {error}");
     }
 }
 

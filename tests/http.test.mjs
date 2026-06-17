@@ -3,6 +3,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { openState } from "../app/backend/state.mjs";
+import { upsertService } from "../app/backend/services.mjs";
 
 const port = 9876;
 let child;
@@ -30,6 +32,25 @@ afterAll(async () => {
   child?.kill();
   await fs.rm(root, { recursive: true, force: true });
 });
+
+function waitForExit(childProcess) {
+  return new Promise((resolve) => {
+    if (childProcess.exitCode !== null || childProcess.signalCode !== null) return resolve();
+    childProcess.once("exit", resolve);
+  });
+}
+
+async function waitForProcessGone(pid) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return false;
+}
 
 describe("HTTP API", () => {
   it("serves catalog, system, adapters, license report, and integrity", async () => {
@@ -133,5 +154,27 @@ describe("HTTP API", () => {
       expect(response.status).toBe(404);
       expect(await response.json()).toEqual({ error: "Unknown API endpoint" });
     }
+  });
+
+  it("stops Kiwix and Ollama service processes before backend shutdown", async () => {
+    const kiwix = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+    const ollama = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+    const db = openState(root);
+    try {
+      upsertService(db, { name: "kiwix", status: "running", pid: kiwix.pid });
+      upsertService(db, { name: "ollama", status: "running", pid: ollama.pid });
+    } finally {
+      db.close();
+    }
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/shutdown`, { method: "POST" });
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.status).toBe("shutting_down");
+
+    await waitForExit(child);
+    expect(await waitForProcessGone(kiwix.pid)).toBe(true);
+    expect(await waitForProcessGone(ollama.pid)).toBe(true);
+    child = null;
   });
 });

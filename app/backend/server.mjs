@@ -50,6 +50,9 @@ configureManagedRuntimes();
 await syncCatalog();
 scheduleStartupIndexRepair();
 
+let shuttingDown = false;
+let server = null;
+
 async function syncCatalog() {
   configureManagedRuntimes();
   const catalog = await loadCatalog();
@@ -127,6 +130,40 @@ async function withDb(work) {
   } finally {
     db.close();
   }
+}
+
+function shutdownAuthorized(req) {
+  const token = process.env.SCA_BACKEND_TOKEN ?? "";
+  if (!token) return true;
+  return req.headers["x-sca-backend-token"] === token;
+}
+
+async function stopRuntimeServices() {
+  return await withDb(async (db) => {
+    const results = [];
+    for (const name of ["kiwix", "ollama"]) {
+      try {
+        results.push(await stopService(db, name));
+      } catch (error) {
+        results.push({ name, status: "failed", error: String(error.message ?? error) });
+      }
+    }
+    return results;
+  });
+}
+
+async function shutdownBackend({ exitCode = 0 } = {}) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  await stopRuntimeServices();
+  closeBackend(exitCode);
+}
+
+function closeBackend(exitCode = 0) {
+  server?.close(() => {
+    process.exit(exitCode);
+  });
+  setTimeout(() => process.exit(exitCode), 1000).unref?.();
 }
 
 async function route(req, res) {
@@ -406,6 +443,14 @@ async function route(req, res) {
       const body = await json(req);
       const result = await withDb((db) => stopService(db, body.name));
       return send(res, 200, result);
+    }
+    if (url.pathname === "/api/shutdown" && req.method === "POST") {
+      if (!shutdownAuthorized(req)) return send(res, 403, { error: "Forbidden" });
+      shuttingDown = true;
+      const services = await stopRuntimeServices();
+      send(res, 200, { status: "shutting_down", services });
+      setTimeout(() => closeBackend(), 50).unref?.();
+      return;
     }
     if (url.pathname === "/api/ask" && req.method === "POST") {
       const body = await json(req);
@@ -1073,6 +1118,20 @@ function contentType(file) {
   return "text/html; charset=utf-8";
 }
 
-http.createServer(route).listen(port, "127.0.0.1", () => {
+process.once("SIGINT", () => {
+  shutdownBackend({ exitCode: 130 }).catch((error) => {
+    console.error(`Shutdown failed: ${String(error.message ?? error)}`);
+    process.exit(130);
+  });
+});
+
+process.once("SIGTERM", () => {
+  shutdownBackend({ exitCode: 143 }).catch((error) => {
+    console.error(`Shutdown failed: ${String(error.message ?? error)}`);
+    process.exit(143);
+  });
+});
+
+server = http.createServer(route).listen(port, "127.0.0.1", () => {
   console.log(`Offline Survival API listening at http://127.0.0.1:${port}`);
 });
