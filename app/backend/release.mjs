@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -7,6 +8,7 @@ import { sha256File } from "./downloader.mjs";
 import { now, recordEvent, setSetting } from "./state.mjs";
 
 const execFileAsync = promisify(execFile);
+const defaultShareCopyConcurrency = Math.max(1, Number(process.env.SCA_SHARE_COPY_CONCURRENCY ?? Math.min(8, Math.max(2, os.cpus().length))));
 
 export async function writeReleaseChecksums({ db, libraryRoot, files = [] }) {
   const checksumsDir = path.join(libraryRoot, "checksums");
@@ -274,18 +276,17 @@ function parseReleaseAppFolder(name) {
 
 async function copyShareApps({ appSources, appsDir }) {
   await fs.rm(appsDir, { recursive: true, force: true });
-  const copied = [];
-  for (const app of appSources) {
+  const copied = await mapLimit(appSources, defaultShareCopyConcurrency, async (app) => {
     const destination = path.join(appsDir, app.label);
     await fs.mkdir(path.dirname(destination), { recursive: true });
     await fs.cp(app.sourceDir, destination, { recursive: true, dereference: false });
-    copied.push({
+    return {
       label: app.label,
       platform: app.platform,
       arch: app.arch,
       path: path.relative(path.dirname(appsDir), destination)
-    });
-  }
+    };
+  });
   return copied;
 }
 
@@ -295,32 +296,41 @@ async function copyProfileLibraryForShare({ db, libraryRoot, target, packageDir,
   await copyIfExists(path.join(libraryRoot, "archive-state.sqlite"), path.join(target, "archive-state.sqlite"), packageDir);
 
   const copiedRelPaths = new Set(["archive-state.sqlite"]);
-  for (const [index, row] of sourceRows.entries()) {
+  const copyTasks = new Map();
+  let started = 0;
+  await mapLimit(sourceRows, defaultShareCopyConcurrency, async (row) => {
+    started += 1;
+    const current = started;
     updateShareProgress(db, {
       status: "running",
       phase: "copy-library",
       detail: `Copying ${row.title}.`,
-      percent: Math.min(67, 25 + Math.round(((index + 1) / Math.max(sourceRows.length, 1)) * 40)),
+      percent: Math.min(67, 25 + Math.round((current / Math.max(sourceRows.length, 1)) * 40)),
       profileId: profile.id,
       profileTitle: profile.title,
-      current: index + 1,
+      current,
       total: sourceRows.length,
       sourceId: row.id
     });
-    await copyRelPath({ libraryRoot, target, packageDir, relPath: row.local_path, copiedRelPaths });
-    await copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("opened", row.id), copiedRelPaths });
-    await copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("normalized", "text", `${row.id}.txt`), copiedRelPaths });
-    await copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("normalized", "markdown", `${row.id}.md`), copiedRelPaths });
-    await copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("chunks", `${row.id}.jsonl`), copiedRelPaths });
-  }
+    await Promise.all([
+      copyRelPath({ libraryRoot, target, packageDir, relPath: row.local_path, copiedRelPaths, copyTasks }),
+      copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("opened", row.id), copiedRelPaths, copyTasks }),
+      copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("normalized", "text", `${row.id}.txt`), copiedRelPaths, copyTasks }),
+      copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("normalized", "markdown", `${row.id}.md`), copiedRelPaths, copyTasks }),
+      copyRelPath({ libraryRoot, target, packageDir, relPath: path.join("chunks", `${row.id}.jsonl`), copiedRelPaths, copyTasks })
+    ]);
+  });
   return copiedRelPaths;
 }
 
-async function copyRelPath({ libraryRoot, target, packageDir, relPath, copiedRelPaths }) {
+async function copyRelPath({ libraryRoot, target, packageDir, relPath, copiedRelPaths, copyTasks = null }) {
   if (!relPath) return false;
   const normalized = path.normalize(relPath);
   if (normalized.startsWith("..") || path.isAbsolute(normalized)) return false;
-  const copied = await copyIfExists(path.join(libraryRoot, normalized), path.join(target, normalized), packageDir);
+  if (copyTasks?.has(normalized)) return copyTasks.get(normalized);
+  const task = copyIfExists(path.join(libraryRoot, normalized), path.join(target, normalized), packageDir);
+  copyTasks?.set(normalized, task);
+  const copied = await task;
   if (copied) copiedRelPaths.add(normalized);
   return copied;
 }
@@ -331,6 +341,22 @@ async function copyIfExists(source, destination, packageDir) {
   await fs.mkdir(path.dirname(destination), { recursive: true });
   await fs.cp(source, destination, { recursive: true, dereference: false });
   return true;
+}
+
+async function mapLimit(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(items.length, Math.max(1, Number(concurrency) || 1));
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
 }
 
 async function writeShareRunScript(scriptPath, appLabel = "linux-x64") {

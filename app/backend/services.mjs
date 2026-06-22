@@ -437,7 +437,7 @@ async function waitForOllama() {
   throw new Error(`Ollama did not start on 127.0.0.1:11434 within ${Math.round(timeoutMs / 1000)} seconds`);
 }
 
-export async function askOllama({ question, contexts, history = [], model = "qwen3:8b", fetchImpl = fetch, onProgress = null }) {
+export async function askOllama({ question, contexts, history = [], model = "qwen3:8b", fetchImpl = fetch, onProgress = null, abortSignal = null }) {
   if (!contexts.length) {
     return {
       answer: noContextAnswer(history),
@@ -459,7 +459,30 @@ export async function askOllama({ question, contexts, history = [], model = "qwe
   const timeoutMs = Number(process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS ?? 120000);
   const controller = typeof AbortController === "function" ? new AbortController() : null;
   const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-  onProgress?.({ status: "running", phase: "generating", generatedTokens: 0, generatedChars: 0, done: false });
+  const cancelGeneration = () => controller?.abort();
+  if (abortSignal?.aborted) cancelGeneration();
+  else abortSignal?.addEventListener?.("abort", cancelGeneration, { once: true });
+  const startedAt = Date.now();
+  const heartbeat = onProgress ? setInterval(() => {
+    onProgress({
+      status: "running",
+      phase: "loading-model",
+      generatedTokens: 0,
+      generatedChars: 0,
+      elapsedSeconds: Math.round((Date.now() - startedAt) / 1000),
+      timeoutSeconds: Math.round(timeoutMs / 1000),
+      done: false
+    });
+  }, 2000) : null;
+  onProgress?.({
+    status: "running",
+    phase: "loading-model",
+    generatedTokens: 0,
+    generatedChars: 0,
+    elapsedSeconds: 0,
+    timeoutSeconds: Math.round(timeoutMs / 1000),
+    done: false
+  });
   try {
     response = await fetchImpl("http://127.0.0.1:11434/api/generate", {
       method: "POST",
@@ -467,6 +490,7 @@ export async function askOllama({ question, contexts, history = [], model = "qwe
       signal: controller?.signal,
       body: JSON.stringify({ model, prompt, stream: true, options: { temperature: 0.1, num_predict: 384 } })
     });
+    if (heartbeat) clearInterval(heartbeat);
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
       const missingModel = response.status === 404 || /model|not found|pull/i.test(detail);
@@ -478,6 +502,7 @@ export async function askOllama({ question, contexts, history = [], model = "qwe
         unsupported: true
       };
     }
+    onProgress?.({ status: "running", phase: "generating", generatedTokens: 0, generatedChars: 0, done: false });
     const data = await readOllamaGenerateStream(response, onProgress);
     return {
       answer: highRiskPrefix(question) + data.response,
@@ -486,15 +511,21 @@ export async function askOllama({ question, contexts, history = [], model = "qwe
       generatedTokens: data.generatedTokens ?? null
     };
   } catch (error) {
+    if (abortSignal?.aborted) {
+      return generationCanceledAnswer({ contexts });
+    }
     if (error?.name === "AbortError" || controller?.signal?.aborted) {
       return generationTimeoutAnswer({ timeoutMs, contexts });
     }
+    const message = String(error?.message ?? error);
     return {
-      answer: "Local AI found relevant indexed sources, but Ollama is not running. Use Local AI -> Install All Recommended, or start Ollama, then ask again.",
+      answer: `Local AI found relevant indexed sources, but Ollama did not return an answer. ${message}`,
       citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
       unsupported: true
     };
   } finally {
+    abortSignal?.removeEventListener?.("abort", cancelGeneration);
+    if (heartbeat) clearInterval(heartbeat);
     if (timeout) clearTimeout(timeout);
   }
 }
@@ -554,6 +585,15 @@ function generationTimeoutAnswer({ timeoutMs, contexts }) {
     citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
     unsupported: true,
     timedOut: true
+  };
+}
+
+function generationCanceledAnswer({ contexts }) {
+  return {
+    answer: "Local AI generation was canceled.",
+    citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
+    unsupported: true,
+    canceled: true
   };
 }
 

@@ -5,8 +5,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Creator, StringItem } from "@openzim/libzim";
-import { ensureLibrary, openState, pruneOldEvents, pruneOldLogFiles, recordEvent, removeSourcesNotInCatalog, upsertSource } from "../app/backend/state.mjs";
-import { downloadProfile, downloadSource, verifySource } from "../app/backend/downloader.mjs";
+import { ensureLibrary, markInterruptedDownloads, openState, pruneOldEvents, pruneOldLogFiles, recordEvent, removeSourcesNotInCatalog, upsertSource } from "../app/backend/state.mjs";
+import { downloadProfile, downloadSource, pauseDownload, verifySource } from "../app/backend/downloader.mjs";
 import { indexDownloadedSources, loadLibzim, normalizeAndIndex, search } from "../app/backend/indexer.mjs";
 import { exportManifest, integrityReport, writeLock } from "../app/backend/archive.mjs";
 import { buildSharePackage } from "../app/backend/release.mjs";
@@ -67,6 +67,62 @@ describe("library workflows", () => {
     expect(await pruneOldLogFiles(root)).toBe(1);
     await expect(fs.stat(oldLog)).rejects.toThrow();
     expect(await fs.readFile(freshLog, "utf8")).toBe("fresh");
+  });
+
+  it("does not pause already local sources when marking interrupted downloads", async () => {
+    const first = {
+      id: "interrupted-original-only",
+      title: "Interrupted Original Only",
+      type: "pdf",
+      license: "CC0",
+      url: "https://example.test/original.pdf",
+      expected_size_bytes: 32,
+      runtime: ["index"]
+    };
+    const second = { ...first, id: "interrupted-unverified", title: "Interrupted Unverified", url: "https://example.test/unverified.pdf" };
+    const third = { ...first, id: "interrupted-missing", title: "Interrupted Missing", url: "https://example.test/missing.pdf" };
+    const db = openState(root);
+    try {
+      upsertSource(db, first, { status: "indexed-original-only", local_path: "raw/pdf/original.pdf" });
+      upsertSource(db, second, { status: "downloaded_unverified", local_path: "raw/pdf/unverified.pdf" });
+      upsertSource(db, third, { status: "queued" });
+      for (const sourceId of [first.id, second.id, third.id]) {
+        db.prepare("INSERT INTO downloads (id, source_id, status, updated_at) VALUES (?, ?, 'downloading', datetime('now'))").run(sourceId, sourceId);
+      }
+
+      expect(markInterruptedDownloads(db)).toBe(3);
+      expect(db.prepare("SELECT id, status FROM sources ORDER BY id").all()).toEqual([
+        { id: third.id, status: "paused" },
+        { id: first.id, status: "indexed-original-only" },
+        { id: second.id, status: "downloaded_unverified" }
+      ]);
+      expect(db.prepare("SELECT DISTINCT status FROM downloads").all()).toEqual([{ status: "paused" }]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("does not pause already local sources from stale pause requests", async () => {
+    const source = {
+      id: "pause-original-only",
+      title: "Pause Original Only",
+      type: "pdf",
+      license: "CC0",
+      url: "https://example.test/original.pdf",
+      expected_size_bytes: 32,
+      runtime: ["index"]
+    };
+    const db = openState(root);
+    try {
+      upsertSource(db, source, { status: "indexed-original-only", local_path: "raw/pdf/original.pdf" });
+      db.prepare("INSERT INTO downloads (id, source_id, status, updated_at) VALUES (?, ?, 'downloading', datetime('now'))").run(source.id, source.id);
+
+      expect(pauseDownload(db, source.id)).toMatchObject({ sourceId: source.id, status: "paused" });
+      expect(db.prepare("SELECT status FROM downloads WHERE id=?").get(source.id).status).toBe("paused");
+      expect(db.prepare("SELECT status FROM sources WHERE id=?").get(source.id).status).toBe("indexed-original-only");
+    } finally {
+      db.close();
+    }
   });
 
   it("downloads, verifies, indexes, and searches a text artifact", async () => {
@@ -218,6 +274,50 @@ describe("library workflows", () => {
     db.close();
   });
 
+  it("skips already local profile sources that are unverified or original-only indexed", async () => {
+    const first = {
+      id: "profile-original-only",
+      title: "Profile Original Only",
+      type: "pdf",
+      license: "CC0",
+      url: "https://example.test/original.pdf",
+      expected_size_bytes: 32,
+      runtime: ["index"],
+      profiles: ["survival-essential"]
+    };
+    const second = {
+      ...first,
+      id: "profile-unverified",
+      title: "Profile Unverified",
+      url: "https://example.test/unverified.pdf"
+    };
+    const profile = { id: "mini", title: "Mini", sourceIds: [first.id, second.id] };
+    const db = openState(root);
+    upsertSource(db, first, { status: "indexed-original-only", local_path: "raw/pdf/original.pdf" });
+    upsertSource(db, second, { status: "downloaded_unverified", local_path: "raw/pdf/unverified.pdf" });
+
+    const downloaded = await downloadProfile({
+      db,
+      libraryRoot: root,
+      profile,
+      sources: [first, second],
+      fetchImpl: async () => {
+        throw new Error("already local sources should not be downloaded");
+      }
+    });
+
+    expect(downloaded.results).toEqual([
+      { sourceId: first.id, skipped: true, status: "indexed-original-only" },
+      { sourceId: second.id, skipped: true, status: "downloaded_unverified" }
+    ]);
+    expect(db.prepare("SELECT id FROM downloads").all()).toHaveLength(0);
+    expect(db.prepare("SELECT id, status FROM sources ORDER BY id").all()).toEqual([
+      { id: first.id, status: "indexed-original-only" },
+      { id: second.id, status: "downloaded_unverified" }
+    ]);
+    db.close();
+  });
+
   it("creates a profile-scoped share package from a portable app folder and local library", async () => {
     const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sca-project-"));
     await writeFakeAllPlatformApps(projectRoot);
@@ -330,8 +430,10 @@ describe("library workflows", () => {
     const result = await indexDownloadedSources({ db, libraryRoot: root, onProgress: (event) => progress.push(event) });
     expect(result.indexed).toBe(2);
     expect(result.remainingUnindexed).toHaveLength(0);
-    expect(progress.map((event) => event.stage)).toEqual(["start", "source-start", "source-complete", "source-start", "source-complete", "complete"]);
-    expect(progress.filter((event) => event.sourceId).map((event) => event.sourceId)).toEqual([first.id, first.id, second.id, second.id]);
+    expect(progress.at(0).stage).toBe("start");
+    expect(progress.at(-1).stage).toBe("complete");
+    expect(progress.filter((event) => event.stage === "source-start").map((event) => event.sourceId).sort()).toEqual([first.id, second.id]);
+    expect(progress.filter((event) => event.stage === "source-complete").map((event) => event.sourceId).sort()).toEqual([first.id, second.id]);
     expect(progress.at(-1).summary.indexed).toBe(2);
     expect(search(db, "tinder")[0].source_id).toBe(second.id);
     const secondRun = await indexDownloadedSources({ db, libraryRoot: root });

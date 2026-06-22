@@ -42,4 +42,18 @@ describe("desktop release workflow", () => {
     expect(api).toContain("if (isPackagedTauri()) return [];");
     expect(server).toContain("url.pathname === \"/api/health\"");
   });
+
+  it("does not pass catalog model ids to Ollama generation paths", async () => {
+    const server = await fs.readFile("app/backend/server.mjs", "utf8");
+    const ui = await fs.readFile("app/ui/src/App.svelte", "utf8");
+
+    expect(server).toContain("return activeChatModel.pull ?? activeChatModel.id ?? body.model ?? \"qwen3:8b\"");
+    expect(server).toContain("function ollamaChatModelName");
+    expect(server).toContain("modelFromCatalog(catalog.models, body.model)?.pull");
+    expect(server).not.toContain("return body.model ?? activeChatModel.pull");
+    expect(ui).toContain("value={model.pull ?? model.id}");
+    expect(ui).toContain("questionModel || startAiModel?.pull || startAiModel?.id");
+    expect(ui).not.toContain("value={model.id}>{modelTitle(model)}");
+    expect(ui).not.toContain("questionModel || startAiModel?.id || startAiModel?.pull");
+  });
 });

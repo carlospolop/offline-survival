@@ -1,5 +1,6 @@
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -188,7 +189,7 @@ async function normalizeAndIndexZim({ db, libraryRoot, source, sourceId, fullPat
   return { sourceId, documents: 1, pages: pageCount, chunks: chunkCount, skippedLarge, skippedUnreadable, zim: true };
 }
 
-export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [], onProgress = null, reindexAll = false }) {
+export async function indexDownloadedSources({ db, libraryRoot, catalogSources = [], onProgress = null, reindexAll = false, concurrency = null }) {
   const catalogById = new Map(catalogSources.map((source) => [source.id, source]));
   // Re-index any source that has never been indexed (d.source_id IS NULL) OR was
   // previously registered as original-only (extraction may have failed in a prior
@@ -226,34 +227,54 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
   }));
   onProgress?.({ stage: "start", total: rows.length, completed: 0, current: 0, queue });
   const results = [];
-  for (const [index, row] of rows.entries()) {
+  const failures = [];
+  let nextIndex = 0;
+  let completed = 0;
+  let stopped = false;
+  const workerCount = Math.min(rows.length, indexConcurrencyForRun(libraryRoot, concurrency));
+
+  async function indexWorker() {
+    while (!stopped) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= rows.length) return;
+      const row = rows[index];
+      await indexRow(row, index);
+    }
+  }
+
+  async function indexRow(row, index) {
     const title = catalogById.get(row.id)?.title ?? row.title ?? row.id;
-    onProgress?.({ stage: "source-start", sourceId: row.id, title, total: rows.length, completed: index, current: index + 1 });
+    onProgress?.({ stage: "source-start", sourceId: row.id, title, total: rows.length, completed, current: index + 1 });
     try {
       const result = await normalizeAndIndex({ db, libraryRoot, sourceId: row.id, sourceConfig: catalogById.get(row.id) });
       results.push(result);
+      completed += 1;
       onProgress?.({
         stage: "source-complete",
         sourceId: row.id,
         title,
         total: rows.length,
-        completed: index + 1,
+        completed,
         current: index + 1,
         result
       });
     } catch (error) {
+      stopped = true;
+      failures.push(error);
       onProgress?.({
         stage: "source-failed",
         sourceId: row.id,
         title,
         total: rows.length,
-        completed: index,
+        completed,
         current: index + 1,
         error: String(error.message ?? error)
       });
-      throw error;
     }
   }
+  await Promise.all(Array.from({ length: workerCount }, () => indexWorker()));
+  if (failures.length) throw failures[0];
   const remainingUnindexed = db.prepare(`
     SELECT s.id, s.title, s.status, s.type
     FROM sources s
@@ -272,6 +293,29 @@ export async function indexDownloadedSources({ db, libraryRoot, catalogSources =
   };
   onProgress?.({ stage: "complete", total: rows.length, completed: rows.length, current: rows.length, summary });
   return summary;
+}
+
+function indexConcurrencyForRun(libraryRoot, requested) {
+  if (requested !== null && requested !== undefined) return Math.max(1, Number(requested) || 1);
+  const envValue = process.env.SCA_INDEX_CONCURRENCY;
+  if (envValue) return Math.max(1, Number(envValue) || 1);
+  let limit = Math.min(4, Math.max(1, os.cpus().length - 1));
+  const freeMem = os.freemem();
+  if (freeMem < 2 * 1024 ** 3) limit = Math.min(limit, 1);
+  else if (freeMem < 4 * 1024 ** 3) limit = Math.min(limit, 2);
+  const disk = freeDiskBytes(libraryRoot);
+  if (disk > 0 && disk < 10 * 1024 ** 3) limit = Math.min(limit, 1);
+  else if (disk > 0 && disk < 25 * 1024 ** 3) limit = Math.min(limit, 2);
+  return Math.max(1, limit);
+}
+
+function freeDiskBytes(target) {
+  try {
+    const stat = fsSync.statfsSync(target);
+    return Number(stat.bavail ?? stat.bfree ?? 0) * Number(stat.bsize ?? 0);
+  } catch {
+    return 0;
+  }
 }
 
 export async function repairCorruptRepoArchiveIndexes({ db, libraryRoot, catalogSources = [] }) {

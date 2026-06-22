@@ -23,6 +23,7 @@ import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, now, openS
 const port = Number(process.env.PORT ?? 8787);
 const root = process.cwd();
 const backendDir = path.dirname(fileURLToPath(import.meta.url));
+const sourceSetupConcurrency = Math.max(1, Number(process.env.SCA_SOURCE_SETUP_CONCURRENCY ?? 4));
 const staticDirCandidates = [
   path.join(root, "app/ui/dist"),
   path.join(root, "ui/dist"),
@@ -48,11 +49,14 @@ configureManagedRuntimes();
   db.close();
 }
 await syncCatalog();
+await clearStaleProgressSettings();
 scheduleStartupIndexRepair();
 
 let shuttingDown = false;
 let server = null;
 const backgroundJobs = new Map();
+let activeIndexOperation = null;
+let activeAskOperation = null;
 
 async function syncCatalog() {
   configureManagedRuntimes();
@@ -64,6 +68,30 @@ async function syncCatalog() {
   refreshAdapters(db, catalog.sources);
   setSetting(db, "libraryRoot", libraryRoot);
   db.close();
+}
+
+async function clearStaleProgressSettings() {
+  await withDb((db) => {
+    const settings = [
+      ["askProgress", "status"],
+      ["indexingProgress", "status"],
+      ["sharePackageProgress", "status"],
+      ["easyInstallProgress", "status"],
+      ["aiInstallProgress", "status"]
+    ];
+    for (const [key, statusField] of settings) {
+      const row = db.prepare("SELECT value FROM settings WHERE key=?").get(key);
+      if (!row?.value) continue;
+      let value = null;
+      try {
+        value = JSON.parse(row.value);
+      } catch {
+        db.prepare("DELETE FROM settings WHERE key=?").run(key);
+        continue;
+      }
+      if (value?.[statusField] === "running") db.prepare("DELETE FROM settings WHERE key=?").run(key);
+    }
+  });
 }
 
 function scheduleStartupIndexRepair() {
@@ -133,6 +161,22 @@ async function withDb(work) {
   }
 }
 
+async function mapLimit(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(items.length, Math.max(1, Number(concurrency) || 1));
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
 function startBackgroundJob(key, work) {
   if (backgroundJobs.has(key)) return false;
   const promise = Promise.resolve()
@@ -145,9 +189,86 @@ function startBackgroundJob(key, work) {
   return true;
 }
 
+async function runExclusiveIndexOperation(label, work) {
+  if (activeIndexOperation) throw new Error(`Indexing is already running (${activeIndexOperation}).`);
+  activeIndexOperation = label;
+  try {
+    return await work();
+  } finally {
+    activeIndexOperation = null;
+  }
+}
+
+async function jobsSnapshot() {
+  return await withDb((db) => {
+    const settings = summarizeState(db).settings ?? {};
+    const downloads = db.prepare("SELECT source_id, status, bytes_received, total_bytes, updated_at FROM downloads WHERE status IN ('queued', 'downloading', 'resuming') ORDER BY updated_at DESC").all();
+    const jobsById = new Map();
+    const addJob = (job) => {
+      if (!jobsById.has(job.id)) jobsById.set(job.id, job);
+    };
+    for (const download of downloads) {
+      addJob({
+        id: `download:${download.source_id}`,
+        kind: "download",
+        status: download.status,
+        sourceId: download.source_id,
+        bytesReceived: download.bytes_received,
+        totalBytes: download.total_bytes,
+        updatedAt: download.updated_at
+      });
+    }
+    for (const key of backgroundJobs.keys()) {
+      const parts = key.split(":");
+      const kind = parts[0];
+      const entityId = parts[parts.length - 1];
+      if (kind === "download" && entityId) addJob({ id: `download:${entityId}`, kind, status: "running", sourceId: entityId });
+      else if (kind === "profile-download" && entityId) addJob({ id: `profile-download:${entityId}`, kind, status: "running", profileId: entityId });
+      else addJob({ id: key, kind, status: "running" });
+    }
+    const jobs = [...jobsById.values()];
+    if (activeIndexOperation) jobs.push({
+      id: `index:${activeIndexOperation}`,
+      kind: "index",
+      status: "running",
+      operation: activeIndexOperation,
+      progress: settings.indexingProgress ?? null
+    });
+    if (activeAskOperation) jobs.push({
+      id: "ask",
+      kind: "ask",
+      status: "running",
+      model: activeAskOperation.model,
+      question: activeAskOperation.question,
+      startedAt: activeAskOperation.startedAt,
+      cancelable: true,
+      progress: settings.askProgress ?? null
+    });
+    if (settings.sharePackageProgress?.status === "running") jobs.push({
+      id: "share-package",
+      kind: "share-package",
+      status: "running",
+      progress: settings.sharePackageProgress
+    });
+    if (settings.aiInstallProgress?.status === "running") jobs.push({
+      id: "ai-install",
+      kind: "ai-install",
+      status: "running",
+      progress: settings.aiInstallProgress
+    });
+    if (settings.easyInstallProgress?.status === "running") jobs.push({
+      id: "easy-install",
+      kind: "easy-install",
+      status: "running",
+      progress: settings.easyInstallProgress
+    });
+    return { jobs };
+  });
+}
+
 function queueSourceDownload(db, source) {
   const row = db.prepare("SELECT status FROM sources WHERE id=?").get(source.id);
-  if (["downloaded", "verified", "indexed"].includes(String(row?.status ?? ""))) {
+  if (["downloaded", "verified", "indexed", "indexed-original-only", "downloaded_unverified"].includes(String(row?.status ?? ""))) {
     return { sourceId: source.id, status: row.status, skipped: true };
   }
   if (["queued", "downloading", "resuming"].includes(String(row?.status ?? ""))) {
@@ -155,7 +276,7 @@ function queueSourceDownload(db, source) {
   }
   db.prepare("INSERT INTO downloads (id, source_id, status, total_bytes, error, updated_at) VALUES (?, ?, ?, ?, NULL, ?) ON CONFLICT(id) DO UPDATE SET status=excluded.status, total_bytes=excluded.total_bytes, error=NULL, updated_at=excluded.updated_at")
     .run(source.id, source.id, "queued", Number(source.expected_size_bytes ?? 0), now());
-  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')")
+  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')")
     .run("queued", now(), source.id);
   recordEvent(db, "download-queued", `${source.title} download queued`, { sourceId: source.id });
   return { sourceId: source.id, status: "queued" };
@@ -171,6 +292,10 @@ function queueProfileDownloads(db, profile, sources) {
   }
   recordEvent(db, "profile-download-queued", `${profile.title} profile download queued`, { profileId: profile.id, queued: queued.length, skipped: skipped.length });
   return { profileId: profile.id, status: "queued", queued, skipped };
+}
+
+function activeDownloadCount(db) {
+  return db.prepare("SELECT COUNT(*) AS count FROM downloads WHERE status IN ('queued', 'downloading', 'resuming')").get().count;
 }
 
 function shutdownAuthorized(req) {
@@ -227,6 +352,9 @@ async function route(req, res) {
     if (url.pathname === "/api/state") {
       const state = await withDb((db) => summarizeState(db));
       return send(res, 200, state);
+    }
+    if (url.pathname === "/api/jobs") {
+      return send(res, 200, await jobsSnapshot());
     }
     if (url.pathname === "/api/library" && req.method === "POST") {
       const body = await json(req);
@@ -285,6 +413,7 @@ async function route(req, res) {
         .map((id) => catalog.profiles.find((profile) => profile.id === id))
         .filter(Boolean);
       if (!selectedProfiles.length && !body.installAi) throw new Error("Select at least one profile or Local AI install");
+      if (selectedProfiles.length && activeIndexOperation) throw new Error(`Wait for indexing to finish before starting Easy Install (${activeIndexOperation}).`);
       validateProfileLanguage(selectedProfiles, body.contentLanguage);
       const result = await withDb((db) => easyInstall({ db, catalog, selectedProfiles, installAi: Boolean(body.installAi), concurrency: Number(body.concurrency ?? 4) }));
       return send(res, 200, result);
@@ -309,7 +438,7 @@ async function route(req, res) {
       const diskBudgetBytes = optionalNumber(body.diskBudgetBytes);
       const queued = await withDb((db) => {
         db.prepare("UPDATE downloads SET status=?, error=NULL, updated_at=? WHERE id=?").run("queued", now(), source.id);
-        db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')").run("queued", now(), source.id);
+        db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')").run("queued", now(), source.id);
         recordEvent(db, "download-retry", `Retrying ${source.title}`, { sourceId: source.id });
         return { sourceId: source.id, status: "queued" };
       });
@@ -331,7 +460,7 @@ async function route(req, res) {
     if (url.pathname === "/api/index" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
-      const result = await withDb(async (db) => {
+      const result = await runExclusiveIndexOperation(`source:${body.sourceId}`, () => withDb(async (db) => {
         const sourceConfig = sourceConfigForRequest(db, catalog, body.sourceId);
         const startedAt = Date.now();
         setIndexingProgress(db, indexProgressPayload({
@@ -364,13 +493,13 @@ async function route(req, res) {
           }, { startedAt, queue: [{ sourceId: body.sourceId, title: sourceConfig.title, status: "failed", error: String(error.message ?? error) }] }));
           throw error;
         }
-      });
+      }));
       return send(res, 200, result);
     }
     if (url.pathname === "/api/index/downloaded" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
-      const result = await withDb((db) => {
+      const result = await runExclusiveIndexOperation("downloaded", () => withDb((db) => {
         const startedAt = Date.now();
         let queue = [];
         return indexDownloadedSources({
@@ -384,7 +513,7 @@ async function route(req, res) {
             setIndexingProgress(db, payload);
           }
         });
-      });
+      }));
       return send(res, 200, result);
     }
     if (url.pathname === "/api/search") {
@@ -435,11 +564,12 @@ async function route(req, res) {
     }
     if (url.pathname === "/api/extra-knowledge/import" && req.method === "POST") {
       const body = await json(req);
-      const result = await withDb(async (db) => {
+      const importWork = () => withDb(async (db) => {
         const imported = await importExtraKnowledgeFiles({ db, libraryRoot, files: Array.isArray(body.files) ? body.files : [], index: body.index !== false });
         refreshAdapters(db, imported.imported);
         return imported;
       });
+      const result = body.index === false ? await importWork() : await runExclusiveIndexOperation("extra-import", importWork);
       return send(res, 200, result);
     }
     if (url.pathname === "/api/adapters/refresh") {
@@ -462,7 +592,7 @@ async function route(req, res) {
     if (url.pathname === "/api/model/pull" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
-      const model = catalog.models.find((item) => item.id === body.modelId);
+      const model = modelFromCatalog(catalog.models, body.modelId);
       if (!model) throw new Error(`Unknown model ${body.modelId}`);
       const result = await withDb((db) => pullModel(db, model));
       return send(res, 200, result);
@@ -471,7 +601,7 @@ async function route(req, res) {
       const body = await json(req);
       const catalog = await loadCatalog();
       const requestedIds = Array.isArray(body.modelIds) ? body.modelIds : [];
-      let models = requestedIds.map((id) => catalog.models.find((item) => item.id === id)).filter(Boolean);
+      let models = requestedIds.map((id) => modelFromCatalog(catalog.models, id)).filter(Boolean);
       if (!models.length) {
         const info = await systemInfo(libraryRoot, catalog.profiles, catalog.models);
         const recommended = new Set(info.aiRecommendation ?? []);
@@ -534,63 +664,99 @@ async function route(req, res) {
       setTimeout(() => closeBackend(), 50).unref?.();
       return;
     }
+    if (url.pathname === "/api/ask/cancel" && req.method === "POST") {
+      if (!activeAskOperation) return send(res, 200, { canceled: false, status: "idle" });
+      activeAskOperation.controller.abort();
+      await withDb((db) => setSetting(db, "askProgress", {
+        status: "failed",
+        phase: "canceled",
+        generatedTokens: Number(activeAskOperation.generatedTokens ?? 0),
+        generatedChars: Number(activeAskOperation.generatedChars ?? 0),
+        question: activeAskOperation.question,
+        model: activeAskOperation.model,
+        unsupported: true,
+        error: "Local AI generation was canceled.",
+        startedAt: activeAskOperation.startedAt,
+        updatedAt: Date.now()
+      }));
+      return send(res, 200, { canceled: true, status: "canceled" });
+    }
     if (url.pathname === "/api/ask" && req.method === "POST") {
+      if (activeAskOperation) throw new Error("Local AI is already answering a question. Cancel it or wait for it to finish.");
       const body = await json(req);
       const catalog = await loadCatalog();
       const history = normalizeAskHistory(body.history);
-      const contexts = await withDb((db) => retrieveAskContexts(db, { ...body, history }));
-      const progress = askProgressUpdater({ question: body.question, model: body.model ?? "qwen3:8b" });
-      progress({ status: "running", phase: "retrieving", generatedTokens: 0, generatedChars: 0 });
-      if (!contexts.length) {
-        const result = await askOllama({ question: body.question, contexts, history, model: body.model ?? "qwen3:8b" });
-        progress({ status: "complete", phase: "complete", generatedTokens: 0, generatedChars: 0, unsupported: true });
-        return send(res, 200, result);
-      }
-      let model;
-      try {
-        progress({ status: "running", phase: "starting", generatedTokens: 0, generatedChars: 0 });
-        model = await withDb(async (db) => {
-          for (const model of catalog.models) upsertModel(db, model);
-          await refreshModels(db, catalog.models);
-          const chatModel = selectedChatModel(db, body.model);
-          if (!chatModel) return body.model ?? "qwen3:8b";
-          const usableModel = await bestUsableInstalledChatModel(db, chatModel);
-          const activeChatModel = usableModel ?? chatModel;
-          try {
-            await startOllama(db, {
-              modelsDir: path.join(libraryRoot, "raw", "models", "ollama"),
-              logPath: path.join(libraryRoot, "logs", "ollama.log"),
-              model: activeChatModel
-            });
-          } catch (error) {
-            if (error.code === "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
-            return body.model ?? activeChatModel.pull ?? "qwen3:8b";
-          }
-          await refreshModels(db, catalog.models);
-          return activeChatModel.pull ?? activeChatModel.id ?? installedChatModelPull(db) ?? "qwen3:8b";
-        });
-      } catch (error) {
-        if (error.code !== "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
-        progress({ status: "failed", phase: "blocked", generatedTokens: 0, generatedChars: 0, error: String(error.message ?? error) });
-        return send(res, 200, {
-          answer: String(error.message ?? error),
-          citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
-          unsupported: true,
-          memoryBlocked: true,
-          memory: error.memory,
-          requiredBytes: error.requiredBytes
-        });
-      }
-      const result = await askWithOllamaPermissionRepair({ question: body.question, contexts, history, model, onProgress: progress });
-      const finalProgress = {
-        status: result.timedOut || result.unsupported ? "failed" : "complete",
-        phase: result.timedOut ? "timeout" : "complete",
-        generatedChars: result.answer?.length ?? undefined,
-        unsupported: Boolean(result.unsupported)
+      const askController = new AbortController();
+      activeAskOperation = {
+        controller: askController,
+        question: cleanPromptText(body.question).slice(0, 160),
+        model: body.model ?? "qwen3:8b",
+        startedAt: Date.now(),
+        generatedTokens: 0,
+        generatedChars: 0
       };
-      if (Number.isFinite(Number(result.generatedTokens))) finalProgress.generatedTokens = Number(result.generatedTokens);
-      progress(finalProgress, { force: true });
-      return send(res, 200, result);
+      try {
+        const progress = askProgressUpdater({ question: body.question, model: body.model ?? "qwen3:8b" });
+        progress({ status: "running", phase: "retrieving", generatedTokens: 0, generatedChars: 0 });
+        const contexts = await withDb((db) => retrieveAskContexts(db, { ...body, history }));
+        if (!contexts.length) {
+          const model = await withDb((db) => ollamaChatModelName(db, body.model));
+          activeAskOperation.model = model;
+          const result = await askOllama({ question: body.question, contexts, history, model, abortSignal: askController.signal });
+          progress({ status: "complete", phase: "complete", generatedTokens: 0, generatedChars: 0, unsupported: true, model });
+          return send(res, 200, result);
+        }
+        let model;
+        try {
+          progress({ status: "running", phase: "starting", generatedTokens: 0, generatedChars: 0 });
+          model = await withDb(async (db) => {
+            for (const model of catalog.models) upsertModel(db, model);
+            await refreshModels(db, catalog.models);
+            const chatModel = selectedChatModel(db, body.model);
+            if (!chatModel) return modelFromCatalog(catalog.models, body.model)?.pull ?? body.model ?? "qwen3:8b";
+            const usableModel = await bestUsableInstalledChatModel(db, chatModel);
+            const activeChatModel = usableModel ?? chatModel;
+            try {
+              await startOllama(db, {
+                modelsDir: path.join(libraryRoot, "raw", "models", "ollama"),
+                logPath: path.join(libraryRoot, "logs", "ollama.log"),
+                model: activeChatModel
+              });
+            } catch (error) {
+              if (error.code === "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
+              return activeChatModel.pull ?? activeChatModel.id ?? body.model ?? "qwen3:8b";
+            }
+            await refreshModels(db, catalog.models);
+            return activeChatModel.pull ?? activeChatModel.id ?? installedChatModelPull(db) ?? "qwen3:8b";
+          });
+          activeAskOperation.model = model;
+          progress({ model }, { force: true });
+        } catch (error) {
+          if (error.code !== "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
+          progress({ status: "failed", phase: "blocked", generatedTokens: 0, generatedChars: 0, error: String(error.message ?? error) });
+          return send(res, 200, {
+            answer: String(error.message ?? error),
+            citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
+            unsupported: true,
+            memoryBlocked: true,
+            memory: error.memory,
+            requiredBytes: error.requiredBytes
+          });
+        }
+        const result = await askWithOllamaPermissionRepair({ question: body.question, contexts, history, model, onProgress: progress, abortSignal: askController.signal });
+        const finalProgress = {
+          status: result.timedOut || result.unsupported ? "failed" : "complete",
+          phase: result.canceled ? "canceled" : result.timedOut ? "timeout" : "complete",
+          generatedChars: result.answer?.length ?? undefined,
+          unsupported: Boolean(result.unsupported),
+          model
+        };
+        if (Number.isFinite(Number(result.generatedTokens))) finalProgress.generatedTokens = Number(result.generatedTokens);
+        progress(finalProgress, { force: true });
+        return send(res, 200, result);
+      } finally {
+        if (activeAskOperation?.controller === askController) activeAskOperation = null;
+      }
     }
     if (url.pathname === "/api/lock" && req.method === "POST") {
       const body = await json(req);
@@ -637,8 +803,11 @@ async function route(req, res) {
     if (url.pathname === "/api/share/package" && req.method === "POST") {
       const body = await json(req);
       const catalog = await loadCatalog();
+      if (activeIndexOperation) throw new Error(`Wait for indexing to finish before generating a share package (${activeIndexOperation}).`);
       try {
         const result = await withDb((db) => {
+          const activeDownloads = activeDownloadCount(db);
+          if (activeDownloads) throw new Error(`Wait for ${activeDownloads} active download${activeDownloads === 1 ? "" : "s"} to finish before generating a share package.`);
           const profile = shareProfileFromRequest(db, catalog, body.profileId);
           return buildSharePackage({
             db,
@@ -695,8 +864,10 @@ async function easyInstall({ db, catalog, selectedProfiles, installAi, concurren
   try {
     setEasyInstallProgress(db, {
       status: "running",
-      phase: "download",
-      detail: installAi ? "Downloading selected profile sources while Local AI installs in parallel." : "Downloading selected profile sources.",
+      phase: selectedIds.length ? "download" : "ai",
+      detail: selectedIds.length
+        ? installAi ? "Downloading selected profile sources while Local AI installs in parallel." : "Downloading selected profile sources."
+        : "Preparing app-managed Ollama and recommended models.",
       startedAt,
       profileIds,
       sourceCount: selectedIds.length,
@@ -732,27 +903,25 @@ async function easyInstall({ db, catalog, selectedProfiles, installAi, concurren
       });
     }
 
-    const sourceTask = (async () => {
-      if (selectedIds.length) {
-        const profile = { id: "easy-install", title: "Easy Install", sourceIds: selectedIds };
-        let downloadProgressTimer = null;
-        try {
-          updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds });
-          downloadProgressTimer = setInterval(() => {
-            try {
-              updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds });
-            } catch {
-              // Keep the download running even if a transient progress update fails.
-            }
-          }, 1000);
-          downloadResult = await downloadProfile({ db, libraryRoot, profile, sources: catalog.sources, concurrency });
-          updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds });
-        } finally {
-          if (downloadProgressTimer) clearInterval(downloadProgressTimer);
-        }
+    const selectedSources = selectedIds.map((id) => catalog.sources.find((source) => source.id === id)).filter(Boolean);
+    const sourceTask = selectedSources.length ? runExclusiveIndexOperation("easy-install", async () => {
+      const profile = { id: "easy-install", title: "Easy Install", sourceIds: selectedIds };
+      let downloadProgressTimer = null;
+      try {
+        updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds });
+        downloadProgressTimer = setInterval(() => {
+          try {
+            updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds });
+          } catch {
+            // Keep the download running even if a transient progress update fails.
+          }
+        }, 1000);
+        downloadResult = await downloadProfile({ db, libraryRoot, profile, sources: catalog.sources, concurrency });
+        updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, installAi, startedAt, profileIds });
+      } finally {
+        if (downloadProgressTimer) clearInterval(downloadProgressTimer);
       }
 
-      const selectedSources = selectedIds.map((id) => catalog.sources.find((source) => source.id === id)).filter(Boolean);
       setEasyInstallProgress(db, {
         status: "running",
         phase: "prepare",
@@ -762,11 +931,12 @@ async function easyInstall({ db, catalog, selectedProfiles, installAi, concurren
         sourceCount: selectedIds.length,
         percent: 45
       });
-      for (const source of selectedSources) {
+      const preparedResults = await mapLimit(selectedSources, sourceSetupConcurrency, async (source) => {
         const row = db.prepare("SELECT local_path FROM sources WHERE id=?").get(source.id);
-        if (!row?.local_path) continue;
-        prepared.push(await prepareSourceForUse({ db, libraryRoot, source }));
-      }
+        if (!row?.local_path) return null;
+        return prepareSourceForUse({ db, libraryRoot, source });
+      });
+      prepared.push(...preparedResults.filter(Boolean));
 
       setEasyInstallProgress(db, {
         status: "running",
@@ -814,7 +984,7 @@ async function easyInstall({ db, catalog, selectedProfiles, installAi, concurren
           percent: 80
         });
       }
-    })();
+    }) : Promise.resolve();
 
     const aiTask = (async () => {
       if (!installAi) return null;
@@ -873,7 +1043,7 @@ async function cleanSources(db) {
     UPDATE sources SET status='missing', size_bytes=0, sha256=NULL, local_path=NULL, duplicate_of=NULL, updated_at=datetime('now');
     UPDATE models SET status='missing', updated_at=datetime('now');
     UPDATE adapters SET status='not_ready', local_url=NULL, port=NULL, last_error=NULL, last_probe_at=datetime('now');
-    DELETE FROM settings WHERE key IN ('aiInstallProgress', 'easyInstallProgress', 'sharePackageProgress', 'indexingProgress');
+    DELETE FROM settings WHERE key IN ('aiInstallProgress', 'easyInstallProgress', 'sharePackageProgress', 'indexingProgress', 'askProgress');
   `);
   setSetting(db, "libraryRoot", libraryRoot);
   return { status: "cleaned", removed: cleanableLibraryDirs };
@@ -1019,6 +1189,17 @@ function selectedChatModel(db, requested) {
   return installedChatModel(db);
 }
 
+function modelFromCatalog(models, requested) {
+  if (!requested) return null;
+  return models.find((model) => model.id === requested || model.pull === requested) ?? null;
+}
+
+function ollamaChatModelName(db, requested) {
+  const model = selectedChatModel(db, requested);
+  if (model) return model.pull ?? model.id;
+  return requested ?? installedChatModelPull(db) ?? "qwen3:8b";
+}
+
 async function bestUsableInstalledChatModel(db, preferredModel) {
   const memory = await memorySnapshot();
   const swapPressure = memory.swapTotalBytes > 0 && memory.swapFreeBytes < Math.max(1024 ** 3, memory.swapTotalBytes * 0.4);
@@ -1040,6 +1221,11 @@ function askProgressUpdater({ question, model }) {
   let last = {};
   return (progress, options = {}) => {
     last = { ...last, ...progress };
+    if (activeAskOperation) {
+      activeAskOperation.generatedTokens = Number(last.generatedTokens ?? activeAskOperation.generatedTokens ?? 0);
+      activeAskOperation.generatedChars = Number(last.generatedChars ?? activeAskOperation.generatedChars ?? 0);
+      if (last.model) activeAskOperation.model = last.model;
+    }
     const nowMs = Date.now();
     if (!options.force && nowMs - lastWrite < 500 && !["complete", "failed"].includes(String(last.status ?? ""))) return;
     lastWrite = nowMs;
@@ -1050,8 +1236,10 @@ function askProgressUpdater({ question, model }) {
         phase: last.phase ?? "generating",
         generatedTokens: Number(last.generatedTokens ?? 0),
         generatedChars: Number(last.generatedChars ?? 0),
+        elapsedSeconds: Number(last.elapsedSeconds ?? 0),
+        timeoutSeconds: Number(last.timeoutSeconds ?? 0),
         question: cleanPromptText(question).slice(0, 160),
-        model,
+        model: last.model ?? model,
         unsupported: Boolean(last.unsupported),
         error: last.error ?? null,
         startedAt,
@@ -1063,11 +1251,11 @@ function askProgressUpdater({ question, model }) {
   };
 }
 
-async function askWithOllamaPermissionRepair({ question, contexts, history, model, onProgress = null }) {
-  const first = await askOllama({ question, contexts, history, model, onProgress });
+async function askWithOllamaPermissionRepair({ question, contexts, history, model, onProgress = null, abortSignal = null }) {
+  const first = await askOllama({ question, contexts, history, model, onProgress, abortSignal });
   if (!ollamaPermissionDenied(first)) return first;
   await ensureOllamaRuntimePermissions();
-  const retry = await askOllama({ question, contexts, history, model, onProgress });
+  const retry = await askOllama({ question, contexts, history, model, onProgress, abortSignal });
   return {
     ...retry,
     repairedRuntimePermissions: true
@@ -1124,12 +1312,17 @@ function indexProgressPayload(progress, { startedAt, queue = [] }) {
   const failed = items.filter((item) => item.status === "failed").length;
   const registeredOriginalOnly = items.filter((item) => item.status === "registered").length;
   const indexed = items.filter((item) => item.status === "indexed").length;
+  const activeItems = items.filter((item) => item.status === "indexing");
   const status = stage === "complete" ? "complete" : stage === "source-failed" ? "failed" : "running";
   const percent = total > 0 ? Math.min(100, Math.round((Math.max(completed, indexed + registeredOriginalOnly) / total) * 100)) : status === "complete" ? 100 : 0;
   return {
     status,
     phase: "index",
-    detail: status === "complete" ? "Indexing completed." : currentTitle ? `Indexing ${currentTitle}.` : "Building local search and Local AI context indexes.",
+    detail: status === "complete"
+      ? "Indexing completed."
+      : activeItems.length > 1
+        ? `Indexing ${activeItems.length} sources in parallel.`
+        : currentTitle ? `Indexing ${currentTitle}.` : "Building local search and Local AI context indexes.",
     startedAt,
     total,
     current,
@@ -1137,9 +1330,11 @@ function indexProgressPayload(progress, { startedAt, queue = [] }) {
     failed,
     indexed,
     registeredOriginalOnly,
+    active: activeItems.length,
     percent,
     currentSourceId,
     currentSourceTitle: currentTitle,
+    currentSourceIds: activeItems.map((item) => item.sourceId),
     items,
     summary: progress.summary ?? null,
     result,
@@ -1185,7 +1380,7 @@ function updateEasyDownloadProgress(db, { selectedIds, selectedProfiles, install
   for (const id of selectedIds) {
     const source = db.prepare("SELECT status, size_bytes, expected_size_bytes FROM sources WHERE id=?").get(id);
     const download = byId.get(id);
-    const complete = ["downloaded", "verified", "indexed", "indexed-original-only"].includes(String(source?.status ?? "")) || download?.status === "complete";
+    const complete = ["downloaded", "verified", "indexed", "indexed-original-only", "downloaded_unverified"].includes(String(source?.status ?? "")) || download?.status === "complete";
     const total = Math.max(Number(download?.total_bytes ?? 0), Number(source?.expected_size_bytes ?? 0), Number(source?.size_bytes ?? 0));
     const received = complete ? Math.max(Number(source?.size_bytes ?? 0), total) : Number(download?.bytes_received ?? 0);
     currentBytes += received;

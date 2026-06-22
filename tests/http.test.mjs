@@ -168,8 +168,10 @@ describe("HTTP API", () => {
     const alreadyDownloadedProfile = catalog.profiles.find((profile) => profile.id === "survival-essential");
     const dbProfileDownloaded = openState(root);
     try {
-      for (const sourceId of alreadyDownloadedProfile.sourceIds) {
-        dbProfileDownloaded.prepare("UPDATE sources SET status='downloaded', updated_at=datetime('now') WHERE id=?").run(sourceId);
+      for (const [index, sourceId] of alreadyDownloadedProfile.sourceIds.entries()) {
+        const status = index === 0 ? "indexed-original-only" : index === 1 ? "downloaded_unverified" : "downloaded";
+        dbProfileDownloaded.prepare("UPDATE sources SET status=?, local_path=COALESCE(local_path, ?), updated_at=datetime('now') WHERE id=?")
+          .run(status, `raw/test/${sourceId}.dat`, sourceId);
       }
     } finally {
       dbProfileDownloaded.close();
@@ -182,6 +184,8 @@ describe("HTTP API", () => {
     expect(skippedProfileDownload).toMatchObject({ profileId: alreadyDownloadedProfile.id, background: false, started: false });
     expect(skippedProfileDownload.queued).toHaveLength(0);
     expect(skippedProfileDownload.skipped).toHaveLength(alreadyDownloadedProfile.sourceIds.length);
+    expect(skippedProfileDownload.skipped.some((item) => item.status === "indexed-original-only")).toBe(true);
+    expect(skippedProfileDownload.skipped.some((item) => item.status === "downloaded_unverified")).toBe(true);
 
     const cleaned = await (await fetch(`http://127.0.0.1:${port}/api/clean-sources`, { method: "POST" })).json();
     expect(cleaned.status).toBe("cleaned");
@@ -193,6 +197,8 @@ describe("HTTP API", () => {
     expect(state.downloads).toHaveLength(0);
     expect(state.documents).toHaveLength(0);
     expect(state.settings.libraryRoot).toBe(root);
+    const jobs = await (await fetch(`http://127.0.0.1:${port}/api/jobs`)).json();
+    expect(Array.isArray(jobs.jobs)).toBe(true);
     await fs.rm(extraDir, { recursive: true, force: true });
   });
 

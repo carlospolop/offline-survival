@@ -330,7 +330,7 @@ export function markInterruptedDownloads(db) {
   if (!interrupted.length) return 0;
   db.prepare("UPDATE downloads SET status='paused', error='Interrupted before backend shutdown', updated_at=? WHERE status IN ('queued', 'downloading', 'resuming')")
     .run(timestamp);
-  const updateSource = db.prepare("UPDATE sources SET status='paused', updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')");
+  const updateSource = db.prepare("UPDATE sources SET status='paused', updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')");
   for (const row of interrupted) updateSource.run(timestamp, row.source_id);
   return interrupted.length;
 }

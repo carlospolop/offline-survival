@@ -37,6 +37,7 @@
   let sharePackage: any = null;
   let showSharePackageProgress = false;
   let logs: any[] = [];
+  let jobs: any[] = [];
   let logSortKey: "title" | "description" | "date" = "date";
   let logSortDir: "asc" | "desc" = "desc";
   let logsPoller = 0;
@@ -104,6 +105,7 @@
       appSections: "Application sections",
       working: "Working: {busy}",
       easyInstallIntro: "Select one or more profiles. Easy Install downloads them, prepares/extracts downloaded sources, indexes searchable content, and can install recommended Local AI.",
+      easyInstallWaitForIndex: "Wait for indexing to finish before starting Easy Install with profiles.",
       preparedDisk: "prepared disk",
       download: "download",
       sources: "sources",
@@ -184,11 +186,19 @@
       askingOllama: "Asking Ollama...",
       askInProgress: "Local AI is preparing an answer.",
       askStartingOllama: "Starting Ollama and loading the selected model. The first answer can take longer.",
+      askLoadingModel: "Ollama is loading the selected model. No tokens are generated until the model is ready.",
+      askGenerating: "Ollama is generating the answer.",
+      askFailed: "Local AI failed to return an answer.",
+      askTimeoutProgress: "{elapsed}s elapsed · timeout at {timeout}s",
       askBlockedHelp: "Local AI is blocked by the RAM safety guard. Free memory or install a smaller chat model, then try again.",
       restartConversation: "Restart Conversation",
+      cancelAsk: "Cancel Ask",
+      backendJobs: "Backend jobs",
       askGeneratedTokens: "Generated tokens: {count}",
+      askModelLine: "Model: {model}",
       sharePackage: "Generate Share Package",
       generatingSharePackage: "Generating Share Package",
+      shareWaitForDownloads: "Wait for active downloads to finish before generating a share package.",
       logs: "Logs",
       refreshLogs: "Refresh Logs",
       title: "Title",
@@ -268,6 +278,8 @@
       recommendedEmbeddingHelp: "Recommended embedding model for search and Local AI context.",
       engine: "Engine",
       indexedResourcesAvailable: "{count} indexed resources available",
+      downloadedSourcesNeedIndex: "{count} downloaded sources not indexed yet",
+      downloadedSourcesAllIndexed: "All downloaded sources are indexed",
       textIndexHelp: "The text index makes downloaded sources searchable without an embedding model. The embedding model is used after indexing for semantic matching: finding relevant passages by meaning for Local AI answers and semantic search, even when the exact words differ.",
       allIndexedResources: "All indexed resources",
       askPlaceholder: "Ask against indexed local documents",
@@ -420,6 +432,7 @@
       appSections: "Secciones de la aplicación",
       working: "Trabajando: {busy}",
       easyInstallIntro: "Selecciona uno o más perfiles. La instalación fácil los descarga, prepara o extrae las fuentes descargadas, indexa el contenido buscable y puede instalar la IA local recomendada.",
+      easyInstallWaitForIndex: "Espera a que termine la indexación antes de iniciar la instalación fácil con perfiles.",
       preparedDisk: "disco preparado",
       download: "descarga",
       sources: "fuentes",
@@ -500,11 +513,19 @@
       askingOllama: "Preguntando a Ollama...",
       askInProgress: "La IA local está preparando una respuesta.",
       askStartingOllama: "Iniciando Ollama y cargando el modelo seleccionado. La primera respuesta puede tardar más.",
+      askLoadingModel: "Ollama está cargando el modelo seleccionado. No se generan tokens hasta que el modelo está listo.",
+      askGenerating: "Ollama está generando la respuesta.",
+      askFailed: "La IA local no pudo devolver una respuesta.",
+      askTimeoutProgress: "{elapsed}s transcurridos · timeout a los {timeout}s",
       askBlockedHelp: "La IA local está bloqueada por la protección de RAM. Libera memoria o instala un modelo de chat más pequeño y prueba de nuevo.",
       restartConversation: "Reiniciar conversación",
+      cancelAsk: "Cancelar pregunta",
+      backendJobs: "Trabajos del backend",
       askGeneratedTokens: "Tokens generados: {count}",
+      askModelLine: "Modelo: {model}",
       sharePackage: "Generar paquete",
       generatingSharePackage: "Generando paquete",
+      shareWaitForDownloads: "Espera a que terminen las descargas activas antes de generar un paquete.",
       logs: "Registros",
       refreshLogs: "Actualizar registros",
       title: "Título",
@@ -584,6 +605,8 @@
       recommendedEmbeddingHelp: "Modelo de embeddings recomendado para búsqueda y contexto de IA local.",
       engine: "Motor",
       indexedResourcesAvailable: "{count} recursos indexados disponibles",
+      downloadedSourcesNeedIndex: "{count} fuentes descargadas aún no indexadas",
+      downloadedSourcesAllIndexed: "Todas las fuentes descargadas están indexadas",
       textIndexHelp: "El índice de texto permite buscar fuentes descargadas sin modelo de embeddings. El modelo de embeddings se usa después de indexar para coincidencia semántica: encontrar pasajes relevantes por significado para respuestas de IA local y búsqueda semántica, incluso cuando las palabras exactas difieren.",
       allIndexedResources: "Todos los recursos indexados",
       askPlaceholder: "Pregunta contra documentos locales indexados",
@@ -958,6 +981,8 @@
     .map((download) => sourceCatalog.get(download.source_id))
     .filter((source): source is Source => Boolean(source));
   $: hasActiveDownloads = activeDownloadSources.length > 0;
+  $: hasActiveBackendJobs = jobs.some((job) => ["running", "queued", "downloading", "resuming"].includes(String(job.status ?? "")));
+  $: workingLabelsList = workingLabels();
   $: notSearchableDownloads = stateSources.filter((source) => {
     const downloaded = ["downloaded", "verified", "downloaded_unverified", "indexed-original-only"].includes(String(source.status ?? "")) && source.local_path;
     return downloaded && !fullyIndexedSourceIds.has(source.id);
@@ -1002,6 +1027,8 @@
   $: indexingProgress = progressObject(stateSettings.indexingProgress);
   $: askProgress = progressObject(stateSettings.askProgress);
   $: activeIndexingProgress = activeIndexProgress(easyInstallProgress, indexingProgress);
+  $: backendIndexingActive = jobs.some((job) => String(job.kind ?? "") === "index" && ["running", "queued"].includes(String(job.status ?? "")));
+  $: indexingActive = activeIndexingProgress?.status === "running" || backendIndexingActive;
   $: activeIndexItems = Array.isArray(activeIndexingProgress?.items) ? activeIndexingProgress.items : [];
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
   $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy.has("ai-install"));
@@ -1011,6 +1038,7 @@
   );
   $: askBusy = busy.has("ask");
   $: selectedEasyProfiles = contentProfiles.filter((profile) => easyProfileSelections[profile.id]);
+  $: easyInstallBlockedByIndexing = indexingActive && selectedEasyProfiles.length > 0;
   $: selectedEasySourceIds = [...new Set(selectedEasyProfiles.flatMap((profile) => profile.sourceIds ?? []))];
   $: selectedEasyDownloadBytes = selectedEasySourceIds.reduce((sum, id) => sum + Number(sourceCatalog.get(id)?.expected_size_bytes ?? 0), 0);
   $: selectedEasyPreparedBytes = selectedEasySourceIds.reduce((sum, id) => {
@@ -1036,8 +1064,8 @@
   ];
   $: sortedLogs = sortLogs(logs, logSortKey, logSortDir);
   $: keepShareProfileValid(shareOptions, shareProfile);
-  $: if (hasActiveDownloads) startStatePolling();
-  $: if (!hasActiveDownloads) stopStatePolling();
+  $: if (hasActiveDownloads || hasActiveBackendJobs || askBusy || busy.size) startStatePolling();
+  $: if (!hasActiveDownloads && !hasActiveBackendJobs && !askBusy && !busy.size) stopStatePolling();
   $: if (activeTab === "logs") startLogsPolling();
   $: if (activeTab !== "logs") stopLogsPolling();
 
@@ -1253,7 +1281,7 @@
       return;
     }
     if (current && models.some((model) => model.id === current || model.pull === current)) return;
-    questionModel = models[0].id;
+    questionModel = models[0].pull ?? models[0].id;
   }
 
   async function load() {
@@ -1264,7 +1292,11 @@
     if (requestedTab === "settings") activeTab = "logs";
     else if (requestedTab && ["dashboard", "downloads", "search", "extra", "ai", "share", "logs", "easy"].includes(requestedTab)) activeTab = requestedTab;
     try {
-      [catalog, state, system] = await Promise.all([api("/api/catalog"), api("/api/state"), api("/api/system")]);
+      const [nextCatalog, nextState, nextSystem, jobsResult]: any[] = await Promise.all([api("/api/catalog"), api("/api/state"), api("/api/system"), api("/api/jobs").catch(() => ({ jobs: [] }))]);
+      catalog = nextCatalog;
+      state = nextState;
+      system = nextSystem;
+      jobs = Array.isArray(jobsResult.jobs) ? jobsResult.jobs : [];
       libraryPath = String(state.settings.libraryRoot ?? "");
       initializeEasyProfiles();
       await refreshServices();
@@ -1278,7 +1310,12 @@
   }
 
   async function refreshState() {
-    state = await api("/api/state");
+    const [nextState, nextJobs] = await Promise.all([
+      api<State>("/api/state"),
+      api<{ jobs: any[] }>("/api/jobs").catch(() => ({ jobs: [] }))
+    ]);
+    state = nextState;
+    jobs = Array.isArray(nextJobs.jobs) ? nextJobs.jobs : [];
   }
 
   function startStatePolling() {
@@ -1307,7 +1344,7 @@
   async function run(label: string, fn: () => Promise<unknown>) {
     busy = new Set([...busy, label]);
     error = "";
-    const shouldPoll = label.startsWith("profile-") || label.startsWith("download-") || label.startsWith("retry-") || label.startsWith("model-") || label.startsWith("index-") || label === "ask" || label === "ai-install" || label === "index-all-downloaded" || label === "easy-install" || label === "clean-sources" || label === "share-package";
+    const shouldPoll = label.startsWith("profile-") || label.startsWith("download-") || label.startsWith("retry-") || label.startsWith("model-") || label.startsWith("index-") || label === "ask" || label === "ask-cancel" || label === "ai-install" || label === "index-all-downloaded" || label === "easy-install" || label === "clean-sources" || label === "share-package";
     const poller = shouldPoll ? window.setInterval(() => {
       refreshState().catch(() => {});
     }, 1000) : 0;
@@ -1366,7 +1403,7 @@
     const timestamp = new Date().toISOString();
     const downloadableIds = new Set(profile.sourceIds.filter((id) => {
       const existing = sourceState.get(id);
-      return !["downloaded", "verified", "indexed"].includes(String(existing?.status ?? ""));
+      return !sourceIsDownloaded(existing ?? {});
     }));
     if (!downloadableIds.size) return;
 
@@ -1568,7 +1605,7 @@
   async function startOllama() {
     await run("ollama-start", () => api("/api/ollama/start", {
       method: "POST",
-      body: JSON.stringify({ model: questionModel || startAiModel?.id || startAiModel?.pull })
+      body: JSON.stringify({ model: questionModel || startAiModel?.pull || startAiModel?.id })
     }));
   }
 
@@ -1623,6 +1660,13 @@
       answer = await api("/api/ask", { method: "POST", body: JSON.stringify({ question: currentQuestion, history, sourceId: questionSource || undefined, model: questionModel || undefined }) });
       chatTurns = [...chatTurns, { question: currentQuestion, ...answer }];
       question = "";
+    });
+  }
+
+  async function cancelAsk() {
+    await run("ask-cancel", async () => {
+      await api("/api/ask/cancel", { method: "POST" });
+      await refreshState();
     });
   }
 
@@ -1844,7 +1888,8 @@
   function sourceIndexInfo(sourceId: unknown) {
     const id = String(sourceId ?? "");
     const item = activeIndexItems.find((entry: any) => entry.sourceId === id);
-    const current = activeIndexingProgress?.currentSourceId === id && activeIndexingProgress?.status === "running";
+    const activeIds = Array.isArray(activeIndexingProgress?.currentSourceIds) ? activeIndexingProgress.currentSourceIds.map(String) : [];
+    const current = activeIndexingProgress?.status === "running" && (activeIds.includes(id) || activeIndexingProgress?.currentSourceId === id || item?.status === "indexing");
     if (!item && !current) return null;
     const status = current ? "indexing" : String(item?.status ?? "pending");
     const complete = ["indexed", "registered"].includes(status);
@@ -1989,6 +2034,42 @@
     return detailLabel(progress.detail);
   }
 
+  function askProgressMessage(progress: Record<string, any> | null, service: Record<string, any> | null) {
+    if (progress?.status === "failed") return progress.error ? detailLabel(progress.error) : t("askFailed");
+    if (service?.status === "starting" || service?.status === "installing") return t("askStartingOllama");
+    if (service?.status === "blocked") return t("askBlockedHelp");
+    if (progress?.phase === "loading-model") return t("askLoadingModel");
+    if (progress?.phase === "generating" && Number(progress.generatedTokens ?? 0) > 0) return t("askGenerating");
+    if (progress?.phase === "timeout") return detailLabel(progress.error) || t("askInProgress");
+    return t("askInProgress");
+  }
+
+  function askProgressLine(progress: Record<string, any> | null) {
+    if (!progress) return "";
+    const elapsed = Number(progress.elapsedSeconds ?? 0);
+    const timeout = Number(progress.timeoutSeconds ?? 0);
+    const generated = t("askGeneratedTokens", { count: Number(progress.generatedTokens ?? 0) });
+    if (elapsed > 0 && timeout > 0 && progress.phase === "loading-model") {
+      return `${generated} · ${t("askTimeoutProgress", { elapsed, timeout })}`;
+    }
+    return generated;
+  }
+
+  function workingLabels() {
+    const labels = new Set([...busy]);
+    for (const job of jobs) labels.add(jobLabel(job));
+    return [...labels].filter(Boolean);
+  }
+
+  function jobLabel(job: Record<string, any>) {
+    const kind = String(job.kind ?? "job");
+    if (kind === "download" && job.sourceId) return `download-${job.sourceId}`;
+    if (kind === "profile-download" && job.profileId) return `profile-${job.profileId}`;
+    if (kind === "index") return `index-${job.operation ?? "running"}`;
+    if (kind === "ask") return `ask-${job.model ?? "local-ai"}`;
+    return String(job.id ?? kind);
+  }
+
   function duration(seconds: number) {
     const value = Math.max(0, Math.round(seconds));
     const minutes = Math.floor(value / 60);
@@ -2036,7 +2117,8 @@
 
   function sourceIsIndexing(sourceId: unknown) {
     const id = String(sourceId ?? "");
-    return busy.has(`index-${id}`) || Boolean(sourceIndexInfo(id)?.current);
+    const info = sourceIndexInfo(id);
+    return busy.has(`index-${id}`) || Boolean(info?.current || info?.status === "indexing");
   }
 
   function sourceIndexProgressLine(indexInfo: Record<string, any> | null | undefined) {
@@ -2123,7 +2205,7 @@
       <button type="button" class:active={activeTab === "logs"} on:click={() => activeTab = "logs"}>{t("logs")}</button>
     </nav>
     {#if error}<div class="alert">{error}</div>{/if}
-    {#if busy.size}<div class="busy">{t("working", { busy: [...busy].join(", ") })}</div>{/if}
+    {#if workingLabelsList.length}<div class="busy">{t("working", { busy: workingLabelsList.join(", ") })}</div>{/if}
 
     {#if activeTab === "easy"}
     <section id="easy-install" class="band">
@@ -2172,7 +2254,7 @@
         <span>{easyInstallAi ? t("localAiIncluded") : t("localAiSkipped")}</span>
       </div>
       <div class="centerAction">
-        <button class="primaryAction startEasyInstallButton" type="button" on:click={easyInstall} disabled={busy.has("easy-install") || (!selectedEasyProfiles.length && !easyInstallAi)}>
+        <button class="primaryAction startEasyInstallButton" type="button" title={easyInstallBlockedByIndexing ? t("easyInstallWaitForIndex") : ""} on:click={easyInstall} disabled={easyInstallBlockedByIndexing || busy.has("easy-install") || (!selectedEasyProfiles.length && !easyInstallAi)}>
           {busy.has("easy-install") ? t("installing") : t("startEasyInstall")}
         </button>
       </div>
@@ -2385,7 +2467,7 @@
                   <button aria-label={verifyTooltip(source)} on:click={() => verify(source.id)} disabled={!info.local?.local_path || busy.has(`verify-${source.id}`) || sourceDownloading}>{t("verify")}</button>
                 </span>
                 <span class="tooltipHost" title={indexTooltip(source)}>
-                  <button aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={!info.local?.local_path || busy.has(`index-${source.id}`) || sourceDownloading || indexBusy}>{indexActionLabel(source.id)}</button>
+                  <button aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={indexingActive || !info.local?.local_path || busy.has(`index-${source.id}`) || sourceDownloading || indexBusy}>{indexActionLabel(source.id)}</button>
                 </span>
                 <span class="tooltipHost" title={openTooltip(source)}>
                   <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || busy.has(`open-${source.id}`)}>{t("open")}</button>
@@ -2482,7 +2564,7 @@
           <small>{t("extraKnowledgeHelp")}</small>
         </div>
         <span class="actions">
-          <button type="button" on:click={indexImportedExtraFiles} disabled={busy.has("extra-index") || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>{t("indexImported")}</button>
+          <button type="button" on:click={indexImportedExtraFiles} disabled={indexingActive || busy.has("extra-index") || !extraImportedSources.some((source) => source.local_path && !fullyIndexedSourceIds.has(source.id))}>{t("indexImported")}</button>
         </span>
       </div>
       <div class="pathPicker">
@@ -2509,7 +2591,7 @@
                 <input type="checkbox" bind:checked={extraIndexOnImport} />
                 <span>{t("indexAfterImport")}</span>
               </label>
-              <button class="primaryAction" type="button" on:click={importSelectedExtraFiles} disabled={busy.has("extra-import") || !selectedExtraFiles.length}>{t("importSelected")}</button>
+              <button class="primaryAction" type="button" on:click={importSelectedExtraFiles} disabled={(indexingActive && extraIndexOnImport) || busy.has("extra-import") || !selectedExtraFiles.length}>{t("importSelected")}</button>
             </span>
           </div>
           <div class="fileList">
@@ -2545,7 +2627,7 @@
               </span>
               <span class="actions">
                 <button type="button" on:click={() => openOriginal(source.id)} disabled={busy.has(`open-${source.id}`) || !source.local_path}>{t("openButton")}</button>
-                <button type="button" on:click={() => indexSource(source.id)} disabled={busy.has(`index-${source.id}`) || !source.local_path}>{indexActionLabel(source.id)}</button>
+                <button type="button" on:click={() => indexSource(source.id)} disabled={indexingActive || busy.has(`index-${source.id}`) || !source.local_path}>{indexActionLabel(source.id)}</button>
                 {#if busy.has(`index-${source.id}`)}
                   <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
                 {/if}
@@ -2563,7 +2645,7 @@
         <h2>{t("search")}</h2>
         <span class="actions">
           <span class="tooltipHost" title={indexableDownloadedSources.length || !downloadedIndexSources.length ? t("indexAllDownloadedTooltip") : t("reindexAllDownloadedTooltip")}>
-            <button type="button" on:click={indexAllDownloaded} disabled={busy.has("index-all-downloaded") || (!indexableDownloadedSources.length && !downloadedIndexSources.length)}>
+            <button type="button" on:click={indexAllDownloaded} disabled={indexingActive || busy.has("index-all-downloaded") || (!indexableDownloadedSources.length && !downloadedIndexSources.length)}>
               {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : downloadedIndexSources.length ? t("reindexAllDownloaded") : t("allDownloadedIndexed")}
             </button>
           </span>
@@ -2696,7 +2778,7 @@
 	                      <button type="button" aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={busy.has(`open-${source.id}`)}>{t("openButton")}</button>
 	                    </span>
 		                    <span class="tooltipHost" title={indexTooltip(source)}>
-		                      <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={busy.has(`index-${source.id}`) || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
+		                      <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={indexingActive || busy.has(`index-${source.id}`) || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
 		                    </span>
 	                    {#if busy.has(`index-${source.id}`)}
 	                      <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
@@ -2868,10 +2950,10 @@
         <h2>{t("localAi")}</h2>
         <span class="actions">
           <span>{t("indexedResourcesAvailable", { count: indexedSources.length })}</span>
+          <span class:warn={indexableDownloadedSources.length > 0} class:ok={indexableDownloadedSources.length === 0}>
+            {indexableDownloadedSources.length ? t("downloadedSourcesNeedIndex", { count: indexableDownloadedSources.length }) : t("downloadedSourcesAllIndexed")}
+          </span>
           <button type="button" on:click={restartConversation} disabled={askBusy || !chatTurns.length}>{t("restartConversation")}</button>
-          <button type="button" on:click={indexAllDownloaded} disabled={busy.has("index-all-downloaded") || (!indexableDownloadedSources.length && !downloadedIndexSources.length)}>
-            {indexableDownloadedSources.length ? t("indexDownloadedCount", { count: indexableDownloadedSources.length }) : downloadedIndexSources.length ? t("reindexAllDownloaded") : t("allDownloadedIndexed")}
-          </button>
         </span>
       </div>
       <p>{t("textIndexHelp")}</p>
@@ -2885,7 +2967,7 @@
         <select bind:value={questionModel} aria-label={t("chatModel")} disabled={!installedChatModels.length}>
           {#if installedChatModels.length}
             {#each installedChatModels as model}
-              <option value={model.id}>{modelTitle(model)} · {model.pull}</option>
+              <option value={model.pull ?? model.id}>{modelTitle(model)} · {model.pull}</option>
             {/each}
           {:else}
             <option value="">{t("installChatModelFirst")}</option>
@@ -2905,17 +2987,15 @@
         <article class="answer searchBusyPanel">
           <span class="spinner largeSpinner" aria-hidden="true"></span>
           <strong>{t("askingOllama")}</strong>
-          <small>
-            {ollamaService?.status === "starting" || ollamaService?.status === "installing"
-              ? t("askStartingOllama")
-              : ollamaService?.status === "blocked"
-                ? t("askBlockedHelp")
-                : t("askInProgress")}
-          </small>
-          <small>{t("askGeneratedTokens", { count: Number(askProgress?.generatedTokens ?? 0) })}</small>
+          <small>{askProgressMessage(askProgress, ollamaService)}</small>
+          {#if askProgress?.model}
+            <small>{t("askModelLine", { model: askProgress.model })}</small>
+          {/if}
+          <small>{askProgressLine(askProgress)}</small>
           {#if ollamaService?.message}
             <small>{detailLabel(ollamaService.message)}</small>
           {/if}
+          <button type="button" on:click={cancelAsk} disabled={busy.has("ask-cancel")}>{t("cancelAsk")}</button>
         </article>
       {/if}
       {#if chatTurns.length}
@@ -2924,7 +3004,7 @@
             <article class="answer">
               <strong>{turn.question}</strong>
               <p>{turn.answer}</p>
-              {#each turn.citations as citation}
+              {#each turn.citations ?? [] as citation}
                 <small>[{citation.index}] {sourceTitleById(citation.source_id, citation.title)} · {citation.path}</small>
               {/each}
             </article>
@@ -2958,7 +3038,7 @@
               <option value="macos">{t("primaryLauncherMacos")}</option>
             </select>
             <button type="button" on:click={pickShareAppsFolder} disabled={busy.has("share-apps-folder")}>{t("appBundleFolder")}</button>
-            <button class="primaryAction startEasyInstallButton" on:click={generateSharePackage} disabled={busy.has("share-package") || !shareProfile}>
+            <button class="primaryAction startEasyInstallButton" title={hasActiveDownloads ? t("shareWaitForDownloads") : ""} on:click={generateSharePackage} disabled={hasActiveDownloads || indexingActive || busy.has("share-package") || !shareProfile}>
               {busy.has("share-package") ? t("generatingSharePackage") : t("sharePackage")}
             </button>
           </span>

@@ -187,6 +187,29 @@ describe("services", () => {
     }
   });
 
+  it("returns a clear canceled answer when Ollama generation is canceled", async () => {
+    const controller = new AbortController();
+    const resultPromise = askOllama({
+      question: "How do I store water?",
+      contexts: [{ source_id: "test", title: "Test Source", path: "water.md", snippet: "Store water in clean sealed containers." }],
+      model: "test-chat",
+      abortSignal: controller.signal,
+      fetchImpl: (_url, options = {}) => Promise.resolve(new Response(new ReadableStream({
+        start(streamController) {
+          options.signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            streamController.error(error);
+          });
+        }
+      }), { status: 200, headers: { "content-type": "application/json" } }))
+    });
+    controller.abort();
+    const result = await resultPromise;
+    expect(result.canceled).toBe(true);
+    expect(result.answer).toMatch(/canceled/i);
+  });
+
   it("includes previous chat turns in the Ollama prompt", async () => {
     let payload = null;
     const result = await askOllama({

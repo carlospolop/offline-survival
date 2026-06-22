@@ -18,6 +18,7 @@ const maxStreamAttempts = Number(process.env.SCA_DOWNLOAD_STREAM_ATTEMPTS ?? 4);
 const progressIntervalMs = Number(process.env.SCA_DOWNLOAD_PROGRESS_INTERVAL_MS ?? 1_000);
 const downloadMaxBytesPerSecond = Number(process.env.SCA_DOWNLOAD_MAX_MBPS ?? 0) * 1_000_000;
 const hashMaxBytesPerSecond = Number(process.env.SCA_HASH_MAX_MBPS ?? 0) * 1_000_000;
+const downloadedStatuses = new Set(["downloaded", "verified", "indexed", "indexed-original-only", "downloaded_unverified"]);
 
 export async function sha256File(file) {
   const hash = crypto.createHash("sha256");
@@ -75,7 +76,7 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
 
   db.prepare("INSERT INTO downloads (id, source_id, status, total_bytes, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET status=excluded.status, total_bytes=excluded.total_bytes, updated_at=excluded.updated_at")
     .run(source.id, source.id, "downloading", expected, now());
-  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')")
+  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')")
     .run("downloading", now(), source.id);
 
   try {
@@ -372,7 +373,7 @@ export function pauseDownload(db, sourceId) {
   const activeDownload = active.get(sourceId);
   if (activeDownload) activeDownload.controller.abort();
   db.prepare("UPDATE downloads SET status=?, error=?, updated_at=? WHERE id=?").run("paused", "Paused by user", now(), sourceId);
-  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=?").run("paused", now(), sourceId);
+  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')").run("paused", now(), sourceId);
   recordEvent(db, "download-pause", `Paused download ${sourceId}`, { sourceId });
   return { sourceId, status: "paused" };
 }
@@ -389,14 +390,14 @@ export async function downloadProfile({ db, libraryRoot, profile, sources, diskB
   const results = [];
   for (const source of selected) {
     const row = db.prepare("SELECT status FROM sources WHERE id=?").get(source.id);
-    if (row?.status === "downloaded" || row?.status === "verified" || row?.status === "indexed") {
+    if (downloadedStatuses.has(String(row?.status ?? ""))) {
       results.push({ sourceId: source.id, skipped: true, status: row.status });
       continue;
     }
     pending.push(source);
     db.prepare("INSERT INTO downloads (id, source_id, status, total_bytes, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET status=excluded.status, total_bytes=excluded.total_bytes, error=NULL, updated_at=excluded.updated_at")
       .run(source.id, source.id, "queued", Number(source.expected_size_bytes ?? 0), now());
-    db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')")
+    db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')")
       .run("queued", now(), source.id);
   }
   const existingBytes = await currentLibraryBytesIfBudgeted(libraryRoot, diskBudgetBytes);
