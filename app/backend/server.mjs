@@ -18,7 +18,7 @@ import { reviewSource, sourceReviewSummary } from "./review.mjs";
 import { importExtraKnowledgeFiles, scanExtraKnowledgeFolder, supportedExtraKnowledgeExtensions } from "./extraKnowledge.mjs";
 import { askOllama, ensureOllamaRuntimePermissions, serviceStatus, startKiwix, startOllama, stopService, upsertService } from "./services.mjs";
 import { estimateModelRamBytes, memorySnapshot, systemInfo } from "./system.mjs";
-import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, openState, pruneOldEvents, pruneOldLogFiles, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
+import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, now, openState, pruneOldEvents, pruneOldLogFiles, recordEvent, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 const root = process.cwd();
@@ -52,6 +52,7 @@ scheduleStartupIndexRepair();
 
 let shuttingDown = false;
 let server = null;
+const backgroundJobs = new Map();
 
 async function syncCatalog() {
   configureManagedRuntimes();
@@ -132,6 +133,46 @@ async function withDb(work) {
   }
 }
 
+function startBackgroundJob(key, work) {
+  if (backgroundJobs.has(key)) return false;
+  const promise = Promise.resolve()
+    .then(work)
+    .catch((error) => {
+      console.warn(`Background job ${key} failed: ${String(error.message ?? error)}`);
+    })
+    .finally(() => backgroundJobs.delete(key));
+  backgroundJobs.set(key, promise);
+  return true;
+}
+
+function queueSourceDownload(db, source) {
+  const row = db.prepare("SELECT status FROM sources WHERE id=?").get(source.id);
+  if (["downloaded", "verified", "indexed"].includes(String(row?.status ?? ""))) {
+    return { sourceId: source.id, status: row.status, skipped: true };
+  }
+  if (["queued", "downloading", "resuming"].includes(String(row?.status ?? ""))) {
+    return { sourceId: source.id, status: row.status, alreadyRunning: true };
+  }
+  db.prepare("INSERT INTO downloads (id, source_id, status, total_bytes, error, updated_at) VALUES (?, ?, ?, ?, NULL, ?) ON CONFLICT(id) DO UPDATE SET status=excluded.status, total_bytes=excluded.total_bytes, error=NULL, updated_at=excluded.updated_at")
+    .run(source.id, source.id, "queued", Number(source.expected_size_bytes ?? 0), now());
+  db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')")
+    .run("queued", now(), source.id);
+  recordEvent(db, "download-queued", `${source.title} download queued`, { sourceId: source.id });
+  return { sourceId: source.id, status: "queued" };
+}
+
+function queueProfileDownloads(db, profile, sources) {
+  const queued = [];
+  const skipped = [];
+  for (const source of sources.filter((item) => profile.sourceIds.includes(item.id))) {
+    const result = queueSourceDownload(db, source);
+    if (result.skipped) skipped.push(result);
+    else queued.push(result);
+  }
+  recordEvent(db, "profile-download-queued", `${profile.title} profile download queued`, { profileId: profile.id, queued: queued.length, skipped: skipped.length });
+  return { profileId: profile.id, status: "queued", queued, skipped };
+}
+
 function shutdownAuthorized(req) {
   const token = process.env.SCA_BACKEND_TOKEN ?? "";
   if (!token) return true;
@@ -199,8 +240,20 @@ async function route(req, res) {
       const catalog = await loadCatalog();
       const source = catalog.sources.find((item) => item.id === body.sourceId);
       if (!source) throw new Error(`Unknown source ${body.sourceId}`);
-      const result = await withDb((db) => downloadSource({ db, libraryRoot, source, diskBudgetBytes: optionalNumber(body.diskBudgetBytes) }));
-      return send(res, 200, result);
+      const jobRoot = libraryRoot;
+      const diskBudgetBytes = optionalNumber(body.diskBudgetBytes);
+      const queued = await withDb((db) => queueSourceDownload(db, source));
+      const started = queued.skipped
+        ? false
+        : startBackgroundJob(`download:${jobRoot}:${source.id}`, async () => {
+            const db = openState(jobRoot);
+            try {
+              await downloadSource({ db, libraryRoot: jobRoot, source, diskBudgetBytes });
+            } finally {
+              db.close();
+            }
+          });
+      return send(res, 200, { ...queued, background: !queued.skipped, started });
     }
     if (url.pathname === "/api/profile/download" && req.method === "POST") {
       const body = await json(req);
@@ -208,8 +261,22 @@ async function route(req, res) {
       const profile = catalog.profiles.find((item) => item.id === body.profileId);
       if (!profile) throw new Error(`Unknown profile ${body.profileId}`);
       validateProfileLanguage([profile], body.contentLanguage);
-      const result = await withDb((db) => downloadProfile({ db, libraryRoot, profile, sources: catalog.sources, diskBudgetBytes: optionalNumber(body.diskBudgetBytes), concurrency: Number(body.concurrency ?? 4) }));
-      return send(res, 200, result);
+      const jobRoot = libraryRoot;
+      const diskBudgetBytes = optionalNumber(body.diskBudgetBytes);
+      const concurrency = Number(body.concurrency ?? 4);
+      const queued = await withDb((db) => queueProfileDownloads(db, profile, catalog.sources));
+      const hasPendingDownloads = queued.queued.length > 0;
+      const started = hasPendingDownloads
+        ? startBackgroundJob(`profile-download:${jobRoot}:${profile.id}`, async () => {
+            const db = openState(jobRoot);
+            try {
+              await downloadProfile({ db, libraryRoot: jobRoot, profile, sources: catalog.sources, diskBudgetBytes, concurrency });
+            } finally {
+              db.close();
+            }
+          })
+        : false;
+      return send(res, 200, { ...queued, background: hasPendingDownloads, started });
     }
     if (url.pathname === "/api/easy-install" && req.method === "POST") {
       const body = await json(req);
@@ -238,8 +305,23 @@ async function route(req, res) {
       const catalog = await loadCatalog();
       const source = catalog.sources.find((item) => item.id === body.sourceId);
       if (!source) throw new Error(`Unknown source ${body.sourceId}`);
-      const result = await withDb((db) => retryDownload({ db, libraryRoot, source, diskBudgetBytes: optionalNumber(body.diskBudgetBytes) }));
-      return send(res, 200, result);
+      const jobRoot = libraryRoot;
+      const diskBudgetBytes = optionalNumber(body.diskBudgetBytes);
+      const queued = await withDb((db) => {
+        db.prepare("UPDATE downloads SET status=?, error=NULL, updated_at=? WHERE id=?").run("queued", now(), source.id);
+        db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed')").run("queued", now(), source.id);
+        recordEvent(db, "download-retry", `Retrying ${source.title}`, { sourceId: source.id });
+        return { sourceId: source.id, status: "queued" };
+      });
+      const started = startBackgroundJob(`download:${jobRoot}:${source.id}`, async () => {
+        const db = openState(jobRoot);
+        try {
+          await retryDownload({ db, libraryRoot: jobRoot, source, diskBudgetBytes });
+        } finally {
+          db.close();
+        }
+      });
+      return send(res, 200, { ...queued, background: true, started });
     }
     if (url.pathname === "/api/verify" && req.method === "POST") {
       const body = await json(req);
@@ -457,9 +539,16 @@ async function route(req, res) {
       const catalog = await loadCatalog();
       const history = normalizeAskHistory(body.history);
       const contexts = await withDb((db) => retrieveAskContexts(db, { ...body, history }));
-      if (!contexts.length) return send(res, 200, await askOllama({ question: body.question, contexts, history, model: body.model ?? "qwen3:8b" }));
+      const progress = askProgressUpdater({ question: body.question, model: body.model ?? "qwen3:8b" });
+      progress({ status: "running", phase: "retrieving", generatedTokens: 0, generatedChars: 0 });
+      if (!contexts.length) {
+        const result = await askOllama({ question: body.question, contexts, history, model: body.model ?? "qwen3:8b" });
+        progress({ status: "complete", phase: "complete", generatedTokens: 0, generatedChars: 0, unsupported: true });
+        return send(res, 200, result);
+      }
       let model;
       try {
+        progress({ status: "running", phase: "starting", generatedTokens: 0, generatedChars: 0 });
         model = await withDb(async (db) => {
           for (const model of catalog.models) upsertModel(db, model);
           await refreshModels(db, catalog.models);
@@ -482,6 +571,7 @@ async function route(req, res) {
         });
       } catch (error) {
         if (error.code !== "SCA_OLLAMA_MEMORY_BLOCKED") throw error;
+        progress({ status: "failed", phase: "blocked", generatedTokens: 0, generatedChars: 0, error: String(error.message ?? error) });
         return send(res, 200, {
           answer: String(error.message ?? error),
           citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
@@ -491,7 +581,16 @@ async function route(req, res) {
           requiredBytes: error.requiredBytes
         });
       }
-      return send(res, 200, await askWithOllamaPermissionRepair({ question: body.question, contexts, history, model }));
+      const result = await askWithOllamaPermissionRepair({ question: body.question, contexts, history, model, onProgress: progress });
+      const finalProgress = {
+        status: result.timedOut || result.unsupported ? "failed" : "complete",
+        phase: result.timedOut ? "timeout" : "complete",
+        generatedChars: result.answer?.length ?? undefined,
+        unsupported: Boolean(result.unsupported)
+      };
+      if (Number.isFinite(Number(result.generatedTokens))) finalProgress.generatedTokens = Number(result.generatedTokens);
+      progress(finalProgress, { force: true });
+      return send(res, 200, result);
     }
     if (url.pathname === "/api/lock" && req.method === "POST") {
       const body = await json(req);
@@ -834,7 +933,19 @@ function retrieveAskContexts(db, body) {
     const key = `${context.source_id}:${context.path}:${context.snippet}`;
     if (!byKey.has(key)) byKey.set(key, enrichAskContext(db, context));
   }
-  return [...byKey.values()].slice(0, 5);
+  return uniqueAskContexts([...byKey.values()]).slice(0, 5);
+}
+
+function uniqueAskContexts(contexts) {
+  const seen = new Set();
+  const unique = [];
+  for (const context of contexts) {
+    const body = normalizeContextBody(context.snippet || context.body || "");
+    if (!body || seen.has(body)) continue;
+    seen.add(body);
+    unique.push(context);
+  }
+  return unique;
 }
 
 function normalizeAskHistory(history) {
@@ -873,6 +984,10 @@ function cleanPromptText(text) {
     .replace(/<\/?mark>/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeContextBody(text) {
+  return cleanPromptText(text).toLowerCase();
 }
 
 function askKeywordQuery(question) {
@@ -919,11 +1034,40 @@ async function bestUsableInstalledChatModel(db, preferredModel) {
   return rows.find((model) => estimateModelRamBytes(model) <= memory.availableBytes) ?? preferredModel;
 }
 
-async function askWithOllamaPermissionRepair({ question, contexts, history, model }) {
-  const first = await askOllama({ question, contexts, history, model });
+function askProgressUpdater({ question, model }) {
+  const startedAt = Date.now();
+  let lastWrite = 0;
+  let last = {};
+  return (progress, options = {}) => {
+    last = { ...last, ...progress };
+    const nowMs = Date.now();
+    if (!options.force && nowMs - lastWrite < 500 && !["complete", "failed"].includes(String(last.status ?? ""))) return;
+    lastWrite = nowMs;
+    const db = openState(libraryRoot);
+    try {
+      setSetting(db, "askProgress", {
+        status: last.status ?? "running",
+        phase: last.phase ?? "generating",
+        generatedTokens: Number(last.generatedTokens ?? 0),
+        generatedChars: Number(last.generatedChars ?? 0),
+        question: cleanPromptText(question).slice(0, 160),
+        model,
+        unsupported: Boolean(last.unsupported),
+        error: last.error ?? null,
+        startedAt,
+        updatedAt: nowMs
+      });
+    } finally {
+      db.close();
+    }
+  };
+}
+
+async function askWithOllamaPermissionRepair({ question, contexts, history, model, onProgress = null }) {
+  const first = await askOllama({ question, contexts, history, model, onProgress });
   if (!ollamaPermissionDenied(first)) return first;
   await ensureOllamaRuntimePermissions();
-  const retry = await askOllama({ question, contexts, history, model });
+  const retry = await askOllama({ question, contexts, history, model, onProgress });
   return {
     ...retry,
     repairedRuntimePermissions: true

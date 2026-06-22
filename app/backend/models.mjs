@@ -4,7 +4,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { getSettings, now, recordEvent, setSetting } from "./state.mjs";
-import { ensureOllamaRuntimePermissions, resolveRuntime, startOllama, upsertService } from "./services.mjs";
+import { ensureOllamaRuntimePermissions, fetchWithTimeout, resolveRuntime, startOllama, upsertService } from "./services.mjs";
 import { extractZipToDir } from "./zip.mjs";
 
 export async function refreshModels(db, catalogModels, fetchImpl = fetch) {
@@ -12,7 +12,7 @@ export async function refreshModels(db, catalogModels, fetchImpl = fetch) {
   const settings = getSettings(db);
   const aiInstalling = settings.aiInstallProgress?.status === "running";
   try {
-    const response = await fetchImpl("http://127.0.0.1:11434/api/tags");
+    const response = await fetchWithTimeout(fetchImpl, "http://127.0.0.1:11434/api/tags", {}, Number(process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS ?? 1000));
     if (response.ok) {
       const data = await response.json();
       installed = [...new Set([...installed, ...(data.models ?? []).flatMap((model) => modelNameAliases(model.name))])];
@@ -315,7 +315,7 @@ async function pullModelWithProgress(db, model, progress, attempt = 1) {
 
 async function modelIsInstalled(pullName) {
   try {
-    const response = await fetch("http://127.0.0.1:11434/api/tags");
+    const response = await fetchWithTimeout(fetch, "http://127.0.0.1:11434/api/tags", {}, Number(process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS ?? 1000));
     if (!response.ok) return false;
     const data = await response.json();
     return (data.models ?? []).some((model) => modelNameAliases(model.name).includes(pullName));

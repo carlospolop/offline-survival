@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ensureLibrary, openState } from "../app/backend/state.mjs";
 import net from "node:net";
-import { ollamaInstallPlan } from "../app/backend/models.mjs";
+import { ollamaInstallPlan, refreshModels } from "../app/backend/models.mjs";
 import { askOllama, assertOllamaMemoryAllowed, detectRuntime, ensureOllamaRuntimePermissions, findAvailablePort, KIWIX_PORT, KIWIX_PORT_COUNT, LOCAL_STATIC_PORT, LOCAL_STATIC_PORT_COUNT, resolveRuntime, runtimeCandidates, serviceStatus, startOllama, stopService } from "../app/backend/services.mjs";
 import { estimateModelRamBytes, parseDarwinVmStat, recommendAi } from "../app/backend/system.mjs";
 
@@ -158,6 +158,97 @@ describe("services", () => {
     } finally {
       if (oldTimeout === undefined) delete process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS;
       else process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS = oldTimeout;
+    }
+  });
+
+  it("returns a clear timeout when Ollama generation headers arrive but the body stalls", async () => {
+    const oldTimeout = process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS;
+    process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS = "1";
+    try {
+      const result = await askOllama({
+        question: "How do I store water?",
+        contexts: [{ source_id: "test", title: "Test Source", path: "water.md", snippet: "Store water in clean sealed containers." }],
+        model: "test-chat",
+        fetchImpl: (_url, options = {}) => Promise.resolve(new Response(new ReadableStream({
+          start(controller) {
+            options.signal?.addEventListener("abort", () => {
+              const error = new Error("aborted");
+              error.name = "AbortError";
+              controller.error(error);
+            });
+          }
+        }), { status: 200, headers: { "content-type": "application/json" } }))
+      });
+      expect(result.timedOut).toBe(true);
+      expect(result.answer).toMatch(/did not answer/);
+    } finally {
+      if (oldTimeout === undefined) delete process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS;
+      else process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS = oldTimeout;
+    }
+  });
+
+  it("includes previous chat turns in the Ollama prompt", async () => {
+    let payload = null;
+    const result = await askOllama({
+      question: "What about it next?",
+      history: [{ question: "How do I store water?", answer: "Use clean sealed containers." }],
+      contexts: [{ source_id: "test", title: "Water Source", path: "water.md", snippet: "Rotate stored water and keep containers sealed." }],
+      model: "test-chat",
+      fetchImpl: async (_url, options = {}) => {
+        payload = JSON.parse(options.body);
+        return new Response(JSON.stringify({ response: "Use the same sealed-container guidance." }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        });
+      }
+    });
+    expect(result.unsupported).toBe(false);
+    expect(payload.prompt).toContain("Recent conversation:");
+    expect(payload.prompt).toContain("User: How do I store water?");
+    expect(payload.prompt).toContain("Assistant: Use clean sealed containers.");
+    expect(payload.prompt).toContain("Question: What about it next?");
+  });
+
+  it("reports generated token progress while reading Ollama streams", async () => {
+    const progress = [];
+    const encoder = new TextEncoder();
+    const result = await askOllama({
+      question: "How do I store water?",
+      contexts: [{ source_id: "test", title: "Water Source", path: "water.md", snippet: "Store water in clean sealed containers." }],
+      model: "test-chat",
+      onProgress: (event) => progress.push(event),
+      fetchImpl: async () => new Response(new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(JSON.stringify({ response: "Use" }) + "\n"));
+          controller.enqueue(encoder.encode(JSON.stringify({ response: " sealed" }) + "\n"));
+          controller.enqueue(encoder.encode(JSON.stringify({ response: " containers.", done: true, eval_count: 3 }) + "\n"));
+          controller.close();
+        }
+      }), { status: 200, headers: { "content-type": "application/x-ndjson" } })
+    });
+    expect(result.answer).toContain("Use sealed containers.");
+    expect(result.generatedTokens).toBe(3);
+    expect(progress.some((event) => event.generatedTokens >= 1 && !event.done)).toBe(true);
+    expect(progress.at(-1)).toMatchObject({ generatedTokens: 3, done: true });
+  });
+
+  it("bounds Ollama model refresh probes", async () => {
+    const oldTimeout = process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS;
+    process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS = "1";
+    const db = openState(root);
+    try {
+      const models = await refreshModels(db, [], (_url, options = {}) => new Promise((_resolve, reject) => {
+        options.signal?.addEventListener("abort", () => {
+          const error = new Error("aborted");
+          error.name = "AbortError";
+          reject(error);
+        });
+      }));
+      expect(models).toEqual([]);
+    } finally {
+      db.close();
+      if (oldTimeout === undefined) delete process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS;
+      else process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS = oldTimeout;
     }
   });
 

@@ -123,6 +123,25 @@ describe("HTTP API", () => {
     })).json();
     expect(openedSearchHit.action).toBe("open_search_result");
     expect(openedSearchHit.path).toBe(search.results[0].path);
+    const db = openState(root);
+    try {
+      const duplicateBody = "Duplicate battery context should appear only once.";
+      const insertChunk = db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      const insertFts = db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)");
+      for (const suffix of ["a", "b"]) {
+        const pathName = `duplicate-${suffix}.md`;
+        insertChunk.run(`duplicate-${suffix}`, imported.imported[0].id, "Duplicate Battery Context", pathName, "", duplicateBody, 8, "[]", "general", new Date().toISOString());
+        insertFts.run(imported.imported[0].id, "Duplicate Battery Context", duplicateBody, pathName);
+      }
+    } finally {
+      db.close();
+    }
+    const askDuplicateContext = await (await fetch(`http://127.0.0.1:${port}/api/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question: "What does the duplicate battery context say?", model: "missing-test-model:latest" })
+    })).json();
+    expect(askDuplicateContext.citations.filter((citation) => String(citation.path).startsWith("duplicate-"))).toHaveLength(1);
     const askImported = await (await fetch(`http://127.0.0.1:${port}/api/ask`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -130,6 +149,39 @@ describe("HTTP API", () => {
     })).json();
     expect(askImported.unsupported).toBe(true);
     expect(askImported.citations.some((citation) => citation.source_id === imported.imported[0].id)).toBe(true);
+
+    const catalog = await (await fetch(`http://127.0.0.1:${port}/api/catalog`)).json();
+    const alreadyDownloadedId = catalog.sources[0].id;
+    const dbDownloaded = openState(root);
+    try {
+      dbDownloaded.prepare("UPDATE sources SET status='downloaded', updated_at=datetime('now') WHERE id=?").run(alreadyDownloadedId);
+    } finally {
+      dbDownloaded.close();
+    }
+    const skippedDownload = await (await fetch(`http://127.0.0.1:${port}/api/download`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sourceId: alreadyDownloadedId })
+    })).json();
+    expect(skippedDownload).toMatchObject({ sourceId: alreadyDownloadedId, skipped: true, background: false, started: false });
+
+    const alreadyDownloadedProfile = catalog.profiles.find((profile) => profile.id === "survival-essential");
+    const dbProfileDownloaded = openState(root);
+    try {
+      for (const sourceId of alreadyDownloadedProfile.sourceIds) {
+        dbProfileDownloaded.prepare("UPDATE sources SET status='downloaded', updated_at=datetime('now') WHERE id=?").run(sourceId);
+      }
+    } finally {
+      dbProfileDownloaded.close();
+    }
+    const skippedProfileDownload = await (await fetch(`http://127.0.0.1:${port}/api/profile/download`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ profileId: alreadyDownloadedProfile.id })
+    })).json();
+    expect(skippedProfileDownload).toMatchObject({ profileId: alreadyDownloadedProfile.id, background: false, started: false });
+    expect(skippedProfileDownload.queued).toHaveLength(0);
+    expect(skippedProfileDownload.skipped).toHaveLength(alreadyDownloadedProfile.sourceIds.length);
 
     const cleaned = await (await fetch(`http://127.0.0.1:${port}/api/clean-sources`, { method: "POST" })).json();
     expect(cleaned.status).toBe("cleaned");

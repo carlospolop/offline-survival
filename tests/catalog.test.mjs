@@ -52,6 +52,24 @@ describe("catalog", () => {
     expect(catalog.sources.filter((source) => !source.language)).toHaveLength(0);
   });
 
+  it("shows only per-tier added sources for bilingual profiles", async () => {
+    const catalog = await loadCatalog();
+    const byId = new Map(catalog.profiles.map((profile) => [profile.id, profile]));
+    const essential = byId.get("survival-essential-bilingual");
+    const plus = byId.get("survival-plus-bilingual");
+    const core = byId.get("civilization-core-bilingual");
+
+    expect(essential.addedSourceIds).toEqual(essential.sourceIds);
+    expect(plus.addedSourceIds).not.toContain("survivalmanual-wiki");
+    expect(plus.addedSourceIds).not.toContain("vikidia-es-zim");
+    expect(plus.addedSourceIds).toContain("wikipedia-top1m-zim");
+    expect(plus.addedSourceIds).toContain("wikipedia-es-top-zim");
+    expect(core.addedSourceIds).not.toContain("wikipedia-top1m-zim");
+    expect(core.addedSourceIds).not.toContain("wikipedia-es-top-zim");
+    expect(core.addedSourceIds).toContain("wikibooks-zim");
+    expect(core.addedSourceIds).toContain("wikibooks-es-zim");
+  });
+
   it("keeps profile source sets aligned with the selected content language", async () => {
     const catalog = await loadCatalog();
     const sources = new Map(catalog.sources.map((source) => [source.id, source]));

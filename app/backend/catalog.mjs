@@ -48,17 +48,25 @@ export async function loadCatalog() {
   }));
   const preparedSourceMap = new Map(preparedSources.map((source) => [source.id, source]));
 
-  const resolvedProfiles = profiles.map((profile) => {
+  const expandedProfiles = profiles.map((profile) => {
     const ids = [...new Set(expandProfile(profile.id))];
-    const addedIds = profile.sources ?? [];
     const sources = ids.map((id) => {
       const source = preparedSourceMap.get(id);
       if (!source) throw new Error(`Profile ${profile.id} references missing source ${id}`);
       return source;
     });
-    for (const id of addedIds) {
+    for (const id of profile.sources ?? []) {
       if (!sourceMap.has(id)) throw new Error(`Profile ${profile.id} references missing source ${id}`);
     }
+    return { profile, ids, sources };
+  }).sort((a, b) => profileSortIndex(a.profile.id) - profileSortIndex(b.profile.id));
+
+  const previousSourceIdsByLanguage = new Map();
+  const resolvedProfiles = expandedProfiles.map(({ profile, ids, sources }) => {
+    const language = String(profile.language ?? "default");
+    const previousSourceIds = previousSourceIdsByLanguage.get(language) ?? new Set();
+    const addedIds = ids.filter((id) => !previousSourceIds.has(id));
+    previousSourceIdsByLanguage.set(language, new Set(ids));
     const expectedSizeBytes = sources.reduce((sum, source) => sum + Number(source.expected_size_bytes ?? 0), 0);
     const addedExpectedSizeBytes = addedIds.reduce((sum, id) => sum + Number(sourceMap.get(id)?.expected_size_bytes ?? 0), 0);
     const preparedSizeBytes = sources.reduce((sum, source) => sum + Number(source.prepared_size_bytes ?? source.expected_size_bytes ?? 0), 0);
@@ -67,7 +75,7 @@ export async function loadCatalog() {
       return sum + Number(source?.prepared_size_bytes ?? source?.expected_size_bytes ?? 0);
     }, 0);
     return { ...profile, sourceIds: ids, addedSourceIds: addedIds, expectedSizeBytes, addedExpectedSizeBytes, preparedSizeBytes, addedPreparedSizeBytes };
-  }).sort((a, b) => profileSortIndex(a.id) - profileSortIndex(b.id));
+  });
 
   return { sources: preparedSources, models: catalog.models ?? [], profiles: resolvedProfiles };
 }

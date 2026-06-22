@@ -418,9 +418,9 @@ function formatBytes(bytes) {
   return `${gb.toFixed(gb >= 10 ? 0 : 1)} GB`;
 }
 
-async function ollamaResponds(fetchImpl = fetch) {
+async function ollamaResponds(fetchImpl = fetch, timeoutMs = Number(process.env.SCA_OLLAMA_TAGS_TIMEOUT_MS ?? 1000)) {
   try {
-    const response = await fetchImpl("http://127.0.0.1:11434/api/tags");
+    const response = await fetchWithTimeout(fetchImpl, "http://127.0.0.1:11434/api/tags", {}, timeoutMs);
     return response.ok;
   } catch {
     return false;
@@ -428,23 +428,26 @@ async function ollamaResponds(fetchImpl = fetch) {
 }
 
 async function waitForOllama() {
-  for (let attempt = 0; attempt < 80; attempt += 1) {
-    if (await ollamaResponds()) return;
+  const timeoutMs = Number(process.env.SCA_OLLAMA_START_TIMEOUT_MS ?? 20000);
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await ollamaResponds(fetch, Math.min(1000, Math.max(100, deadline - Date.now())))) return;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error("Ollama did not start on 127.0.0.1:11434");
+  throw new Error(`Ollama did not start on 127.0.0.1:11434 within ${Math.round(timeoutMs / 1000)} seconds`);
 }
 
-export async function askOllama({ question, contexts, history = [], model = "qwen3:8b", fetchImpl = fetch }) {
+export async function askOllama({ question, contexts, history = [], model = "qwen3:8b", fetchImpl = fetch, onProgress = null }) {
   if (!contexts.length) {
     return {
-      answer: "No indexed local source matched that question. Try a more specific question, choose All indexed resources, or index the relevant downloaded source.",
+      answer: noContextAnswer(history),
       citations: [],
       unsupported: true
     };
   }
   const prompt = [
-    "Answer using only the cited context. If the context is insufficient, say what is missing. Give a complete, practical answer and cite the relevant source numbers inline.",
+    "You are in an ongoing conversation. Use the recent conversation to resolve follow-up questions, references, and pronouns.",
+    "Answer using only the cited source context plus facts already stated in the recent conversation. If the source context is insufficient, say what is missing. Give a complete, practical answer and cite the relevant source numbers inline.",
     "",
     ...conversationPromptLines(history),
     "",
@@ -456,21 +459,35 @@ export async function askOllama({ question, contexts, history = [], model = "qwe
   const timeoutMs = Number(process.env.SCA_OLLAMA_GENERATE_TIMEOUT_MS ?? 120000);
   const controller = typeof AbortController === "function" ? new AbortController() : null;
   const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  onProgress?.({ status: "running", phase: "generating", generatedTokens: 0, generatedChars: 0, done: false });
   try {
     response = await fetchImpl("http://127.0.0.1:11434/api/generate", {
       method: "POST",
       headers: { "content-type": "application/json" },
       signal: controller?.signal,
-      body: JSON.stringify({ model, prompt, stream: false, options: { temperature: 0.1, num_predict: 384 } })
+      body: JSON.stringify({ model, prompt, stream: true, options: { temperature: 0.1, num_predict: 384 } })
     });
-  } catch (error) {
-    if (error?.name === "AbortError") {
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      const missingModel = response.status === 404 || /model|not found|pull/i.test(detail);
       return {
-        answer: `Local AI found relevant indexed sources, but Ollama did not answer within ${Math.round(timeoutMs / 1000)} seconds. The model may still be loading; try again, or use a smaller installed chat model.`,
+        answer: missingModel
+          ? `Local AI found relevant indexed sources, but the chat model "${model}" is not installed. Use Local AI -> Install All Recommended, then ask again.`
+          : `Local AI found relevant indexed sources, but Ollama returned HTTP ${response.status}. ${detail}`.trim(),
         citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
-        unsupported: true,
-        timedOut: true
+        unsupported: true
       };
+    }
+    const data = await readOllamaGenerateStream(response, onProgress);
+    return {
+      answer: highRiskPrefix(question) + data.response,
+      citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
+      unsupported: false,
+      generatedTokens: data.generatedTokens ?? null
+    };
+  } catch (error) {
+    if (error?.name === "AbortError" || controller?.signal?.aborted) {
+      return generationTimeoutAnswer({ timeoutMs, contexts });
     }
     return {
       answer: "Local AI found relevant indexed sources, but Ollama is not running. Use Local AI -> Install All Recommended, or start Ollama, then ask again.",
@@ -480,23 +497,81 @@ export async function askOllama({ question, contexts, history = [], model = "qwe
   } finally {
     if (timeout) clearTimeout(timeout);
   }
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    const missingModel = response.status === 404 || /model|not found|pull/i.test(detail);
-    return {
-      answer: missingModel
-        ? `Local AI found relevant indexed sources, but the chat model "${model}" is not installed. Use Local AI -> Install All Recommended, then ask again.`
-        : `Local AI found relevant indexed sources, but Ollama returned HTTP ${response.status}. ${detail}`.trim(),
-      citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
-      unsupported: true
-    };
+}
+
+async function readOllamaGenerateStream(response, onProgress = null) {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let answer = "";
+  let generatedTokens = 0;
+  let finalEvent = null;
+
+  async function handleLine(line) {
+    if (!line.trim()) return;
+    const event = JSON.parse(line);
+    finalEvent = event;
+    if (event.response) {
+      answer += event.response;
+      generatedTokens += generatedTokenCount(event.response);
+    }
+    if (Number.isFinite(Number(event.eval_count))) generatedTokens = Number(event.eval_count);
+    onProgress?.({
+      status: event.done ? "complete" : "running",
+      phase: "generating",
+      generatedTokens,
+      generatedChars: answer.length,
+      done: Boolean(event.done)
+    });
   }
-  const data = await response.json();
+
+  for await (const chunk of response.body) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? "";
+    for (const line of lines) await handleLine(line);
+  }
+  buffer += decoder.decode();
+  if (buffer.trim()) await handleLine(buffer);
+
+  return { ...finalEvent, response: answer, generatedTokens };
+}
+
+function generatedTokenCount(fragment) {
+  return String(fragment ?? "").length ? 1 : 0;
+}
+
+function noContextAnswer(history) {
+  const hasHistory = Array.isArray(history) && history.some((turn) => cleanPromptText(turn?.question ?? turn?.user ?? "") || cleanPromptText(turn?.answer ?? turn?.assistant ?? ""));
+  if (hasHistory) {
+    return "I kept the previous conversation, but no indexed local source matched this new message. Ask a more specific follow-up, choose All indexed resources, or index the relevant downloaded source.";
+  }
+  return "No indexed local source matched that question. Try a more specific question, choose All indexed resources, or index the relevant downloaded source.";
+}
+
+function generationTimeoutAnswer({ timeoutMs, contexts }) {
   return {
-    answer: highRiskPrefix(question) + data.response,
+    answer: `Local AI found relevant indexed sources, but Ollama did not answer within ${Math.round(timeoutMs / 1000)} seconds. The model may still be loading; try again, or use a smaller installed chat model.`,
     citations: contexts.map((context, index) => ({ index: index + 1, source_id: context.source_id, title: context.title, path: context.path })),
-    unsupported: false
+    unsupported: true,
+    timedOut: true
   };
+}
+
+export async function fetchWithTimeout(fetchImpl, url, options = {}, timeoutMs = 1000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const outerSignal = options.signal;
+  const abort = () => controller.abort(outerSignal.reason);
+  if (outerSignal) {
+    if (outerSignal.aborted) controller.abort(outerSignal.reason);
+    else outerSignal.addEventListener("abort", abort, { once: true });
+  }
+  try {
+    return await fetchImpl(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+    if (outerSignal) outerSignal.removeEventListener("abort", abort);
+  }
 }
 
 function conversationPromptLines(history) {

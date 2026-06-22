@@ -46,7 +46,9 @@ export async function ensureLibrary(root = defaultLibraryRoot()) {
 }
 
 export function openState(root = defaultLibraryRoot()) {
-  return new DatabaseSync(path.join(root, "archive-state.sqlite"));
+  const db = new DatabaseSync(path.join(root, "archive-state.sqlite"));
+  db.exec("PRAGMA busy_timeout = 5000");
+  return db;
 }
 
 export function migrate(db) {
