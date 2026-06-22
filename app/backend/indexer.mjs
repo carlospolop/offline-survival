@@ -2,8 +2,10 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { now } from "./state.mjs";
 import { extractZipToDir, listZipEntries, readZipEntry } from "./zip.mjs";
 
@@ -34,6 +36,9 @@ const excludedZimMimeTypes = new Set([
 ]);
 const zimMaxEntryBytes = Number(process.env.SCA_ZIM_MAX_ENTRY_BYTES ?? 50 * 1024 * 1024);
 const zimMaxEntries = Number(process.env.SCA_ZIM_MAX_ENTRIES ?? 0);
+const largeFallbackChunkThreshold = Math.max(1, Number(process.env.SCA_SEARCH_LARGE_FALLBACK_CHUNKS ?? 50_000));
+const largeFallbackCandidateLimit = Math.max(100, Number(process.env.SCA_SEARCH_LARGE_FALLBACK_CANDIDATES ?? 2_000));
+const execFileAsync = promisify(execFile);
 
 export async function normalizeAndIndex({ db, libraryRoot, sourceId, sourceConfig = null }) {
   const source = db.prepare("SELECT * FROM sources WHERE id=?").get(sourceId);
@@ -629,7 +634,50 @@ export function search(db, query, limit = 20, filters = {}) {
   return fallbackSearchRows(db, q, safeLimit, filters).slice(0, safeLimit);
 }
 
+export async function searchExternalFts({ libraryRoot, query, limit = 20, filters = {} }) {
+  const q = String(query ?? "").trim();
+  const matchQuery = ftsMatchQuery(q);
+  if (!matchQuery) return [];
+  const dbPath = path.join(libraryRoot, "archive-state.sqlite");
+  if (!fsSync.existsSync(dbPath)) return [];
+  const safeLimit = Math.max(1, Number(limit) || 20);
+  const clauses = [`fts MATCH ${sqlLiteral(matchQuery)}`];
+  if (filters.sourceId) clauses.push(`source_id=${sqlLiteral(filters.sourceId)}`);
+  if (filters.license) clauses.push(`source_id IN (SELECT id FROM sources WHERE license=${sqlLiteral(filters.license)})`);
+  if (filters.category) {
+    const like = `%${String(filters.category).replace(/[%_]/g, "")}%`;
+    clauses.push(`(source_id LIKE ${sqlLiteral(like)} OR title LIKE ${sqlLiteral(like)})`);
+  }
+  const sql = `
+    SELECT json_object(
+      'source_id', source_id,
+      'title', title,
+      'snippet', snippet(fts, 2, '<mark>', '</mark>', '...', 16),
+      'path', path,
+      'rank', rank
+    )
+    FROM fts
+    WHERE ${clauses.join(" AND ")}
+    ORDER BY rank
+    LIMIT ${safeLimit};
+  `;
+  try {
+    const { stdout } = await execFileAsync("sqlite3", ["-readonly", "-noheader", dbPath, sql], {
+      timeout: Number(process.env.SCA_EXTERNAL_FTS_TIMEOUT_MS ?? 3000),
+      maxBuffer: 5 * 1024 * 1024
+    });
+    return stdout.split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  } catch {
+    return [];
+  }
+}
+
 function ftsSearchRows(db, query, limit, filters = {}) {
+  const matchQuery = ftsMatchQuery(query);
+  if (!matchQuery) return [];
   const filter = buildSearchFilter(filters);
   const sql = `
     SELECT source_id, title, snippet(fts, 2, '<mark>', '</mark>', '...', 16) AS snippet, path, rank
@@ -639,12 +687,17 @@ function ftsSearchRows(db, query, limit, filters = {}) {
     ORDER BY rank
     LIMIT ?
   `;
-  return db.prepare(sql).all(query.replace(/"/g, ""), ...filter.args, limit);
+  return db.prepare(sql).all(matchQuery, ...filter.args, limit);
 }
 
 function fallbackSearchRows(db, query, limit, filters = {}) {
-  const terms = query.split(/\s+/).map((term) => term.trim()).filter(Boolean).slice(0, 12);
+  const terms = searchTerms(query);
   if (!terms.length) return [];
+  if (!filters.sourceId && chunkCount(db) > largeFallbackChunkThreshold) return largeLibraryFallbackSearchRows(db, terms, limit, filters);
+  return bodyFallbackSearchRows(db, terms, limit, filters, Math.max(limit * 8, limit));
+}
+
+function bodyFallbackSearchRows(db, terms, limit, filters = {}, candidateLimit = Math.max(limit * 8, limit)) {
   const where = terms.map(() => "(body LIKE ? OR title LIKE ? OR path LIKE ?)").join(" OR ");
   const filter = buildSearchFilter(filters);
   const args = terms.flatMap((term) => {
@@ -657,7 +710,27 @@ function fallbackSearchRows(db, query, limit, filters = {}) {
     WHERE (${where})
       ${filter.sql ? `AND ${filter.sql}` : ""}
     LIMIT ?
-  `).all(...args, ...filter.args, Math.max(limit * 8, limit));
+  `).all(...args, ...filter.args, candidateLimit);
+  return rankFallbackCandidates(candidates, terms, limit);
+}
+
+function largeLibraryFallbackSearchRows(db, terms, limit, filters = {}) {
+  const sampledRows = recentChunkSampleRows(db, Math.min(largeFallbackCandidateLimit, Math.max(limit * 80, 500)), filters);
+  return rankFallbackCandidates(sampledRows, terms, limit);
+}
+
+function recentChunkSampleRows(db, candidateLimit, filters = {}) {
+  const filter = buildSearchFilter(filters);
+  return db.prepare(`
+    SELECT source_id, title, body, path
+    FROM chunks
+    ${filter.sql ? `WHERE ${filter.sql}` : ""}
+    ORDER BY rowid DESC
+    LIMIT ?
+  `).all(...filter.args, candidateLimit);
+}
+
+function rankFallbackCandidates(candidates, terms, limit) {
   const loweredTerms = terms.map((term) => term.toLowerCase());
   const minimumMatches = terms.length > 1 ? 2 : 1;
   return candidates
@@ -670,6 +743,29 @@ function fallbackSearchRows(db, query, limit, filters = {}) {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map(({ score, ...row }) => row);
+}
+
+function searchTerms(query) {
+  const stop = new Set(["about", "according", "after", "again", "against", "also", "before", "being", "between", "could", "from", "have", "into", "local", "should", "source", "that", "their", "there", "these", "thing", "this", "what", "when", "where", "which", "with", "would", "your", "you", "how", "can", "the", "and", "for", "are", "was", "were"]);
+  const terms = String(query).toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}-]*/gu) ?? [];
+  const important = terms.filter((term) => term.length >= 3 && !stop.has(term)).slice(0, 8);
+  return [...new Set(important.length ? important : terms.slice(0, 8))];
+}
+
+function ftsMatchQuery(query) {
+  return searchTerms(query).map((term) => `"${term.replace(/"/g, '""')}"`).join(" ");
+}
+
+function sqlLiteral(value) {
+  return `'${String(value ?? "").replace(/'/g, "''")}'`;
+}
+
+function chunkCount(db) {
+  try {
+    return Number(db.prepare("SELECT COUNT(*) AS count FROM chunks").get()?.count ?? 0);
+  } catch {
+    return 0;
+  }
 }
 
 function filterResults(db, rows, filters) {

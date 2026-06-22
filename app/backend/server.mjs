@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { loadCatalog } from "./catalog.mjs";
 import { downloadProfile, downloadSource, pauseDownload, retryDownload, verifySource } from "./downloader.mjs";
-import { indexDownloadedSources, normalizeAndIndex, repairCorruptRepoArchiveIndexes, search, semanticSearch } from "./indexer.mjs";
+import { indexDownloadedSources, normalizeAndIndex, repairCorruptRepoArchiveIndexes, search, searchExternalFts, semanticSearch } from "./indexer.mjs";
 import { exportManifest, integrityReport, writeLock } from "./archive.mjs";
 import { openSearchResult, openSourceWithAdapter, prepareSourceForUse, refreshAdapters, sourceOpenPlan } from "./adapters.mjs";
 import { writeAttributionReport } from "./license.mjs";
@@ -517,11 +517,15 @@ async function route(req, res) {
       return send(res, 200, result);
     }
     if (url.pathname === "/api/search") {
-      const results = await withDb((db) => search(db, url.searchParams.get("q") ?? "", Number(url.searchParams.get("limit") ?? 20), {
+      const query = url.searchParams.get("q") ?? "";
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const filters = {
         sourceId: url.searchParams.get("sourceId") || undefined,
         license: url.searchParams.get("license") || undefined,
         category: url.searchParams.get("category") || undefined
-      }));
+      };
+      const externalResults = await searchExternalFts({ libraryRoot, query, limit, filters });
+      const results = externalResults.length ? externalResults : await withDb((db) => search(db, query, limit, filters));
       return send(res, 200, { results });
     }
     if (url.pathname === "/api/search/semantic") {
@@ -698,7 +702,7 @@ async function route(req, res) {
       try {
         const progress = askProgressUpdater({ question: body.question, model: body.model ?? "qwen3:8b" });
         progress({ status: "running", phase: "retrieving", generatedTokens: 0, generatedChars: 0 });
-        const contexts = await withDb((db) => retrieveAskContexts(db, { ...body, history }));
+        const contexts = await retrieveAskContexts({ ...body, history });
         if (!contexts.length) {
           const model = await withDb((db) => ollamaChatModelName(db, body.model));
           activeAskOperation.model = model;
@@ -1089,15 +1093,28 @@ function sourceConfigForRequest(db, catalog, sourceId) {
   };
 }
 
-function retrieveAskContexts(db, body) {
+async function retrieveAskContexts(body) {
   const question = String(body.question ?? "").trim();
   if (!question) return [];
   const filters = { sourceId: body.sourceId || undefined, license: body.license || undefined };
   const contextQuestion = askContextQuery(question, body.history);
-  const lexical = [
-    ...search(db, contextQuestion, 8, filters),
-    ...search(db, askKeywordQuery(contextQuestion), 12, filters)
+  const externalLexical = [
+    ...await searchExternalFts({ libraryRoot, query: contextQuestion, limit: 8, filters }),
+    ...await searchExternalFts({ libraryRoot, query: askKeywordQuery(contextQuestion), limit: 12, filters })
   ];
+  if (externalLexical.length) {
+    return await withDb((db) => enrichAskContexts(db, externalLexical));
+  }
+  return await withDb((db) => {
+    const lexical = [
+      ...search(db, contextQuestion, 8, filters),
+      ...search(db, askKeywordQuery(contextQuestion), 12, filters)
+    ];
+    return enrichAskContexts(db, lexical);
+  });
+}
+
+function enrichAskContexts(db, lexical) {
   const byKey = new Map();
   for (const context of lexical) {
     const key = `${context.source_id}:${context.path}:${context.snippet}`;

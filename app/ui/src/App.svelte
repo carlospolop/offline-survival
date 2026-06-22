@@ -58,6 +58,7 @@
   let easyProfileSelections: Record<string, boolean> = {};
   let verifyFeedback: Record<string, { ok: boolean; message: string }> = {};
   const verifyFeedbackTimers = new Map<string, number>();
+  const activeJobStatuses = new Set(["queued", "downloading", "resuming", "running"]);
   let maintenanceFeedback: { ok: boolean; message: string } | null = null;
   let maintenanceFeedbackTimer = 0;
   let confirmDialog: any = null;
@@ -104,6 +105,7 @@
       settings: "Settings",
       appSections: "Application sections",
       working: "Working: {busy}",
+      activityTitle: "Current activity",
       easyInstallIntro: "Select one or more profiles. Easy Install downloads them, prepares/extracts downloaded sources, indexes searchable content, and can install recommended Local AI.",
       easyInstallWaitForIndex: "Wait for indexing to finish before starting Easy Install with profiles.",
       preparedDisk: "prepared disk",
@@ -431,6 +433,7 @@
       settings: "Ajustes",
       appSections: "Secciones de la aplicación",
       working: "Trabajando: {busy}",
+      activityTitle: "Actividad actual",
       easyInstallIntro: "Selecciona uno o más perfiles. La instalación fácil los descarga, prepara o extrae las fuentes descargadas, indexa el contenido buscable y puede instalar la IA local recomendada.",
       easyInstallWaitForIndex: "Espera a que termine la indexación antes de iniciar la instalación fácil con perfiles.",
       preparedDisk: "disco preparado",
@@ -978,9 +981,13 @@
   $: if (searchSource && !searchableSources.some((source) => source.id === searchSource)) searchSource = "";
   $: activeDownloadSources = stateDownloads
     .filter((download) => ["queued", "downloading", "resuming"].includes(String(download.status ?? "")))
-    .map((download) => sourceCatalog.get(download.source_id))
-    .filter((source): source is Source => Boolean(source));
-  $: hasActiveDownloads = activeDownloadSources.length > 0;
+    .map((download) => sourceForId(download.source_id))
+    .filter(Boolean);
+  $: activeDownloadSourceIds = new Set(activeDownloadSources.map((source) => String(source.id ?? "")));
+  $: activeDownloadJobRows = jobs
+    .filter((job) => String(job.kind ?? "") === "download" && job.sourceId && activeJobStatuses.has(String(job.status ?? "")) && !activeDownloadSourceIds.has(String(job.sourceId)))
+    .map((job) => downloadJobProgressInfo(job));
+  $: hasActiveDownloads = activeDownloadSources.length > 0 || activeDownloadJobRows.length > 0;
   $: hasActiveBackendJobs = jobs.some((job) => ["running", "queued", "downloading", "resuming"].includes(String(job.status ?? "")));
   $: workingLabelsList = workingLabels();
   $: notSearchableDownloads = stateSources.filter((source) => {
@@ -1341,7 +1348,7 @@
     }
   }
 
-  async function run(label: string, fn: () => Promise<unknown>) {
+  async function run(label: string, fn: () => Promise<unknown>, options: { refresh?: "full" | "state" | "none" } = {}) {
     busy = new Set([...busy, label]);
     error = "";
     const shouldPoll = label.startsWith("profile-") || label.startsWith("download-") || label.startsWith("retry-") || label.startsWith("model-") || label.startsWith("index-") || label === "ask" || label === "ask-cancel" || label === "ai-install" || label === "index-all-downloaded" || label === "easy-install" || label === "clean-sources" || label === "share-package";
@@ -1358,7 +1365,8 @@
       busy.delete(label);
       busy = busy;
     }
-    await load();
+    if (options.refresh === "state") await refreshState();
+    else if (options.refresh !== "none") await load();
     if (fnError) error = fnError;
   }
 
@@ -1374,21 +1382,23 @@
   }
 
   async function download(sourceId: string) {
+    markSourceQueued(sourceId);
     await run(`download-${sourceId}`, () => api("/api/download", {
       method: "POST",
       body: JSON.stringify({ sourceId })
-    }));
+    }), { refresh: "state" });
   }
 
   async function pause(sourceId: string) {
-    await run(`pause-${sourceId}`, () => api("/api/download/pause", { method: "POST", body: JSON.stringify({ sourceId }) }));
+    await run(`pause-${sourceId}`, () => api("/api/download/pause", { method: "POST", body: JSON.stringify({ sourceId }) }), { refresh: "state" });
   }
 
   async function retry(sourceId: string) {
+    markSourceQueued(sourceId);
     await run(`retry-${sourceId}`, () => api("/api/download/retry", {
       method: "POST",
       body: JSON.stringify({ sourceId })
-    }));
+    }), { refresh: "state" });
   }
 
   async function downloadProfile(profile: Profile) {
@@ -1396,7 +1406,35 @@
     await run(`profile-${profile.id}`, () => api("/api/profile/download", {
       method: "POST",
       body: JSON.stringify({ profileId: profile.id, contentLanguage, concurrency: 4 })
-    }));
+    }), { refresh: "state" });
+  }
+
+  function markSourceQueued(sourceId: string) {
+    const existingSource = sourceState.get(sourceId);
+    if (sourceIsDownloaded(existingSource ?? {})) return;
+    const timestamp = new Date().toISOString();
+    const source = sourceCatalog.get(sourceId);
+    const existingDownload = downloadState.get(sourceId);
+    const queued = {
+      id: sourceId,
+      source_id: sourceId,
+      status: existingDownload?.status === "downloading" ? existingDownload.status : "queued",
+      bytes_received: Number(existingDownload?.bytes_received ?? 0),
+      total_bytes: Number(existingDownload?.total_bytes ?? source?.expected_size_bytes ?? 0),
+      error: null,
+      updated_at: timestamp
+    };
+    const downloads = existingDownload
+      ? state.downloads.map((download) => download.source_id === sourceId ? { ...download, ...queued } : download)
+      : [queued, ...state.downloads];
+    const seenSource = state.sources.some((item) => item.id === sourceId);
+    const sourcePatch = { status: queued.status, updated_at: timestamp };
+    const sources = seenSource
+      ? state.sources.map((item) => item.id === sourceId && !sourceIsDownloaded(item) ? { ...item, ...sourcePatch } : item)
+      : source ? [{ ...source, ...sourcePatch }, ...state.sources] : state.sources;
+    state = { ...state, downloads, sources };
+    const job = { id: `download:${sourceId}`, kind: "download", status: queued.status, sourceId };
+    jobs = [...jobs.filter((item) => item.id !== job.id), job];
   }
 
   function markProfileQueued(profile: Profile) {
@@ -1864,7 +1902,7 @@
     return index === 0 ? t("baseProfile") : t("addsTo", { title: profileTitle(contentProfiles[index - 1]) });
   }
 
-  function sourceProgressInfo(source: Source) {
+  function sourceProgressInfo(source: Source | Record<string, any>) {
     const local = sourceState.get(source.id);
     const downloadRow = downloadState.get(source.id);
     const complete = sourceIsDownloaded(local ?? {}) || (downloadRow?.status === "complete" && Boolean(local?.local_path));
@@ -1876,6 +1914,23 @@
     const totalKnown = complete || received === 0 || total > received;
     const status = complete ? (local?.status === "downloaded_unverified" ? "downloaded" : local?.status ?? "downloaded") : (downloadRow?.status ?? local?.status ?? "missing");
     return { local, downloadRow, complete, total, received, progress, totalKnown, status };
+  }
+
+  function downloadJobProgressInfo(job: Record<string, any>) {
+    const sourceId = String(job.sourceId ?? "");
+    const source = sourceForId(sourceId);
+    const downloadRow = downloadState.get(sourceId);
+    const total = Number(downloadRow?.total_bytes ?? job.totalBytes ?? source?.expected_size_bytes ?? 0);
+    const received = Number(downloadRow?.bytes_received ?? job.bytesReceived ?? 0);
+    const progress = total > 0 ? Math.min(100, Math.round((received / total) * 100)) : 0;
+    return {
+      sourceId,
+      title: sourceTitleById(sourceId),
+      status: downloadRow?.status ?? job.status ?? "queued",
+      total,
+      received,
+      progress
+    };
   }
 
   function activeIndexProgress(easyProgress: Record<string, any> | null, globalProgress: Record<string, any> | null) {
@@ -2205,7 +2260,40 @@
       <button type="button" class:active={activeTab === "logs"} on:click={() => activeTab = "logs"}>{t("logs")}</button>
     </nav>
     {#if error}<div class="alert">{error}</div>{/if}
-    {#if workingLabelsList.length}<div class="busy">{t("working", { busy: workingLabelsList.join(", ") })}</div>{/if}
+    {#if workingLabelsList.length}
+      <div class="progressPanel activityPanel">
+        <div class="progressHeader">
+          <strong>{t("activityTitle")}</strong>
+          <span>{t("working", { busy: workingLabelsList.join(", ") })}</span>
+        </div>
+        {#if activeDownloadSources.length}
+          {#each activeDownloadSources as source}
+            {@const info = sourceProgressInfo(source)}
+            <small>{sourceTitle(source)} · {statusLabel(info.downloadRow?.status ?? info.status)} · {info.progress}% · {gb(info.received)} / {gb(info.total)}</small>
+          {/each}
+        {/if}
+        {#if activeDownloadJobRows.length}
+          {#each activeDownloadJobRows as job}
+            <small>{job.title} · {statusLabel(job.status)} · {job.progress}% · {gb(job.received)} / {gb(job.total)}</small>
+          {/each}
+        {/if}
+        {#if indexingActive && activeIndexingProgress}
+          <small>{detailLabel(activeIndexingProgress.detail)} {activeIndexingProgress.percent ?? 0}%</small>
+        {/if}
+        {#if easyInstallProgress?.status === "running"}
+          <small>{detailLabel(easyInstallProgress.detail)} {easyInstallProgress.percent ?? 0}%</small>
+        {/if}
+        {#if aiInstallProgress?.status === "running"}
+          <small>{detailLabel(aiInstallProgress.detail)} {progressLine(aiInstallProgress)}</small>
+        {/if}
+        {#if askBusy}
+          <small>{askProgressMessage(askProgress, ollamaService)} {askProgressLine(askProgress)}</small>
+        {/if}
+        {#if sharePackageProgress?.status === "running"}
+          <small>{detailLabel(sharePackageProgress.detail)} {sharePackageProgress.percent ?? 0}%</small>
+        {/if}
+      </div>
+    {/if}
 
     {#if activeTab === "easy"}
     <section id="easy-install" class="band">
@@ -2733,7 +2821,7 @@
 	        <article class="infoCard">
 	          <h3>{t("downloadingNow")}</h3>
 	          <small class="cardIntro">{t("downloadingNowHelp")}</small>
-	          {#if activeDownloadSources.length}
+	          {#if activeDownloadSources.length || activeDownloadJobRows.length}
 	            <div class="resourceScroll">
 	              {#each activeDownloadSources as source}
 	                {@const info = sourceProgressInfo(source)}
@@ -2744,6 +2832,17 @@
 	                  </span>
 	                  <span class="sourceProgress">
 	                    <progress max="100" value={info.progress}></progress>
+	                  </span>
+	                </div>
+	              {/each}
+	              {#each activeDownloadJobRows as job}
+	                <div class="resourceRow">
+	                  <span>
+	                    <strong>{job.title}</strong>
+	                    <small>{statusLabel(job.status)} · {job.progress}% · {gb(job.received)} / {gb(job.total)}</small>
+	                  </span>
+	                  <span class="sourceProgress">
+	                    <progress max="100" value={job.progress}></progress>
 	                  </span>
 	                </div>
 	              {/each}

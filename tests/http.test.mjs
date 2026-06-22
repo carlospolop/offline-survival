@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -50,6 +51,65 @@ async function waitForProcessGone(pid) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   return false;
+}
+
+function closeServer(server) {
+  return new Promise((resolve) => server.close(resolve));
+}
+
+async function startFakeOllama(modelName) {
+  let resolveGenerateStarted;
+  let finishGenerate = () => {};
+  const generateStarted = new Promise((resolve) => {
+    resolveGenerateStarted = resolve;
+  });
+  const server = http.createServer((req, res) => {
+    if (req.url === "/api/tags") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ models: [{ name: modelName }] }));
+      return;
+    }
+    if (req.url === "/api/generate" && req.method === "POST") {
+      req.resume();
+      res.writeHead(200, { "content-type": "application/json" });
+      res.write(`${JSON.stringify({ response: "working ", done: false })}\n`);
+      resolveGenerateStarted();
+      let finished = false;
+      finishGenerate = () => {
+        if (finished) return;
+        finished = true;
+        res.write(`${JSON.stringify({ response: "done", done: true, eval_count: 2 })}\n`);
+        res.end();
+      };
+      return;
+    }
+    res.writeHead(404, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "not found" }));
+  });
+  const bound = await new Promise((resolve, reject) => {
+    server.once("error", (error) => {
+      if (error.code === "EADDRINUSE") resolve(false);
+      else reject(error);
+    });
+    server.listen(11434, "127.0.0.1", () => resolve(true));
+  });
+  if (!bound) return null;
+  return {
+    waitForGenerate: () => generateStarted,
+    finishGenerate: () => finishGenerate(),
+    close: () => closeServer(server)
+  };
+}
+
+async function fetchJsonWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return { response, body: await response.json() };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 describe("HTTP API", () => {
@@ -211,6 +271,59 @@ describe("HTTP API", () => {
       const response = await fetch(`http://127.0.0.1:${port}${endpoint}`, options);
       expect(response.status).toBe(404);
       expect(await response.json()).toEqual({ error: "Unknown API endpoint" });
+    }
+  });
+
+  it("keeps later background job requests responsive while Local AI is answering", async () => {
+    const catalog = await (await fetch(`http://127.0.0.1:${port}/api/catalog`)).json();
+    const chatModel = catalog.models.find((model) => model.role === "chat");
+    const fakeOllama = await startFakeOllama(chatModel.pull);
+    if (!fakeOllama) return;
+
+    const sourceId = catalog.sources[0].id;
+    const downloadId = catalog.sources.find((source) => source.id !== sourceId).id;
+    const db = openState(root);
+    try {
+      db.prepare("UPDATE models SET status='installed', expected_size_bytes=1, updated_at=datetime('now') WHERE id=?").run(chatModel.id);
+      db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .run("parallel-ask-context", sourceId, "Parallel Ask Context", "parallel-ask.md", "", "Parallel ask context for water storage and download responsiveness.", 8, "[]", "general", new Date().toISOString());
+      db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)")
+        .run(sourceId, "Parallel Ask Context", "Parallel ask context for water storage and download responsiveness.", "parallel-ask.md");
+    } finally {
+      db.close();
+    }
+
+    const askPromise = fetch(`http://127.0.0.1:${port}/api/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question: "parallel ask water storage responsiveness", model: chatModel.id })
+    }).then((response) => response.json());
+
+    try {
+      await fakeOllama.waitForGenerate();
+      const started = Date.now();
+      const { body: download } = await fetchJsonWithTimeout(`http://127.0.0.1:${port}/api/download`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sourceId: downloadId, diskBudgetBytes: 1 })
+      }, 1500);
+      expect(Date.now() - started).toBeLessThan(1500);
+      expect(download).toMatchObject({ sourceId: downloadId, background: true });
+
+      const jobs = await (await fetch(`http://127.0.0.1:${port}/api/jobs`)).json();
+      expect(jobs.jobs.some((job) => job.kind === "ask")).toBe(true);
+      expect(jobs.jobs.some((job) => job.kind === "download" && job.sourceId === downloadId)).toBe(true);
+    } finally {
+      fakeOllama.finishGenerate();
+      await askPromise.catch(() => null);
+      await fakeOllama.close();
+      const cleanup = openState(root);
+      try {
+        cleanup.prepare("DELETE FROM downloads WHERE source_id=?").run(downloadId);
+        cleanup.prepare("UPDATE sources SET status='missing', size_bytes=0, sha256=NULL, local_path=NULL, duplicate_of=NULL, updated_at=datetime('now') WHERE id=?").run(downloadId);
+      } finally {
+        cleanup.close();
+      }
     }
   });
 

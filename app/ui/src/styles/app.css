@@ -752,6 +752,13 @@ small {
   padding: 10px 12px;
 }
 
+.activityPanel {
+  background: #fffdf2;
+  border: 1px solid #e0ca72;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
 .alert {
   background: #fff0f0;
   border: 1px solid #e1a7a7;
