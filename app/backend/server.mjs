@@ -729,15 +729,25 @@ async function route(req, res) {
         generatedTokens: 0,
         generatedChars: 0
       };
+      let progress = null;
       try {
-        const progress = askProgressUpdater({ question: body.question, model: body.model ?? "qwen3:8b" });
+        progress = askProgressUpdater({ question: body.question, model: body.model ?? "qwen3:8b" });
         progress({ status: "running", phase: "retrieving", generatedTokens: 0, generatedChars: 0 });
+        await withDb((db) => recordEvent(db, "ask-start", "Local AI question started", {
+          question: cleanPromptText(body.question).slice(0, 160),
+          model: body.model ?? "qwen3:8b",
+          sourceId: body.sourceId ?? null
+        }));
         const contexts = await retrieveAskContexts({ ...body, history });
         if (!contexts.length) {
           const model = await withDb((db) => ollamaChatModelName(db, body.model));
           activeAskOperation.model = model;
           const result = await askOllama({ question: body.question, contexts, history, model, abortSignal: askController.signal });
-          progress({ status: "complete", phase: "complete", generatedTokens: 0, generatedChars: 0, unsupported: true, model });
+          progress({ status: "failed", phase: "no-context", generatedTokens: 0, generatedChars: result.answer?.length ?? 0, unsupported: true, model, error: result.answer }, { force: true });
+          await withDb((db) => recordEvent(db, "ask-no-context", "Local AI question had no matching indexed context", {
+            question: cleanPromptText(body.question).slice(0, 160),
+            model
+          }));
           return send(res, 200, result);
         }
         let model;
@@ -780,14 +790,33 @@ async function route(req, res) {
         const result = await askWithOllamaPermissionRepair({ question: body.question, contexts, history, model, onProgress: progress, abortSignal: askController.signal });
         const finalProgress = {
           status: result.timedOut || result.unsupported ? "failed" : "complete",
-          phase: result.canceled ? "canceled" : result.timedOut ? "timeout" : "complete",
+          phase: result.canceled ? "canceled" : result.timedOut ? "timeout" : result.unsupported ? "failed" : "complete",
           generatedChars: result.answer?.length ?? undefined,
           unsupported: Boolean(result.unsupported),
+          error: result.unsupported || result.timedOut || result.canceled ? result.answer : null,
           model
         };
         if (Number.isFinite(Number(result.generatedTokens))) finalProgress.generatedTokens = Number(result.generatedTokens);
         progress(finalProgress, { force: true });
+        await withDb((db) => recordEvent(db, result.timedOut || result.unsupported || result.canceled ? "ask-failed" : "ask", result.timedOut || result.unsupported || result.canceled ? "Local AI question did not produce a usable answer" : "Local AI question answered", {
+          question: cleanPromptText(body.question).slice(0, 160),
+          model,
+          generatedTokens: Number(result.generatedTokens ?? 0),
+          citations: Array.isArray(result.citations) ? result.citations.length : 0,
+          unsupported: Boolean(result.unsupported),
+          timedOut: Boolean(result.timedOut),
+          canceled: Boolean(result.canceled)
+        }));
         return send(res, 200, result);
+      } catch (error) {
+        const message = String(error?.message ?? error);
+        progress?.({ status: "failed", phase: "failed", generatedTokens: 0, generatedChars: 0, unsupported: true, error: message }, { force: true });
+        await withDb((db) => recordEvent(db, "ask-error", "Local AI question failed", {
+          question: cleanPromptText(body.question).slice(0, 160),
+          model: activeAskOperation?.model ?? body.model ?? "qwen3:8b",
+          error: message
+        })).catch(() => {});
+        throw error;
       } finally {
         if (activeAskOperation?.controller === askController) activeAskOperation = null;
       }
@@ -1074,7 +1103,6 @@ async function cleanSources(db) {
     DELETE FROM blobs;
     DELETE FROM documents;
     DELETE FROM chunks;
-    DELETE FROM fts;
     DELETE FROM adapters WHERE source_id LIKE 'extra-%';
     DELETE FROM sources WHERE id LIKE 'extra-%';
     DELETE FROM events;
@@ -1083,8 +1111,19 @@ async function cleanSources(db) {
     UPDATE adapters SET status='not_ready', local_url=NULL, port=NULL, last_error=NULL, last_probe_at=datetime('now');
     DELETE FROM settings WHERE key IN ('aiInstallProgress', 'easyInstallProgress', 'sharePackageProgress', 'indexingProgress', 'askProgress');
   `);
+  runOptionalSql(db, "DELETE FROM fts");
   setSetting(db, "libraryRoot", libraryRoot);
   return { status: "cleaned", removed: cleanableLibraryDirs };
+}
+
+function runOptionalSql(db, sql, params = []) {
+  try {
+    return db.prepare(sql).run(...params);
+  } catch (error) {
+    const message = String(error?.message ?? error);
+    if (message.includes("no such module: fts5") || message.includes("virtual table") || message.includes("fts5")) return null;
+    throw error;
+  }
 }
 
 function shareProfileFromRequest(db, catalog, profileId) {
@@ -1280,6 +1319,7 @@ function askProgressUpdater({ question, model }) {
     const nowMs = Date.now();
     if (!options.force && nowMs - lastWrite < 500 && !["complete", "failed"].includes(String(last.status ?? ""))) return;
     lastWrite = nowMs;
+    const elapsedSeconds = Number(progress.elapsedSeconds ?? Math.round((nowMs - startedAt) / 1000));
     const db = openState(libraryRoot);
     try {
       setSetting(db, "askProgress", {
@@ -1287,7 +1327,7 @@ function askProgressUpdater({ question, model }) {
         phase: last.phase ?? "generating",
         generatedTokens: Number(last.generatedTokens ?? 0),
         generatedChars: Number(last.generatedChars ?? 0),
-        elapsedSeconds: Number(last.elapsedSeconds ?? 0),
+        elapsedSeconds,
         timeoutSeconds: Number(last.timeoutSeconds ?? 0),
         question: cleanPromptText(question).slice(0, 160),
         model: last.model ?? model,

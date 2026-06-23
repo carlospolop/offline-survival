@@ -645,6 +645,16 @@ small {
   width: 100%;
 }
 
+.answer.pendingAnswer {
+  background: #fffdf3;
+  border-color: #d9be63;
+}
+
+.answer.failedAnswer {
+  background: #fff7f4;
+  border-color: #d69a86;
+}
+
 .results .resultCard.clickableResult {
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;

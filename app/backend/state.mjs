@@ -165,6 +165,8 @@ function ensureSearchTable(db) {
     // Some bundled Node.js SQLite builds omit FTS5. Keep indexing and LIKE search
     // working everywhere instead of failing database migration at startup.
   }
+  const existing = db.prepare("SELECT sql FROM sqlite_master WHERE name='fts'").get();
+  if (String(existing?.sql ?? "").toLowerCase().includes("using fts5")) return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS fts (
       source_id TEXT NOT NULL,
@@ -277,9 +279,19 @@ export function removeSourcesNotInCatalog(db, catalogSources) {
   db.prepare(`DELETE FROM downloads WHERE source_id IN (${stalePlaceholders})`).run(...staleIds);
   db.prepare(`DELETE FROM documents WHERE source_id IN (${stalePlaceholders})`).run(...staleIds);
   db.prepare(`DELETE FROM chunks WHERE source_id IN (${stalePlaceholders})`).run(...staleIds);
-  db.prepare(`DELETE FROM fts WHERE source_id IN (${stalePlaceholders})`).run(...staleIds);
+  safeOptionalSql(db, `DELETE FROM fts WHERE source_id IN (${stalePlaceholders})`, staleIds);
   db.prepare(`DELETE FROM sources WHERE id IN (${stalePlaceholders})`).run(...staleIds);
   return staleIds.length;
+}
+
+function safeOptionalSql(db, sql, args = []) {
+  try {
+    return db.prepare(sql).run(...args);
+  } catch (error) {
+    const message = String(error?.message ?? error);
+    if (message.includes("no such module: fts5") || message.includes("virtual table") || message.includes("fts5")) return null;
+    throw error;
+  }
 }
 
 export function recordEvent(db, kind, message, data = null) {

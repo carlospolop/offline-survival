@@ -96,11 +96,11 @@ export async function normalizeAndIndex({ db, libraryRoot, sourceId, sourceConfi
     }
   }
   await fs.writeFile(path.join(libraryRoot, "chunks", `${sourceId}.jsonl`), chunks.map((chunk) => JSON.stringify(chunk)).join("\n") + "\n");
-  const insertFts = db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)");
+  const insertFts = optionalFtsInsert(db);
   const insertChunk = db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET body=excluded.body, token_estimate=excluded.token_estimate, vector=excluded.vector, created_at=excluded.created_at");
   for (const chunk of chunks) {
-    insertFts.run(chunk.source_id, chunk.title, chunk.body, chunk.path);
     insertChunk.run(chunk.id, chunk.source_id, chunk.title, chunk.path, "", chunk.body, estimateTokens(chunk.body), JSON.stringify(chunk.vector), "general", now());
+    insertFtsRow(insertFts, chunk.source_id, chunk.title, chunk.body, chunk.path);
   }
   db.prepare("INSERT INTO documents (id, source_id, title, path, text_path, chunk_count, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET text_path=excluded.text_path, chunk_count=excluded.chunk_count, indexed_at=excluded.indexed_at")
     .run(sourceId, sourceId, source.title, extracted.path ?? source.local_path, textRel, chunks.length, now());
@@ -124,7 +124,7 @@ async function normalizeAndIndexZim({ db, libraryRoot, source, sourceId, fullPat
 
   const textStream = fsSync.createWriteStream(textPath, { encoding: "utf8" });
   const chunkStream = fsSync.createWriteStream(chunkPath, { encoding: "utf8" });
-  const insertFts = db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)");
+  const insertFts = optionalFtsInsert(db);
   const insertChunk = db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, path=excluded.path, body=excluded.body, token_estimate=excluded.token_estimate, vector=excluded.vector, created_at=excluded.created_at");
 
   let pageCount = 0;
@@ -367,7 +367,7 @@ async function registerOriginalOnlyIndex({ db, libraryRoot, source, sourceConfig
     body: text,
     vector: embedText(text)
   };
-  db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)").run(sourceId, source.title, text, source.local_path);
+  insertFtsRow(optionalFtsInsert(db), sourceId, source.title, text, source.local_path);
   db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET body=excluded.body, token_estimate=excluded.token_estimate, vector=excluded.vector, created_at=excluded.created_at")
     .run(chunk.id, chunk.source_id, chunk.title, chunk.path, "", chunk.body, estimateTokens(chunk.body), JSON.stringify(chunk.vector), "original-only", now());
   db.prepare("INSERT INTO documents (id, source_id, title, path, text_path, chunk_count, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET path=excluded.path, text_path=excluded.text_path, chunk_count=excluded.chunk_count, indexed_at=excluded.indexed_at")
@@ -377,7 +377,7 @@ async function registerOriginalOnlyIndex({ db, libraryRoot, source, sourceConfig
 }
 
 async function clearSourceIndex({ db, libraryRoot, sourceId }) {
-  db.prepare("DELETE FROM fts WHERE source_id=?").run(sourceId);
+  safeFtsDelete(db, "DELETE FROM fts WHERE source_id=?", sourceId);
   db.prepare("DELETE FROM chunks WHERE source_id=?").run(sourceId);
   db.prepare("DELETE FROM documents WHERE source_id=?").run(sourceId);
   await Promise.all([
@@ -560,14 +560,44 @@ function flushChunks(db, insertFts, insertChunk, chunks) {
   db.exec("BEGIN IMMEDIATE");
   try {
     for (const chunk of chunks) {
-      insertFts.run(chunk.source_id, chunk.title, chunk.body, chunk.path);
       insertChunk.run(chunk.id, chunk.source_id, chunk.title, chunk.path, "", chunk.body, estimateTokens(chunk.body), JSON.stringify(chunk.vector), "general", now());
+      insertFtsRow(insertFts, chunk.source_id, chunk.title, chunk.body, chunk.path);
     }
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
   }
+}
+
+function optionalFtsInsert(db) {
+  try {
+    return db.prepare("INSERT INTO fts (source_id, title, body, path) VALUES (?, ?, ?, ?)");
+  } catch {
+    return null;
+  }
+}
+
+function insertFtsRow(statement, sourceId, title, body, resultPath) {
+  if (!statement) return;
+  try {
+    statement.run(sourceId, title, body, resultPath);
+  } catch (error) {
+    if (!isFtsUnavailableError(error)) throw error;
+  }
+}
+
+function safeFtsDelete(db, sql, ...args) {
+  try {
+    db.prepare(sql).run(...args);
+  } catch (error) {
+    if (!isFtsUnavailableError(error)) throw error;
+  }
+}
+
+function isFtsUnavailableError(error) {
+  const message = String(error?.message ?? error);
+  return message.includes("no such module: fts5") || message.includes("virtual table") || message.includes("fts5");
 }
 
 function writeAll(stream, data) {

@@ -52,6 +52,7 @@
   let searchRequestId = 0;
   let busy = new Set<string>();
   let downloadActivations = new Set<string>();
+  let queuedIndexSourceIds = new Set<string>();
   let error = "";
   let catalogError = "";
   let loadingCatalog = true;
@@ -194,6 +195,8 @@
       askLoadingModel: "Ollama is loading the selected model. No tokens are generated until the model is ready.",
       askGenerating: "Ollama is generating the answer.",
       askFailed: "Local AI failed to return an answer.",
+      askRequestFailed: "Local AI request failed: {error}",
+      askNoAnswerKeepQuestion: "The question was kept in the box so you can retry after fixing the issue.",
       askTimeoutProgress: "{elapsed}s elapsed · timeout at {timeout}s",
       askBlockedHelp: "Local AI is blocked by the RAM safety guard. Free memory or install a smaller chat model, then try again.",
       restartConversation: "Restart Conversation",
@@ -526,6 +529,8 @@
       askLoadingModel: "Ollama está cargando el modelo seleccionado. No se generan tokens hasta que el modelo está listo.",
       askGenerating: "Ollama está generando la respuesta.",
       askFailed: "La IA local no pudo devolver una respuesta.",
+      askRequestFailed: "La petición a la IA local falló: {error}",
+      askNoAnswerKeepQuestion: "La pregunta se mantuvo en el cuadro para que puedas reintentar después de corregir el problema.",
       askTimeoutProgress: "{elapsed}s transcurridos · timeout a los {timeout}s",
       askBlockedHelp: "La IA local está bloqueada por la protección de RAM. Libera memoria o instala un modelo de chat más pequeño y prueba de nuevo.",
       restartConversation: "Reiniciar conversación",
@@ -987,6 +992,7 @@
   $: downloadRows = mergedDownloadRows(stateDownloads, jobs, sourceCatalog);
   $: sourceState = new Map(stateSources.map((source) => [source.id, source]));
   $: downloadState = new Map(downloadRows.map((download) => [download.source_id, download]));
+  $: dashboardVersion = dashboardStateVersion(stateSources, downloadRows, jobs);
   $: downloadedBytes = stateSources.reduce((sum, source) => sum + Number(source.size_bytes ?? 0), 0);
   $: licenseOptions = [...new Set([...catalogSources, ...stateSources].map((source) => source.license).filter(Boolean))].sort();
   $: indexedSources = stateSources.filter((source) => source.status === "indexed");
@@ -1052,9 +1058,11 @@
   $: indexingProgress = progressObject(stateSettings.indexingProgress);
   $: askProgress = progressObject(stateSettings.askProgress);
   $: activeIndexingProgress = activeIndexProgress(easyInstallProgress, indexingProgress);
+  $: indexUiVersion = indexStateVersion(activeIndexingProgress, queuedIndexSourceIds);
   $: backendIndexingActive = jobs.some((job) => String(job.kind ?? "") === "index" && ["running", "queued"].includes(String(job.status ?? "")));
   $: indexingActive = activeIndexingProgress?.status === "running" || backendIndexingActive;
   $: activeIndexItems = Array.isArray(activeIndexingProgress?.items) ? activeIndexingProgress.items : [];
+  $: visibleActiveIndexItems = activeIndexItems.filter((item: any) => sourceHasDownloadedLocalFile(item.sourceId));
   $: showEasyAiProgress = Boolean(aiInstallProgress) && (easyInstallProgress?.phase === "ai" || aiInstallProgress?.status === "running");
   $: showAiInstallProgress = Boolean(aiInstallProgress) && (["running", "failed"].includes(String(aiInstallProgress?.status ?? "")) || busy.has("ai-install"));
   $: aiInstallComplete = aiInstallProgress?.status === "complete";
@@ -1595,6 +1603,27 @@
     return { ...source, ...local };
   }
 
+  function dashboardStateVersion(sources: Array<Record<string, any>>, downloads: Array<Record<string, any>>, activeJobs: Array<Record<string, any>>) {
+    const sourcePart = sources
+      .map((source) => `${source.id}:${source.status}:${source.local_path ?? ""}:${source.size_bytes ?? 0}:${source.updated_at ?? ""}`)
+      .join("|");
+    const downloadPart = downloads
+      .map((download) => `${download.source_id}:${download.status}:${download.bytes_received ?? 0}:${download.total_bytes ?? 0}:${download.updated_at ?? ""}`)
+      .join("|");
+    const jobPart = activeJobs
+      .map((job) => `${job.id}:${job.kind}:${job.status}:${job.sourceId ?? ""}:${job.bytesReceived ?? 0}:${job.totalBytes ?? 0}:${job.updatedAt ?? ""}`)
+      .join("|");
+    return `${sourcePart}::${downloadPart}::${jobPart}`;
+  }
+
+  function indexStateVersion(progress: Record<string, any> | null, queuedIds: Set<string>) {
+    const queued = [...queuedIds].sort().join(",");
+    const items = Array.isArray(progress?.items)
+      ? progress.items.map((item: any) => `${item.sourceId}:${item.status}:${item.chunks ?? ""}:${item.pages ?? ""}`).join("|")
+      : "";
+    return `${progress?.status ?? ""}:${progress?.phase ?? ""}:${progress?.updatedAt ?? ""}:${progress?.currentSourceId ?? ""}:${queued}:${items}`;
+  }
+
   function markProfileQueued(profile: Profile) {
     const timestamp = new Date().toISOString();
     const downloadableIds = new Set(profile.sourceIds.filter((id) => {
@@ -1649,6 +1678,46 @@
     verifyFeedbackTimers.set(sourceId, timer);
   }
 
+  function markSourcesQueuedForIndex(sources: Array<Source | Record<string, any>>) {
+    const queue = sources
+      .filter((source) => source?.id && sourceHasDownloadedLocalFile(source.id))
+      .map((source) => ({
+        sourceId: String(source.id),
+        title: sourceTitle(source),
+        status: "pending"
+      }));
+    if (!queue.length) return;
+    queuedIndexSourceIds = new Set([...queuedIndexSourceIds, ...queue.map((item) => item.sourceId)]);
+    state = {
+      ...state,
+      settings: {
+        ...state.settings,
+        indexingProgress: {
+          status: "running",
+          phase: "index",
+          detail: "Building local search and Local AI context indexes.",
+          startedAt: Date.now(),
+          total: queue.length,
+          current: 0,
+          completed: 0,
+          failed: 0,
+          indexed: 0,
+          registeredOriginalOnly: 0,
+          active: 0,
+          percent: 0,
+          currentSourceId: null,
+          currentSourceTitle: "",
+          currentSourceIds: [],
+          items: queue,
+          summary: null,
+          result: null,
+          error: null,
+          updatedAt: Date.now()
+        }
+      }
+    };
+  }
+
   async function indexSource(sourceId: string) {
     const source = sourceCatalog.get(sourceId);
     const local = sourceState.get(sourceId);
@@ -1673,10 +1742,16 @@
       cancelLabel: t("cancel")
     });
     if (!accepted) return;
+    markSourcesQueuedForIndex([local ?? source ?? { id: sourceId }]);
     let result: any = null;
-    await run(`index-${sourceId}`, async () => {
-      result = await api("/api/index", { method: "POST", body: JSON.stringify({ sourceId }) });
-    });
+    try {
+      await run(`index-${sourceId}`, async () => {
+        result = await api("/api/index", { method: "POST", body: JSON.stringify({ sourceId }) });
+      });
+    } finally {
+      queuedIndexSourceIds.delete(sourceId);
+      queuedIndexSourceIds = queuedIndexSourceIds;
+    }
     if (result?.originalOnly) {
       error = t("indexOriginalOnlyError", { note: result.note ?? "" }).trim();
     }
@@ -1705,10 +1780,16 @@
       cancelLabel: t("cancel")
     });
     if (!accepted) return;
-    await run("index-all-downloaded", () => api("/api/index/downloaded", {
-      method: "POST",
-      body: JSON.stringify({ reindexAll })
-    }));
+    markSourcesQueuedForIndex(sources);
+    try {
+      await run("index-all-downloaded", () => api("/api/index/downloaded", {
+        method: "POST",
+        body: JSON.stringify({ reindexAll })
+      }));
+    } finally {
+      const indexedIds = new Set(sources.map((source) => String(source.id)));
+      queuedIndexSourceIds = new Set([...queuedIndexSourceIds].filter((id) => !indexedIds.has(id)));
+    }
   }
 
   async function openOriginal(sourceId: string) {
@@ -1865,14 +1946,60 @@
 
   async function ask() {
     const currentQuestion = question.trim();
-    if (!currentQuestion) return;
-    const history = chatTurns.map((turn) => ({ question: turn.question, answer: turn.answer }));
+    if (!currentQuestion || askBusy) return;
+    const turnId = askTurnId();
+    const requestedModel = questionModel || undefined;
+    const history = chatTurns
+      .filter((turn) => !turn.pending)
+      .map((turn) => ({ question: turn.question, answer: turn.answer }));
+    chatTurns = [...chatTurns, {
+      id: turnId,
+      question: currentQuestion,
+      answer: t("askInProgress"),
+      model: requestedModel,
+      pending: true,
+      citations: []
+    }];
     await run("ask", async () => {
       answer = null;
-      answer = await api("/api/ask", { method: "POST", body: JSON.stringify({ question: currentQuestion, history, sourceId: questionSource || undefined, model: questionModel || undefined }) });
-      chatTurns = [...chatTurns, { question: currentQuestion, ...answer }];
-      question = "";
-    });
+      try {
+        answer = await api("/api/ask", { method: "POST", body: JSON.stringify({ question: currentQuestion, history, sourceId: questionSource || undefined, model: requestedModel }) });
+      } catch (err) {
+        const message = t("askRequestFailed", { error: String((err as Error).message ?? err) });
+        answer = { answer: message, citations: [], unsupported: true, error: message };
+        error = message;
+      }
+      const nextTurn = { id: turnId, question: currentQuestion, ...normalizeAskTurn(answer, requestedModel) };
+      chatTurns = chatTurns.map((turn) => turn.id === turnId ? nextTurn : turn);
+      if (askProducedAnswer(answer)) {
+        question = "";
+      }
+    }, { refresh: "state" });
+  }
+
+  function askTurnId() {
+    return typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `ask-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  function normalizeAskTurn(result: any, requestedModel: string | undefined) {
+    const answerText = String(result?.answer ?? "").trim() || t("askFailed");
+    return {
+      ...result,
+      answer: answerText,
+      model: result?.model ?? requestedModel,
+      pending: false,
+      failed: !askProducedAnswer(result)
+    };
+  }
+
+  function askProducedAnswer(result: any) {
+    return Boolean(String(result?.answer ?? "").trim())
+      && !result?.unsupported
+      && !result?.timedOut
+      && !result?.canceled
+      && !result?.error;
   }
 
   async function cancelAsk() {
@@ -2128,10 +2255,12 @@
 
   function sourceIndexInfo(sourceId: unknown) {
     const id = String(sourceId ?? "");
+    if (!sourceHasDownloadedLocalFile(id)) return null;
     const item = activeIndexItems.find((entry: any) => entry.sourceId === id);
     const activeIds = Array.isArray(activeIndexingProgress?.currentSourceIds) ? activeIndexingProgress.currentSourceIds.map(String) : [];
     const current = activeIndexingProgress?.status === "running" && (activeIds.includes(id) || activeIndexingProgress?.currentSourceId === id || item?.status === "indexing");
-    if (!item && !current) return null;
+    const queued = queuedIndexSourceIds.has(id) && (busy.has("index-all-downloaded") || busy.has(`index-${id}`) || activeIndexingProgress?.status === "running");
+    if (!item && !current && !queued) return null;
     const status = current ? "indexing" : String(item?.status ?? "pending");
     const complete = ["indexed", "registered"].includes(status);
     const failed = status === "failed";
@@ -2175,6 +2304,11 @@
   function sourceIsDownloading(sourceId: unknown, info?: Record<string, any>) {
     const id = String(sourceId ?? "");
     return isActiveDownloadStatus(info?.status) || activeDownloadJobs.has(id) || isActiveDownloadStatus(downloadState.get(id)?.status);
+  }
+
+  function sourceHasDownloadedLocalFile(sourceId: unknown) {
+    const source = sourceState.get(String(sourceId ?? ""));
+    return sourceIsDownloaded(source ?? {});
   }
 
   function sourceIsDownloaded(source: Source | Record<string, any>) {
@@ -2372,7 +2506,7 @@
   function sourceIsIndexing(sourceId: unknown) {
     const id = String(sourceId ?? "");
     const info = sourceIndexInfo(id);
-    return busy.has(`index-${id}`) || Boolean(info?.current || info?.status === "indexing");
+    return busy.has(`index-${id}`) || Boolean(info && !info.complete && !info.failed);
   }
 
   function sourceIndexProgressLine(indexInfo: Record<string, any> | null | undefined) {
@@ -2554,9 +2688,9 @@
 	          <progress max="100" value={easyInstallProgress.percent ?? 0}></progress>
 	          <small>{detailLabel(easyInstallProgress.detail)}</small>
 	          <small>{easyInstallProgressLine(easyInstallProgress)}</small>
-	          {#if easyInstallProgress.phase === "index" && activeIndexItems.length}
+	          {#if easyInstallProgress.phase === "index" && visibleActiveIndexItems.length}
 	            <div class="indexingList">
-	              {#each activeIndexItems as item}
+	              {#each visibleActiveIndexItems as item}
 	                {@const indexInfo = sourceIndexInfo(item.sourceId)}
 	                <div class="resourceRow compactResource">
 	                  <span>
@@ -2625,35 +2759,6 @@
           <span>{t("aiRecommendations")}: {(system.aiRecommendation ?? []).join(", ") || t("aiNone")}</span>
 	        </div>
 	      {/if}
-	      {#if activeIndexingProgress?.status === "running"}
-	        <div class="progressPanel">
-	          <div class="progressHeader">
-	            <strong>{t("indexingNow")}</strong>
-	            <span>{activeIndexingProgress.percent ?? 0}%</span>
-	          </div>
-	          <progress max="100" value={activeIndexingProgress.percent ?? 0}></progress>
-	          <small>{t("indexProgressSummary", { done: activeIndexingProgress.completed ?? 0, total: activeIndexingProgress.total ?? 0, failed: activeIndexingProgress.failed ?? 0 })}</small>
-	          <small>{detailLabel(activeIndexingProgress.detail)}</small>
-	          <div class="indexingList">
-	            {#each activeIndexItems as item}
-	              {@const indexInfo = sourceIndexInfo(item.sourceId)}
-	              <div class="resourceRow compactResource">
-	                <span>
-	                  <strong>{sourceTitleById(item.sourceId, item.title)}</strong>
-	                  <small>{indexInfo?.label ?? t("indexingQueued")}</small>
-	                </span>
-	                <span class="sourceProgress">
-	                  {#if indexInfo?.current}
-	                    <progress></progress>
-	                  {:else}
-	                    <progress max="100" value={indexInfo?.progress ?? 0}></progress>
-	                  {/if}
-	                </span>
-	              </div>
-	            {/each}
-	          </div>
-	        </div>
-	      {/if}
 	    </section>
 
     {#if loadingCatalog}
@@ -2675,6 +2780,7 @@
         <button type="button" on:click={load}>{t("retryLoadingProfiles")}</button>
       </section>
     {:else}
+    {#key `${dashboardVersion}:${indexUiVersion}`}
     {#each contentProfiles as profile, index}
       {@const added = addedSources(profile)}
       {@const progress = profileProgressInfo(profile)}
@@ -2778,6 +2884,7 @@
         </div>
       </section>
     {/each}
+    {/key}
     {/if}
     {/if}
 
@@ -2997,7 +3104,7 @@
 		            <small class="cardIntro">{t("indexingNowHelp")}</small>
 		            <small>{t("indexProgressSummary", { done: activeIndexingProgress.completed ?? 0, total: activeIndexingProgress.total ?? 0, failed: activeIndexingProgress.failed ?? 0 })}</small>
 		            <div class="resourceScroll">
-		              {#each activeIndexItems as item}
+		            {#each visibleActiveIndexItems as item}
 		                {@const indexInfo = sourceIndexInfo(item.sourceId)}
 		                <div class="resourceRow">
 		                  <span>
@@ -3057,6 +3164,7 @@
           <h3>{t("downloadedNeedsIndex")}</h3>
 	          <small class="cardIntro">{t("downloadedNeedsIndexHelp")}</small>
 	          {#if notSearchableDownloads.length}
+	            {#key indexUiVersion}
 	            <div class="resourceScroll">
 		            {#each notSearchableDownloads as source}
 		              {@const downloadRow = downloadState.get(source.id)}
@@ -3067,10 +3175,15 @@
 		                  <span>
 		                    <strong>{sourceTitle(source)}</strong>
 		                    <small>{indexInfo?.label ?? (source.type === "repo-archive" ? t("openThenIndex") : t("indexBeforeSearch"))}</small>
-		                    {#if indexInfo?.current}
+		                    {#if indexInfo}
 		                      <span class="sourceProgress">
-		                        <progress></progress>
-		                        <small>{t("indexingLargeFiles")}</small>
+		                        {#if indexInfo.current}
+		                          <progress></progress>
+		                          <small>{t("indexingLargeFiles")}</small>
+		                        {:else}
+		                          <progress max="100" value={indexInfo.progress ?? 0}></progress>
+		                          <small>{sourceIndexProgressLine(indexInfo)}</small>
+		                        {/if}
 		                      </span>
 		                    {/if}
 		                  </span>
@@ -3081,8 +3194,8 @@
 		                    <span class="tooltipHost" title={indexTooltip(source)}>
 		                      <button type="button" aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={indexingActive || busy.has(`index-${source.id}`) || sourceDownloading || indexInfo?.current}>{indexActionLabel(source.id)}</button>
 		                    </span>
-	                    {#if busy.has(`index-${source.id}`)}
-	                      <small class="inlineFeedback">{t("indexingLargeFiles")}</small>
+	                    {#if sourceIsIndexing(source.id)}
+	                      <small class="inlineFeedback liveFeedback">{indexInfo?.label ?? t("indexingQueued")}</small>
 	                    {/if}
 	                    {#if verifyNotice}
 	                      <small class="inlineFeedback" class:ok={verifyNotice.ok} class:bad={!verifyNotice.ok}>{verifyNotice.message}</small>
@@ -3091,6 +3204,7 @@
 	                </div>
 	              {/each}
 	            </div>
+	            {/key}
 	          {:else}
 	            <small>{t("noDownloadedNeedsIndex")}</small>
 	          {/if}
@@ -3302,9 +3416,18 @@
       {#if chatTurns.length}
         <div class="chatThread">
           {#each chatTurns as turn}
-            <article class="answer">
+            <article class="answer" class:pendingAnswer={turn.pending} class:failedAnswer={turn.failed}>
               <strong>{turn.question}</strong>
               <p>{turn.answer}</p>
+              {#if turn.pending}
+                <small>{askProgressMessage(askProgress, ollamaService)}</small>
+                <small>{askProgressLine(askProgress)}</small>
+              {:else if turn.failed}
+                <small>{t("askNoAnswerKeepQuestion")}</small>
+              {/if}
+              {#if turn.model}
+                <small>{t("askModelLine", { model: turn.model })}</small>
+              {/if}
               {#each turn.citations ?? [] as citation}
                 <small>[{citation.index}] {sourceTitleById(citation.source_id, citation.title)} · {citation.path}</small>
               {/each}
