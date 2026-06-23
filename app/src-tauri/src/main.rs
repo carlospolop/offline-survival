@@ -9,6 +9,17 @@ use tauri_plugin_shell::ShellExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // WebKitGTK's DMABUF renderer paints a blank or missing window on many Linux
+    // GPU/driver and Wayland setups — the most common cause of a Tauri app that
+    // "opens but shows nothing". Disable it before the webview starts so the app
+    // renders on a plain double-click. Respect an explicit override if set.
+    #[cfg(target_os = "linux")]
+    {
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+    }
+
     let backend_child: BackendChild = Arc::new(Mutex::new(None));
     let setup_backend_child = backend_child.clone();
     let shutdown_backend_child = backend_child.clone();

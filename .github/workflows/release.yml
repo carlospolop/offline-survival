@@ -187,18 +187,39 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb
+          sudo apt-get install -y xvfb x11-utils xdotool imagemagick dbus-x11 openbox
           sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2 || true
+
+      - name: Start virtual display (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          Xvfb :99 -screen 0 1600x1000x24 >/tmp/xvfb.log 2>&1 &
+          sleep 2
+          DISPLAY=:99 openbox >/tmp/openbox.log 2>&1 &
+          sleep 1
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
       - name: Verify package (Linux/macOS)
         if: matrix.os != 'windows'
         shell: bash
+        env:
+          VERIFY_SHOT_DIR: ${{ github.workspace }}/verify-screenshots
         run: bash tools/verify-package.sh "${{ matrix.os }}" artifact
 
       - name: Verify package (Windows)
         if: matrix.os == 'windows'
         shell: pwsh
+        env:
+          VERIFY_SHOT_DIR: ${{ github.workspace }}/verify-screenshots
         run: ./tools/verify-package.ps1 -ArtifactDir artifact
+
+      - name: Upload verification screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-screenshots-${{ matrix.label }}
+          path: verify-screenshots
+          if-no-files-found: ignore
 
   publish:
     name: Publish GitHub release
