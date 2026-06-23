@@ -14,6 +14,7 @@ await fs.mkdir(binariesDir, { recursive: true });
 await copyNodeSidecar();
 await prepareKiwixRuntime();
 await ensureLibzimResourcePaths();
+await ensureCanvasResourcePaths();
 
 console.log(`Prepared Tauri sidecars for ${target}`);
 
@@ -174,6 +175,39 @@ async function ensureLibzimResourcePaths() {
     // static-md vcpkg linkage so it has no external DLL dependencies at runtime.
     await ensurePlaceholder(path.join(releaseDir, "libzim.so.9"));
     await ensurePlaceholder(path.join(releaseDir, "libzim.9.dylib"));
+  }
+}
+
+async function ensureCanvasResourcePaths() {
+  // @napi-rs/canvas loads a platform-specific native package (canvas-<platform>)
+  // by name at runtime. npm installs only the package matching the build host,
+  // so the other targets' directories are absent and Tauri errors on any
+  // resource path that does not exist. Create empty placeholder directories for
+  // the targets we did not install (mirrors the libzim placeholder handling
+  // above). The real package for the current host stays intact and is the only
+  // one @napi-rs/canvas ever requires; pdf-parse loads canvas in a try/catch and
+  // the backend injects canvas API stubs, so targets without a published binary
+  // (e.g. Windows ARM64) still work with placeholders only.
+  const napiDir = path.resolve("node_modules/@napi-rs");
+  const canvasPackages = [
+    "canvas-darwin-arm64",
+    "canvas-darwin-x64",
+    "canvas-linux-arm64-gnu",
+    "canvas-linux-x64-gnu",
+    "canvas-win32-x64-msvc"
+  ];
+  await fs.mkdir(napiDir, { recursive: true });
+  for (const pkg of canvasPackages) {
+    const dir = path.join(napiDir, pkg);
+    const installed = await fs
+      .stat(path.join(dir, "package.json"))
+      .then((stat) => stat.isFile(), () => false);
+    if (installed) continue;
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "PLACEHOLDER.txt"),
+      `Placeholder for @napi-rs/${pkg}, not installed on this build host.\n`
+    );
   }
 }
 
