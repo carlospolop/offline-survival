@@ -84,7 +84,8 @@ jobs:
             librsvg2-dev \
             patchelf \
             zstd \
-            zip
+            zip \
+            rpm
 
       - name: Install npm dependencies
         run: npm ci --ignore-scripts
@@ -128,17 +129,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "release-artifacts/Offline-Survival-${{ matrix.label }}"
+          dest="release-artifacts/Offline-Survival-${{ matrix.label }}"
+          mkdir -p "$dest"
           find app/src-tauri/target -path "*/bundle/*" -type f \
             \( -name "*.AppImage" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.rpm" \) \
-            -exec cp {} "release-artifacts/Offline-Survival-${{ matrix.label }}/" \;
-          cat > "release-artifacts/Offline-Survival-${{ matrix.label }}/README-FIRST.txt" <<EOF
-          Offline Survival ${{ matrix.label }}
-
-          Open the installer or app package for this platform.
-          Downloaded knowledge sources are not included in this release artifact.
-          Use the app to choose a library folder and install the profile you want.
-          EOF
+            -exec cp {} "$dest/" \;
+          # Keep AppImages executable so the shipped archive carries the exec bit.
+          find "$dest" -name "*.AppImage" -exec chmod +x {} \;
+          cp "tools/release-readme/${{ matrix.os }}.txt" "$dest/README-FIRST.txt"
+          echo "Collected files for ${{ matrix.label }}:"
+          ls -la "$dest"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -147,9 +147,62 @@ jobs:
           path: release-artifacts/Offline-Survival-${{ matrix.label }}
           if-no-files-found: error
 
+  verify:
+    name: Verify ${{ matrix.label }}
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Verify Linux on a NEWER runner than the build host so forward-compat
+          # library mismatches (e.g. the AppImage GLib/WebKit symbols) surface.
+          - label: linux-x64
+            runner: ubuntu-24.04
+            os: linux
+          - label: linux-arm64
+            runner: ubuntu-24.04-arm
+            os: linux
+          - label: macos-x64
+            runner: macos-15-intel
+            os: macos
+          - label: macos-arm64
+            runner: macos-14
+            os: macos
+          - label: windows-x64
+            runner: windows-2022
+            os: windows
+          - label: windows-arm64
+            runner: windows-11-arm
+            os: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Offline-Survival-${{ matrix.label }}
+          path: artifact
+
+      - name: Install Linux verification tools
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2 || true
+
+      - name: Verify package (Linux/macOS)
+        if: matrix.os != 'windows'
+        shell: bash
+        run: bash tools/verify-package.sh "${{ matrix.os }}" artifact
+
+      - name: Verify package (Windows)
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: ./tools/verify-package.ps1 -ArtifactDir artifact
+
   publish:
     name: Publish GitHub release
-    needs: build
+    needs: verify
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     steps:
@@ -171,6 +224,8 @@ jobs:
             echo "name=${name}"
           } >> "$GITHUB_OUTPUT"
 
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: downloaded-artifacts
@@ -179,18 +234,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-upload all-platforms/Offline-Survival-all-platforms per-platform
+          # upload-artifact drops the executable bit; restore it so the shipped
+          # AppImage runs on a double-click instead of doing nothing.
+          find downloaded-artifacts -name "*.AppImage" -exec chmod +x {} \;
           for dir in downloaded-artifacts/Offline-Survival-*; do
             name="$(basename "$dir")"
             cp -R "$dir" "all-platforms/Offline-Survival-all-platforms/${name}"
           done
 
-          cat > "all-platforms/Offline-Survival-all-platforms/README-FIRST.txt" <<'EOF'
-          Offline Survival all-platforms bundle
-
-          This folder contains app release files for Windows, macOS, and Linux.
-          Use it with the app Share tab when creating a USB/share package for mixed operating systems.
-          Downloaded knowledge sources are not included here; share packages add the selected local library data.
-          EOF
+          cp tools/release-readme/all-platforms.txt "all-platforms/Offline-Survival-all-platforms/README-FIRST.txt"
 
           (cd all-platforms && zip -qr "../release-upload/Offline-Survival-all-platforms.zip" Offline-Survival-all-platforms)
 

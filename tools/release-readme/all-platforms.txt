@@ -1,0 +1,20 @@
+Offline Survival — all-platforms bundle
+
+This folder contains the app release files for Windows, macOS, and Linux,
+each in its own Offline-Survival-<platform> subfolder. Use it with the app's
+Share tab when creating a USB/share package for mixed operating systems.
+
+Each subfolder has its own README-FIRST.txt with install and first-launch
+instructions for that operating system (including how to get past macOS
+Gatekeeper, Windows SmartScreen, and Linux AppImage/FUSE prompts).
+
+Quick guidance:
+  * Windows — run the .msi installer.
+  * macOS   — open the .dmg, drag the app to Applications, first-open via
+              right-click > Open.
+  * Linux   — install the .deb (Debian/Ubuntu) or .rpm (Fedora/openSUSE) for
+              the most reliable experience; the .AppImage is a portable
+              fallback.
+
+Downloaded knowledge sources are not included here; the app's Share tab adds
+the selected local library data when you build a share package.

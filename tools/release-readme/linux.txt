@@ -1,0 +1,41 @@
+Offline Survival — Linux
+
+This archive contains three ways to run the app:
+  * a .deb package   — recommended for Debian / Ubuntu / Mint / Pop!_OS
+  * a .rpm package   — recommended for Fedora / RHEL / openSUSE
+  * an .AppImage     — portable, no installation, any distro
+
+EASIEST AND MOST COMPATIBLE: install the package for your distribution.
+Packages use your system's own libraries, so they launch reliably across
+many distro versions.
+
+Debian / Ubuntu / Mint / Pop!_OS
+  Double-click the .deb to open your software installer, or run:
+      sudo apt install ./Offline*Survival*.deb
+  Then launch "Offline Survival" from your applications menu.
+
+Fedora / RHEL / openSUSE
+  Double-click the .rpm, or run:
+      sudo dnf install ./Offline*Survival*.rpm
+  Then launch "Offline Survival" from your applications menu.
+
+Portable AppImage (any distro)
+  1. Make it executable — graphical "Extract" tools often drop this bit:
+         chmod +x Offline*Survival*.AppImage
+  2. Double-click it, or run it from a terminal:
+         ./Offline*Survival*.AppImage
+  If you see "AppImages require FUSE", install it or skip it:
+         sudo apt install libfuse2          # Ubuntu 22.04 / Debian
+         sudo apt install libfuse2t64       # Ubuntu 24.04
+         ./Offline*Survival*.AppImage --appimage-extract-and-run
+
+  IMPORTANT: On distributions newer than the one the AppImage was built on,
+  it can fail with library errors such as
+      "undefined symbol: g_task_set_static_name"
+  and never show a window. This is a GLib/WebKit version mismatch in the
+  portable bundle, not a problem with your system. If that happens, install
+  the .deb or .rpm above instead — they use your system libraries and are
+  not affected.
+
+Downloaded knowledge sources are not included in this download. Open the app,
+choose a library folder, and install the profile you want.

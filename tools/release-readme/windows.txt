@@ -1,0 +1,20 @@
+Offline Survival — Windows
+
+This archive contains a .msi installer.
+
+Install
+  Double-click the .msi and follow the prompts, then launch
+  "Offline Survival" from the Start menu.
+
+If Windows SmartScreen appears ("Windows protected your PC")
+  The installer is not signed with a paid code-signing certificate, so
+  SmartScreen warns before running it. This is expected for an open-source
+  app. Click "More info", then "Run anyway" to continue.
+
+Requirements
+  The app uses the Microsoft Edge WebView2 runtime, which is already present
+  on up-to-date Windows 10 and 11. If the window does not appear, install the
+  "Evergreen WebView2 Runtime" from Microsoft and try again.
+
+Downloaded knowledge sources are not included in this download. Open the app,
+choose a library folder, and install the profile you want.

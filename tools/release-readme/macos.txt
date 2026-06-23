@@ -1,0 +1,24 @@
+Offline Survival — macOS
+
+This archive contains a .dmg disk image.
+
+Install
+  1. Double-click the .dmg to open it.
+  2. Drag "Offline Survival" into your Applications folder.
+
+First launch (the app is not notarized by Apple)
+  macOS Gatekeeper blocks unsigned apps the first time, with a message like
+  "Offline Survival cannot be opened because the developer cannot be verified"
+  or "Offline Survival is damaged and can't be opened". This is expected for
+  an open-source app without a paid Apple signing certificate — it is not a
+  real problem. To open it, do ONE of the following:
+
+    * Right-click (or Control-click) the app in Applications, choose Open,
+      then click Open in the dialog, OR
+    * Remove the quarantine flag in Terminal:
+          xattr -dr com.apple.quarantine "/Applications/Offline Survival.app"
+
+  After the first successful open, it launches normally by double-click.
+
+Downloaded knowledge sources are not included in this download. Open the app,
+choose a library folder, and install the profile you want.
