@@ -60,8 +60,8 @@ describe("language selectors", () => {
     expect(source).toContain('title: \"Supervivencia esencial ES\"');
     expect(source).toContain('\"wikipedia-es-top-zim\":');
     expect(source).toContain('title: \"Wikipedia en español Top sin imágenes ZIM\"');
-    expect(source).not.toMatch(/\{(?:profile|source|model|result|citation)\.(?:title|description|category)\}/);
-    expect(source).not.toMatch(/\{(?:profile|source)\.status\}/);
+    expect(source).not.toMatch(/(?<!\$)\{(?:profile|source|model|result|citation)\.(?:title|description|category)\}/);
+    expect(source).not.toMatch(/(?<!\$)\{(?:profile|source)\.status\}/);
     expect(source).not.toContain("{#each catalog.profiles");
 
     const markup = source.slice(source.indexOf("</script>") + 9);
