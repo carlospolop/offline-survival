@@ -59,7 +59,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       try {
         const response = await fetch(target, {
           ...options,
-          headers: { "content-type": "application/json", ...(options.headers ?? {}) }
+          headers: apiHeaders(options.headers)
         });
         const data = await parseJson(response);
         if (!response.ok || data.error) throw new Error(data.error ?? response.statusText);
@@ -73,6 +73,19 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   }
 
   throw new Error(readableApiError(lastError));
+}
+
+function apiHeaders(headers: HeadersInit | undefined) {
+  const next = new Headers(headers);
+  if (!next.has("content-type")) next.set("content-type", "application/json");
+  const token = backendTokenFromWindow();
+  if (token && !next.has("x-sca-backend-token")) next.set("x-sca-backend-token", token);
+  return next;
+}
+
+function backendTokenFromWindow() {
+  if (typeof window === "undefined") return "";
+  return String(window.__SCA_API_TOKEN ?? "");
 }
 
 async function packagedBackendPort() {

@@ -18,7 +18,7 @@ import { reviewSource, sourceReviewSummary } from "./review.mjs";
 import { importExtraKnowledgeFiles, scanExtraKnowledgeFolder, supportedExtraKnowledgeExtensions } from "./extraKnowledge.mjs";
 import { askOllama, ensureOllamaRuntimePermissions, serviceStatus, startKiwix, startOllama, stopService, upsertService } from "./services.mjs";
 import { estimateModelRamBytes, memorySnapshot, systemInfo } from "./system.mjs";
-import { defaultLibraryRoot, ensureLibrary, markInterruptedDownloads, now, openState, pruneOldEvents, pruneOldLogFiles, recordEvent, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
+import { defaultLibraryRoot, ensureLibrary, getSettings, markInterruptedDownloads, now, openState, pruneOldEvents, pruneOldLogFiles, recordEvent, removeSourcesNotInCatalog, setSetting, summarizeState, upsertModel, upsertSource } from "./state.mjs";
 
 const port = Number(process.env.PORT ?? 8787);
 const root = process.cwd();
@@ -132,7 +132,7 @@ function send(res, status, body, headers = {}) {
   res.writeHead(status, {
     "access-control-allow-origin": "*",
     "access-control-allow-methods": "GET,POST,OPTIONS",
-    "access-control-allow-headers": "content-type",
+    "access-control-allow-headers": "content-type, x-sca-backend-token",
     "content-type": typeof body === "string" ? "text/html; charset=utf-8" : "application/json",
     ...headers
   });
@@ -159,6 +159,26 @@ async function withDb(work) {
   } finally {
     db.close();
   }
+}
+
+async function serviceLogFiles(root, maxBytes = 8000) {
+  const logsDir = path.join(root, "logs");
+  const entries = await fs.readdir(logsDir, { withFileTypes: true }).catch(() => []);
+  const files = await Promise.all(entries.filter((entry) => entry.isFile()).map(async (entry) => {
+    const filePath = path.join(logsDir, entry.name);
+    const stat = await fs.stat(filePath).catch(() => null);
+    if (!stat) return null;
+    const buffer = await fs.readFile(filePath).catch(() => Buffer.alloc(0));
+    const tail = buffer.subarray(Math.max(0, buffer.length - maxBytes)).toString("utf8");
+    return {
+      name: entry.name,
+      path: filePath,
+      sizeBytes: stat.size,
+      updatedAt: new Date(stat.mtimeMs).toISOString(),
+      tail
+    };
+  }));
+  return files.filter(Boolean).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 }
 
 async function mapLimit(items, concurrency, mapper) {
@@ -201,7 +221,7 @@ async function runExclusiveIndexOperation(label, work) {
 
 async function jobsSnapshot() {
   return await withDb((db) => {
-    const settings = summarizeState(db).settings ?? {};
+    const settings = getSettings(db);
     const downloads = db.prepare("SELECT source_id, status, bytes_received, total_bytes, updated_at FROM downloads WHERE status IN ('queued', 'downloading', 'resuming') ORDER BY updated_at DESC").all();
     const jobsById = new Map();
     const addJob = (job) => {
@@ -280,6 +300,13 @@ function queueSourceDownload(db, source) {
     .run("queued", now(), source.id);
   recordEvent(db, "download-queued", `${source.title} download queued`, { sourceId: source.id });
   return { sourceId: source.id, status: "queued" };
+}
+
+function sourceDownloadSnapshot(db, sourceId) {
+  return {
+    source: db.prepare("SELECT * FROM sources WHERE id=?").get(sourceId) ?? null,
+    download: db.prepare("SELECT * FROM downloads WHERE source_id=?").get(sourceId) ?? null
+  };
 }
 
 function queueProfileDownloads(db, profile, sources) {
@@ -370,7 +397,10 @@ async function route(req, res) {
       if (!source) throw new Error(`Unknown source ${body.sourceId}`);
       const jobRoot = libraryRoot;
       const diskBudgetBytes = optionalNumber(body.diskBudgetBytes);
-      const queued = await withDb((db) => queueSourceDownload(db, source));
+      const queued = await withDb((db) => {
+        const result = queueSourceDownload(db, source);
+        return { ...result, ...sourceDownloadSnapshot(db, source.id) };
+      });
       const started = queued.skipped
         ? false
         : startBackgroundJob(`download:${jobRoot}:${source.id}`, async () => {
@@ -440,7 +470,7 @@ async function route(req, res) {
         db.prepare("UPDATE downloads SET status=?, error=NULL, updated_at=? WHERE id=?").run("queued", now(), source.id);
         db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=? AND status NOT IN ('downloaded', 'verified', 'indexed', 'indexed-original-only', 'downloaded_unverified')").run("queued", now(), source.id);
         recordEvent(db, "download-retry", `Retrying ${source.title}`, { sourceId: source.id });
-        return { sourceId: source.id, status: "queued" };
+        return { sourceId: source.id, status: "queued", ...sourceDownloadSnapshot(db, source.id) };
       });
       const started = startBackgroundJob(`download:${jobRoot}:${source.id}`, async () => {
         const db = openState(jobRoot);
@@ -808,19 +838,21 @@ async function route(req, res) {
       const body = await json(req);
       const catalog = await loadCatalog();
       if (activeIndexOperation) throw new Error(`Wait for indexing to finish before generating a share package (${activeIndexOperation}).`);
+      let packageDb = null;
       try {
-        const result = await withDb((db) => {
+        const profile = await withDb((db) => {
           const activeDownloads = activeDownloadCount(db);
           if (activeDownloads) throw new Error(`Wait for ${activeDownloads} active download${activeDownloads === 1 ? "" : "s"} to finish before generating a share package.`);
-          const profile = shareProfileFromRequest(db, catalog, body.profileId);
-          return buildSharePackage({
-            db,
-            libraryRoot,
-            projectRoot: root,
-            profile: { ...profile, primaryOs: body.primaryOs },
-            catalogSources: catalog.sources,
-            appBundlePath: body.appBundlePath
-          });
+          return shareProfileFromRequest(db, catalog, body.profileId);
+        });
+        packageDb = openState(libraryRoot);
+        const result = await buildSharePackage({
+          db: packageDb,
+          libraryRoot,
+          projectRoot: root,
+          profile: { ...profile, primaryOs: body.primaryOs },
+          catalogSources: catalog.sources,
+          appBundlePath: body.appBundlePath
         });
         return send(res, 200, result);
       } catch (error) {
@@ -832,6 +864,8 @@ async function route(req, res) {
           updatedAt: Date.now()
         }));
         throw error;
+      } finally {
+        packageDb?.close();
       }
     }
     if (url.pathname === "/api/review/summary") {
@@ -844,11 +878,11 @@ async function route(req, res) {
       return send(res, 200, result);
     }
     if (url.pathname === "/api/logs") {
-      const logs = await withDb((db) => {
+      const [logs, files] = await Promise.all([withDb((db) => {
         pruneOldEvents(db);
         return db.prepare("SELECT * FROM events ORDER BY created_at DESC LIMIT ?").all(Number(url.searchParams.get("limit") ?? 200));
-      });
-      return send(res, 200, { logs });
+      }), serviceLogFiles(libraryRoot)]);
+      return send(res, 200, { logs, files });
     }
     if (url.pathname.startsWith("/api/")) return send(res, 404, { error: "Unknown API endpoint" });
     return await serveUi(url, res);
@@ -1285,6 +1319,7 @@ function ollamaPermissionDenied(answer) {
 
 async function pickFolder() {
   const candidates = [
+    ...(process.platform === "darwin" ? [{ command: "osascript", args: ["-e", "POSIX path of (choose folder with prompt \"Choose a folder\")"] }] : []),
     { command: "zenity", args: ["--file-selection", "--directory", "--title=Choose Extra Knowledge Folder"] },
     { command: "kdialog", args: ["--getexistingdirectory", process.env.HOME ?? "."] },
     { command: "yad", args: ["--file-selection", "--directory", "--title=Choose Extra Knowledge Folder"] }

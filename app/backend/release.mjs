@@ -65,17 +65,17 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
     profileTitle: profile.title
   });
   const primaryOs = normalizePrimaryOs(profile.primaryOs ?? profile.targetOs ?? profile.os);
-  const appSources = await findShareAppSources(projectRoot, appBundlePath);
+  const appSources = await findShareAppSources(projectRoot, appBundlePath, primaryOs);
   if (!appSources.length) {
     updateShareProgress(db, {
       status: "failed",
       phase: "failed",
-      detail: "No app release artifacts were found. Download or build the all-platforms release bundle before creating the share package.",
+      detail: `No ${primaryOs} app release artifact was found. Build the selected OS release before creating the share package.`,
       percent: 0,
       profileId: profile.id,
       profileTitle: profile.title
     });
-    throw new Error("No app release artifacts were found. Download or build the all-platforms release bundle before creating the share package.");
+    throw new Error(`No ${primaryOs} app release artifact was found. Build the selected OS release before creating the share package.`);
   }
   const selectedSourceIds = [...new Set(profile.sourceIds)];
   const selectedSourceRows = selectedSourcesForPackage(db, selectedSourceIds, profile);
@@ -94,7 +94,7 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
   updateShareProgress(db, {
     status: "running",
     phase: "copy-app",
-    detail: `Copying ${appSources.length} app release folders into the share package.`,
+    detail: `Copying ${primaryOs} app release artifact into the share package.`,
     percent: 10,
     profileId: profile.id,
     profileTitle: profile.title
@@ -190,7 +190,7 @@ export async function buildSharePackage({ db, libraryRoot, projectRoot, profile,
       `Send ${archivePath} to the other computer.`,
       "Extract the archive.",
       launcherInstruction(primaryOs),
-      `The package includes the ${profile.title} sources in OfflineSurvival-Library and app artifacts for every available platform.`
+      `The package includes the ${profile.title} sources in OfflineSurvival-Library and the ${primaryOs} app artifact.`
     ]
   };
 }
@@ -208,25 +208,43 @@ function selectedSourcesForPackage(db, selectedSourceIds, profile) {
   return selectedSourceIds.map((id) => byId.get(id));
 }
 
-async function findShareAppSources(projectRoot, appBundlePath = "") {
+async function findShareAppSources(projectRoot, appBundlePath = "", primaryOs = "") {
   const candidates = [
     appBundlePath ? path.resolve(appBundlePath) : "",
     process.env.SCA_SHARE_APPS_DIR,
     process.env.SCA_ALL_PLATFORM_APP_DIR,
+    currentPackagedAppBundle(),
     path.join(projectRoot, "release", "all-platforms", "Offline-Survival-all-platforms"),
     path.join(projectRoot, "release", "Offline-Survival-all-platforms"),
+    path.join(projectRoot, "app", "src-tauri", "target", "release", "bundle", "dmg"),
+    path.join(projectRoot, "app", "src-tauri", "target", "release", "bundle", "appimage"),
+    path.join(projectRoot, "app", "src-tauri", "target", "release", "bundle", "msi"),
+    path.join(projectRoot, "app", "src-tauri", "target", "release", "bundle", "nsis"),
     path.join(projectRoot, "downloaded-artifacts"),
     path.join(projectRoot, "release"),
     projectRoot
   ].filter(Boolean);
   const seen = new Set();
   const apps = [];
+  const selectedPlatform = normalizePrimaryOs(primaryOs);
   for (const candidate of candidates) {
     const root = path.resolve(candidate);
     const stat = await fs.stat(root).catch(() => null);
-    if (!stat?.isDirectory()) continue;
-    const direct = parseReleaseAppFolder(path.basename(root));
+    if (!stat) continue;
+    if (stat.isFile()) {
+      const parsed = parseReleaseArtifactFile(root);
+      if (!parsed || parsed.platform !== selectedPlatform) continue;
+      const key = `${parsed.platform}-${parsed.arch}-${root}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        apps.push({ ...parsed, sourceDir: root });
+      }
+      continue;
+    }
+    if (!stat.isDirectory()) continue;
+    const direct = parseReleaseAppFolder(path.basename(root)) ?? parseReleaseArtifactDirectory(root);
     if (direct) {
+      if (direct.platform !== selectedPlatform) continue;
       const key = `${direct.platform}-${direct.arch}-${root}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -234,10 +252,10 @@ async function findShareAppSources(projectRoot, appBundlePath = "") {
       }
     }
     for (const entry of await fs.readdir(root, { withFileTypes: true }).catch(() => [])) {
-      if (!entry.isDirectory()) continue;
-      const parsed = parseReleaseAppFolder(entry.name);
-      if (!parsed) continue;
       const sourceDir = path.join(root, entry.name);
+      const parsed = entry.isDirectory() ? (parseReleaseAppFolder(entry.name) ?? parseReleaseArtifactDirectory(sourceDir)) : parseReleaseArtifactFile(sourceDir);
+      if (!parsed) continue;
+      if (parsed.platform !== selectedPlatform) continue;
       const key = `${parsed.platform}-${parsed.arch}-${sourceDir}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -245,10 +263,16 @@ async function findShareAppSources(projectRoot, appBundlePath = "") {
     }
   }
   const legacy = await findLegacyPortableAppDir(projectRoot);
-  if (legacy && !apps.some((app) => app.platform === "linux" && app.arch === "x64")) {
+  if (selectedPlatform === "linux" && legacy && !apps.some((app) => app.platform === "linux" && app.arch === "x64")) {
     apps.push({ label: "linux-x64", platform: "linux", arch: "x64", sourceDir: legacy });
   }
   return apps.sort((a, b) => `${a.platform}-${a.arch}`.localeCompare(`${b.platform}-${b.arch}`));
+}
+
+function currentPackagedAppBundle() {
+  const resourceDir = process.env.SCA_RESOURCE_DIR;
+  if (!resourceDir || process.platform !== "darwin") return "";
+  return path.resolve(resourceDir, "..", "..");
 }
 
 async function findLegacyPortableAppDir(projectRoot) {
@@ -274,12 +298,42 @@ function parseReleaseAppFolder(name) {
   return { label: `${match[1]}-${match[2]}`, platform: match[1], arch: match[2] };
 }
 
+function parseReleaseArtifactFile(filePath) {
+  const name = path.basename(filePath);
+  const arch = /(?:aarch64|arm64)/i.test(name) ? "arm64" : "x64";
+  if (/\.dmg$/i.test(name) || /\.app\.tar\.gz$/i.test(name)) return { label: `macos-${arch}`, platform: "macos", arch };
+  if (/\.appimage$/i.test(name) || /\.(?:deb|rpm)$/i.test(name)) return { label: `linux-${arch}`, platform: "linux", arch };
+  if (/\.(?:msi|exe)$/i.test(name)) return { label: `windows-${arch}`, platform: "windows", arch };
+  return null;
+}
+
+function parseReleaseArtifactDirectory(dirPath) {
+  const name = path.basename(dirPath);
+  if (!/\.app$/i.test(name)) return null;
+  return { label: `macos-${runtimeArchLabel()}`, platform: "macos", arch: runtimeArchLabel() };
+}
+
+function runtimeArchLabel() {
+  return process.arch === "arm64" ? "arm64" : "x64";
+}
+
 async function copyShareApps({ appSources, appsDir }) {
   await fs.rm(appsDir, { recursive: true, force: true });
   const copied = await mapLimit(appSources, defaultShareCopyConcurrency, async (app) => {
     const destination = path.join(appsDir, app.label);
     await fs.mkdir(path.dirname(destination), { recursive: true });
-    await fs.cp(app.sourceDir, destination, { recursive: true, dereference: false });
+    const stat = await fs.stat(app.sourceDir);
+    if (stat.isDirectory()) {
+      if (/\.app$/i.test(path.basename(app.sourceDir))) {
+        await fs.mkdir(destination, { recursive: true });
+        await fs.cp(app.sourceDir, path.join(destination, path.basename(app.sourceDir)), { recursive: true, dereference: false });
+      } else {
+        await fs.cp(app.sourceDir, destination, { recursive: true, dereference: false });
+      }
+    } else {
+      await fs.mkdir(destination, { recursive: true });
+      await fs.cp(app.sourceDir, path.join(destination, path.basename(app.sourceDir)), { dereference: false });
+    }
     return {
       label: app.label,
       platform: app.platform,
@@ -491,7 +545,7 @@ async function sanitizeSharedDatabase({ dbPath, selectedSourceIds, copiedRelPath
     db.prepare(`DELETE FROM adapters WHERE source_id NOT IN (${sourceSql})`).run(...selectedSourceIds);
     db.prepare(`DELETE FROM documents WHERE source_id NOT IN (${sourceSql})`).run(...selectedSourceIds);
     db.prepare(`DELETE FROM chunks WHERE source_id NOT IN (${sourceSql})`).run(...selectedSourceIds);
-    db.prepare(`DELETE FROM fts WHERE source_id NOT IN (${sourceSql})`).run(...selectedSourceIds);
+    runOptionalSql(db, `DELETE FROM fts WHERE source_id NOT IN (${sourceSql})`, selectedSourceIds);
     db.prepare("DELETE FROM services").run();
     db.prepare("DELETE FROM models").run();
 
@@ -507,6 +561,16 @@ async function sanitizeSharedDatabase({ dbPath, selectedSourceIds, copiedRelPath
     db.exec("PRAGMA wal_checkpoint(FULL)");
   } finally {
     db.close();
+  }
+}
+
+function runOptionalSql(db, sql, params = []) {
+  try {
+    db.prepare(sql).run(...params);
+    return true;
+  } catch (error) {
+    if (String(error.message ?? error).includes("no such module: fts5")) return false;
+    throw error;
   }
 }
 

@@ -136,6 +136,7 @@ describe("HTTP API", () => {
     expect(ask.unsupported).toBe(true);
     const logs = await (await fetch(`http://127.0.0.1:${port}/api/logs?limit=10`)).json();
     expect(Array.isArray(logs.logs)).toBe(true);
+    expect(Array.isArray(logs.files)).toBe(true);
   });
 
   it("validates Easy Install input and cleans source payload state", async () => {
@@ -214,7 +215,10 @@ describe("HTTP API", () => {
     const alreadyDownloadedId = catalog.sources[0].id;
     const dbDownloaded = openState(root);
     try {
-      dbDownloaded.prepare("UPDATE sources SET status='downloaded', updated_at=datetime('now') WHERE id=?").run(alreadyDownloadedId);
+      dbDownloaded.prepare("UPDATE sources SET status='downloaded', local_path=?, size_bytes=?, updated_at=datetime('now') WHERE id=?")
+        .run(`raw/test/${alreadyDownloadedId}.dat`, 123, alreadyDownloadedId);
+      dbDownloaded.prepare("INSERT INTO downloads (id, source_id, status, bytes_received, total_bytes, updated_at) VALUES (?, ?, 'complete', 123, 123, datetime('now')) ON CONFLICT(id) DO UPDATE SET status=excluded.status, bytes_received=excluded.bytes_received, total_bytes=excluded.total_bytes, updated_at=excluded.updated_at")
+        .run(alreadyDownloadedId, alreadyDownloadedId);
     } finally {
       dbDownloaded.close();
     }
@@ -224,6 +228,8 @@ describe("HTTP API", () => {
       body: JSON.stringify({ sourceId: alreadyDownloadedId })
     })).json();
     expect(skippedDownload).toMatchObject({ sourceId: alreadyDownloadedId, skipped: true, background: false, started: false });
+    expect(skippedDownload.source).toMatchObject({ id: alreadyDownloadedId, status: "downloaded", local_path: `raw/test/${alreadyDownloadedId}.dat` });
+    expect(skippedDownload.download).toMatchObject({ source_id: alreadyDownloadedId, status: "complete", bytes_received: 123, total_bytes: 123 });
 
     const alreadyDownloadedProfile = catalog.profiles.find((profile) => profile.id === "survival-essential");
     const dbProfileDownloaded = openState(root);

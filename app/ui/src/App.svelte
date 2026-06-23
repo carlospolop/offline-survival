@@ -18,8 +18,7 @@
   let state: State = { settings: {}, sources: [], downloads: [], services: [], adapters: [], models: [], blobs: [], documents: [], events: [] };
   let system: any = null;
   let shareProfile = "";
-  let sharePrimaryOs = "linux";
-  let shareAppsPath = "";
+  let sharePrimaryOs = initialSharePrimaryOs();
   let activeTab = "dashboard";
   let filter = "";
   let query = "";
@@ -37,6 +36,8 @@
   let sharePackage: any = null;
   let showSharePackageProgress = false;
   let logs: any[] = [];
+  let serviceLogFiles: any[] = [];
+  let logError = "";
   let jobs: any[] = [];
   let logSortKey: "title" | "description" | "date" = "date";
   let logSortDir: "asc" | "desc" = "desc";
@@ -44,11 +45,13 @@
   let logsRefreshing = false;
   let statePoller = 0;
   let stateRefreshing = false;
+  let shouldPollState = false;
   let searchResults: any[] = [];
   let searching = false;
   let searchMode = "";
   let searchRequestId = 0;
   let busy = new Set<string>();
+  let downloadActivations = new Set<string>();
   let error = "";
   let catalogError = "";
   let loadingCatalog = true;
@@ -203,6 +206,13 @@
       shareWaitForDownloads: "Wait for active downloads to finish before generating a share package.",
       logs: "Logs",
       refreshLogs: "Refresh Logs",
+      refreshingLogs: "Refreshing logs...",
+      logsLoaded: "{events} events · {files} files",
+      noLogsYet: "No logs yet",
+      noLogsYetHelp: "Run a download, service, search, or package action, then refresh logs.",
+      serviceLogFiles: "Service log files",
+      updated: "Updated",
+      bytes: "Bytes",
       title: "Title",
       description: "Description",
       date: "Date",
@@ -285,17 +295,14 @@
       textIndexHelp: "The text index makes downloaded sources searchable without an embedding model. The embedding model is used after indexing for semantic matching: finding relevant passages by meaning for Local AI answers and semantic search, even when the exact words differ.",
       allIndexedResources: "All indexed resources",
       askPlaceholder: "Ask against indexed local documents",
-      shareHelp: "Share creates one compressed package with the selected downloaded sources, search data, and available app files for Windows, macOS, and Linux.",
+      shareHelp: "Share creates one compressed package with the selected downloaded sources, search data, and the app artifact for the selected operating system.",
       generatePackageTitle: "Generate app + sources package",
-      generatePackageHelp: "The package includes app files from the extracted all-platforms release folder, downloaded files, prepared/opened files, and search indexes for the selected source set. Unrelated local content is left out.",
+      generatePackageHelp: "The package includes the selected operating system app artifact, downloaded files, prepared/opened files, and search indexes for the selected source set. Unrelated local content is left out.",
       sourcesToShare: "Sources to share",
       primaryOperatingSystem: "Primary operating system",
       primaryLauncherLinux: "Primary launcher: Linux",
       primaryLauncherWindows: "Primary launcher: Windows",
       primaryLauncherMacos: "Primary launcher: macOS",
-      appBundleFolder: "App Bundle Folder",
-      appBundleFolderValue: "App bundle folder: {path}",
-      appBundleFolderHelp: "Optional: choose the extracted Offline-Survival-all-platforms folder before generating a mixed-OS package.",
       sharePackageProgressTitle: "Share package",
       shareProgressSources: "{current} / {total} sources · {percent}%",
       noDownloadedSourcesReady: "No downloaded sources ready to share",
@@ -531,6 +538,13 @@
       shareWaitForDownloads: "Espera a que terminen las descargas activas antes de generar un paquete.",
       logs: "Registros",
       refreshLogs: "Actualizar registros",
+      refreshingLogs: "Actualizando registros...",
+      logsLoaded: "{events} eventos · {files} archivos",
+      noLogsYet: "Todavia no hay registros",
+      noLogsYetHelp: "Ejecuta una descarga, servicio, busqueda o paquete, y actualiza los registros.",
+      serviceLogFiles: "Archivos de registro de servicios",
+      updated: "Actualizado",
+      bytes: "Bytes",
       title: "Título",
       description: "Descripción",
       date: "Fecha",
@@ -613,17 +627,14 @@
       textIndexHelp: "El índice de texto permite buscar fuentes descargadas sin modelo de embeddings. El modelo de embeddings se usa después de indexar para coincidencia semántica: encontrar pasajes relevantes por significado para respuestas de IA local y búsqueda semántica, incluso cuando las palabras exactas difieren.",
       allIndexedResources: "Todos los recursos indexados",
       askPlaceholder: "Pregunta contra documentos locales indexados",
-      shareHelp: "Compartir crea un paquete comprimido con las fuentes descargadas seleccionadas, datos de búsqueda y archivos de app disponibles para Windows, macOS y Linux.",
+      shareHelp: "Compartir crea un paquete comprimido con las fuentes descargadas seleccionadas, datos de búsqueda y el artefacto de app para el sistema operativo seleccionado.",
       generatePackageTitle: "Generar paquete app + fuentes",
-      generatePackageHelp: "El paquete incluye archivos de app de la carpeta extraída de todas las plataformas, archivos descargados, archivos preparados/abiertos e índices de búsqueda del conjunto seleccionado. El contenido local no relacionado queda fuera.",
+      generatePackageHelp: "El paquete incluye el artefacto de app del sistema operativo seleccionado, archivos descargados, archivos preparados/abiertos e índices de búsqueda del conjunto seleccionado. El contenido local no relacionado queda fuera.",
       sourcesToShare: "Fuentes para compartir",
       primaryOperatingSystem: "Sistema operativo principal",
       primaryLauncherLinux: "Lanzador principal: Linux",
       primaryLauncherWindows: "Lanzador principal: Windows",
       primaryLauncherMacos: "Lanzador principal: macOS",
-      appBundleFolder: "Carpeta del paquete de app",
-      appBundleFolderValue: "Carpeta del paquete de app: {path}",
-      appBundleFolderHelp: "Opcional: elige la carpeta Offline-Survival-all-platforms extraída antes de generar un paquete mixto para varios sistemas.",
       sharePackageProgressTitle: "Paquete compartido",
       shareProgressSources: "{current} / {total} fuentes · {percent}%",
       noDownloadedSourcesReady: "No hay fuentes descargadas listas para compartir",
@@ -970,16 +981,19 @@
   $: stateDownloads = Array.isArray(state.downloads) ? state.downloads.filter(Boolean) : [];
   $: stateServices = Array.isArray(state.services) ? state.services.filter(Boolean) : [];
   $: stateModels = Array.isArray(state.models) ? state.models.filter(Boolean) : [];
-  $: sourceState = new Map(stateSources.map((source) => [source.id, source]));
-  $: downloadState = new Map(stateDownloads.map((download) => [download.source_id, download]));
+  $: stateBlobs = Array.isArray(state.blobs) ? state.blobs.filter(Boolean) : [];
+  $: stateDocuments = Array.isArray(state.documents) ? state.documents.filter(Boolean) : [];
   $: sourceCatalog = new Map(catalogSources.map((source) => [source.id, source]));
+  $: downloadRows = mergedDownloadRows(stateDownloads, jobs, sourceCatalog);
+  $: sourceState = new Map(stateSources.map((source) => [source.id, source]));
+  $: downloadState = new Map(downloadRows.map((download) => [download.source_id, download]));
   $: downloadedBytes = stateSources.reduce((sum, source) => sum + Number(source.size_bytes ?? 0), 0);
   $: licenseOptions = [...new Set([...catalogSources, ...stateSources].map((source) => source.license).filter(Boolean))].sort();
   $: indexedSources = stateSources.filter((source) => source.status === "indexed");
   $: fullyIndexedSourceIds = new Set(indexedSources.map((source) => source.id));
   $: searchableSources = stateSources.filter((source) => fullyIndexedSourceIds.has(source.id));
   $: if (searchSource && !searchableSources.some((source) => source.id === searchSource)) searchSource = "";
-  $: activeDownloadSources = stateDownloads
+  $: activeDownloadSources = downloadRows
     .filter((download) => ["queued", "downloading", "resuming"].includes(String(download.status ?? "")))
     .map((download) => sourceForId(download.source_id))
     .filter(Boolean);
@@ -987,6 +1001,9 @@
   $: activeDownloadJobRows = jobs
     .filter((job) => String(job.kind ?? "") === "download" && job.sourceId && activeJobStatuses.has(String(job.status ?? "")) && !activeDownloadSourceIds.has(String(job.sourceId)))
     .map((job) => downloadJobProgressInfo(job));
+  $: activeDownloadJobs = new Map(jobs
+    .filter((job) => String(job.kind ?? "") === "download" && job.sourceId && activeJobStatuses.has(String(job.status ?? "")))
+    .map((job) => [String(job.sourceId), job]));
   $: hasActiveDownloads = activeDownloadSources.length > 0 || activeDownloadJobRows.length > 0;
   $: hasActiveBackendJobs = jobs.some((job) => ["running", "queued", "downloading", "resuming"].includes(String(job.status ?? "")));
   $: workingLabelsList = workingLabels();
@@ -1021,6 +1038,7 @@
   $: recommendedChatModel = recommendedModel(system, availableModels, "chat");
   $: recommendedEmbeddingModel = recommendedModel(system, availableModels, "embedding");
   $: recommendedAiModels = recommendedModels(system, availableModels, recommendedChatModel, recommendedEmbeddingModel);
+  $: allRecommendedAiInstalled = localAiRuntimeInstalled(ollamaService) && recommendedAiModels.length > 0 && recommendedAiModels.every((model) => model?.status === "installed");
   $: installedChatModels = availableModels.filter((model) => model.role === "chat" && model.status === "installed");
   $: keepQuestionModelValid(installedChatModels, questionModel);
   $: startAiModel = [...installedChatModels].sort((a, b) => Number(a.expected_size_bytes ?? 0) - Number(b.expected_size_bytes ?? 0))[0] ?? null;
@@ -1071,14 +1089,24 @@
   ];
   $: sortedLogs = sortLogs(logs, logSortKey, logSortDir);
   $: keepShareProfileValid(shareOptions, shareProfile);
-  $: if (hasActiveDownloads || hasActiveBackendJobs || askBusy || busy.size) startStatePolling();
-  $: if (!hasActiveDownloads && !hasActiveBackendJobs && !askBusy && !busy.size) stopStatePolling();
+  $: shouldPollState = loadingCatalog || Boolean(system) || hasActiveDownloads || hasActiveBackendJobs || askBusy || Boolean(busy.size);
+  $: if (shouldPollState) startStatePolling();
+  $: if (!shouldPollState) stopStatePolling();
   $: if (activeTab === "logs") startLogsPolling();
   $: if (activeTab !== "logs") stopLogsPolling();
 
   onMount(() => {
     setUiLanguage(uiLanguage);
     load();
+    const refreshVisibleState = () => {
+      if (!document.hidden) refreshStateQuiet();
+    };
+    window.addEventListener("focus", refreshVisibleState);
+    document.addEventListener("visibilitychange", refreshVisibleState);
+    return () => {
+      window.removeEventListener("focus", refreshVisibleState);
+      document.removeEventListener("visibilitychange", refreshVisibleState);
+    };
   });
   onDestroy(() => {
     stopStatePolling();
@@ -1099,6 +1127,15 @@
     const saved = window.localStorage.getItem("offline-survival-content-language");
     if (saved === ui) return saved;
     return ui;
+  }
+
+  function initialSharePrimaryOs() {
+    if (typeof navigator === "undefined") return "linux";
+    const platform = navigator.platform.toLowerCase();
+    const agent = navigator.userAgent.toLowerCase();
+    if (platform.includes("mac") || agent.includes("mac os")) return "macos";
+    if (platform.includes("win") || agent.includes("windows")) return "windows";
+    return "linux";
   }
 
   function setUiLanguage(language: string) {
@@ -1306,8 +1343,9 @@
       jobs = Array.isArray(jobsResult.jobs) ? jobsResult.jobs : [];
       libraryPath = String(state.settings.libraryRoot ?? "");
       initializeEasyProfiles();
-      await refreshServices();
-      await refreshModels();
+      loadingCatalog = false;
+      refreshServicesQuiet();
+      refreshModelsQuiet();
     } catch (err) {
       catalogError = String((err as Error).message ?? err);
       error = t("loadBackendError", { error: catalogError });
@@ -1382,11 +1420,28 @@
   }
 
   async function download(sourceId: string) {
-    markSourceQueued(sourceId);
-    await run(`download-${sourceId}`, () => api("/api/download", {
-      method: "POST",
-      body: JSON.stringify({ sourceId })
-    }), { refresh: "state" });
+    if (busy.has(`download-${sourceId}`) || downloadActivations.has(sourceId) || sourceIsDownloading(sourceId)) return;
+    downloadActivations = new Set([...downloadActivations, sourceId]);
+    try {
+      markSourceQueued(sourceId);
+      await run(`download-${sourceId}`, async () => {
+        const result = await apiWithTimeout("/api/download", {
+          method: "POST",
+          body: JSON.stringify({ sourceId })
+        }, 15000);
+        mergeDownloadSnapshot(sourceId, result);
+        markSourceDownloadResult(sourceId, result);
+      }, { refresh: "state" });
+    } finally {
+      downloadActivations.delete(sourceId);
+      downloadActivations = downloadActivations;
+    }
+  }
+
+  function activateDownload(sourceId: string, event?: Event) {
+    event?.preventDefault();
+    event?.stopPropagation();
+    download(sourceId);
   }
 
   async function pause(sourceId: string) {
@@ -1395,10 +1450,13 @@
 
   async function retry(sourceId: string) {
     markSourceQueued(sourceId);
-    await run(`retry-${sourceId}`, () => api("/api/download/retry", {
-      method: "POST",
-      body: JSON.stringify({ sourceId })
-    }), { refresh: "state" });
+    await run(`retry-${sourceId}`, async () => {
+      const result = await api("/api/download/retry", {
+        method: "POST",
+        body: JSON.stringify({ sourceId })
+      });
+      mergeDownloadSnapshot(sourceId, result);
+    }, { refresh: "state" });
   }
 
   async function downloadProfile(profile: Profile) {
@@ -1407,6 +1465,16 @@
       method: "POST",
       body: JSON.stringify({ profileId: profile.id, contentLanguage, concurrency: 4 })
     }), { refresh: "state" });
+  }
+
+  async function apiWithTimeout(path: string, options: RequestInit, timeoutMs: number) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await api(path, { ...options, signal: controller.signal });
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   function markSourceQueued(sourceId: string) {
@@ -1435,6 +1503,96 @@
     state = { ...state, downloads, sources };
     const job = { id: `download:${sourceId}`, kind: "download", status: queued.status, sourceId };
     jobs = [...jobs.filter((item) => item.id !== job.id), job];
+  }
+
+  function markSourceDownloadResult(sourceId: string, result: any) {
+    if (!result?.skipped && result?.status !== "downloaded" && result?.status !== "complete") return;
+    const timestamp = new Date().toISOString();
+    const source = sourceCatalog.get(sourceId);
+    const existingDownload = downloadState.get(sourceId);
+    const bytes = Number(existingDownload?.bytes_received ?? existingDownload?.total_bytes ?? source?.expected_size_bytes ?? 0);
+    const downloadRow = {
+      id: sourceId,
+      source_id: sourceId,
+      status: "complete",
+      bytes_received: bytes,
+      total_bytes: bytes,
+      error: null,
+      updated_at: timestamp
+    };
+    const downloads = existingDownload
+      ? state.downloads.map((download) => download.source_id === sourceId ? { ...download, ...downloadRow } : download)
+      : [downloadRow, ...state.downloads];
+    state = {
+      ...state,
+      downloads,
+      sources: state.sources.map((item) => item.id === sourceId ? { ...item, status: result.status ?? "downloaded", updated_at: timestamp } : item)
+    };
+    jobs = jobs.filter((item) => item.id !== `download:${sourceId}`);
+  }
+
+  function mergeDownloadSnapshot(sourceId: string, result: any) {
+    const snapshotSource = result?.source;
+    const snapshotDownload = result?.download;
+    if (!snapshotSource && !snapshotDownload) return;
+    const timestamp = new Date().toISOString();
+    const nextSource = snapshotSource
+      ? { ...(sourceCatalog.get(sourceId) ?? {}), ...snapshotSource }
+      : null;
+    const nextDownload = snapshotDownload
+      ? { id: sourceId, source_id: sourceId, ...snapshotDownload }
+      : null;
+    const sources = nextSource
+      ? (state.sources.some((item) => item.id === sourceId)
+        ? state.sources.map((item) => item.id === sourceId ? { ...item, ...nextSource } : item)
+        : [nextSource, ...state.sources])
+      : state.sources;
+    const downloads = nextDownload
+      ? (state.downloads.some((item) => item.source_id === sourceId)
+        ? state.downloads.map((item) => item.source_id === sourceId ? { ...item, ...nextDownload } : item)
+        : [nextDownload, ...state.downloads])
+      : state.downloads;
+    state = { ...state, sources, downloads };
+    if (["downloaded", "verified", "indexed", "indexed-original-only", "downloaded_unverified"].includes(String(nextSource?.status ?? result?.status ?? "")) || nextDownload?.status === "complete") {
+      jobs = jobs.filter((item) => item.id !== `download:${sourceId}`);
+    } else if (nextDownload) {
+      const job = {
+        id: `download:${sourceId}`,
+        kind: "download",
+        status: nextDownload.status ?? result?.status ?? "queued",
+        sourceId,
+        bytesReceived: Number(nextDownload.bytes_received ?? 0),
+        totalBytes: Number(nextDownload.total_bytes ?? sourceCatalog.get(sourceId)?.expected_size_bytes ?? 0),
+        updatedAt: nextDownload.updated_at ?? timestamp
+      };
+      jobs = [...jobs.filter((item) => item.id !== job.id), job];
+    }
+  }
+
+  function mergedDownloadRows(downloads: Array<Record<string, any>>, activeJobs: Array<Record<string, any>>, sourcesById = sourceCatalog) {
+    const rows = new Map(downloads.map((download) => [String(download.source_id ?? ""), { ...download }]));
+    for (const job of activeJobs) {
+      if (String(job.kind ?? "") !== "download" || !job.sourceId || !activeJobStatuses.has(String(job.status ?? ""))) continue;
+      const sourceId = String(job.sourceId);
+      const existing = rows.get(sourceId) ?? { id: sourceId, source_id: sourceId };
+      rows.set(sourceId, {
+        ...existing,
+        id: existing.id ?? sourceId,
+        source_id: sourceId,
+        status: job.status === "running" ? (existing.status ?? "downloading") : job.status,
+        bytes_received: Math.max(Number(existing.bytes_received ?? 0), Number(job.bytesReceived ?? 0)),
+        total_bytes: Math.max(Number(existing.total_bytes ?? 0), Number(job.totalBytes ?? sourcesById.get(sourceId)?.expected_size_bytes ?? 0)),
+        error: existing.error ?? null,
+        updated_at: job.updatedAt ?? existing.updated_at ?? new Date().toISOString()
+      });
+    }
+    return [...rows.values()].sort((a, b) => String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")));
+  }
+
+  function sourceLiveView(source: Source | Record<string, any>) {
+    const local = sourceState.get(source.id);
+    if (!local) return source;
+    return { ...source, ...local };
   }
 
   function markProfileQueued(profile: Profile) {
@@ -1577,9 +1735,25 @@
     state = { ...state, services: data.services };
   }
 
+  async function refreshServicesQuiet() {
+    try {
+      await refreshServices();
+    } catch {
+      // Service probes must not block the profile catalog from rendering.
+    }
+  }
+
   async function refreshModels() {
     const data = await api<{ models: any[] }>("/api/models/refresh");
     state = { ...state, models: data.models };
+  }
+
+  async function refreshModelsQuiet() {
+    try {
+      await refreshModels();
+    } catch {
+      // Model refresh is useful, but the app should stay usable if it fails.
+    }
   }
 
   async function pullModel(modelId: string) {
@@ -1784,26 +1958,33 @@
     await run("share-package", async () => {
       sharePackage = await api("/api/share/package", {
         method: "POST",
-        body: JSON.stringify({ profileId: shareProfile, primaryOs: sharePrimaryOs, appBundlePath: shareAppsPath })
+        body: JSON.stringify({ profileId: shareProfile, primaryOs: sharePrimaryOs })
       });
-    });
-  }
-
-  async function pickShareAppsFolder() {
-    await run("share-apps-folder", async () => {
-      const result = await api<{ path?: string; canceled?: boolean }>("/api/folder/pick", { method: "POST" });
-      if (result.path) shareAppsPath = result.path;
     });
   }
 
   async function pickExtraFolder() {
     await run("extra-folder", async () => {
-      const result = await api<{ path?: string; canceled?: boolean }>("/api/folder/pick", { method: "POST" });
-      if (result.path) {
-        extraFolderPath = result.path;
+      const path = await chooseFolder();
+      if (path) {
+        extraFolderPath = path;
         await scanExtraFolder();
       }
     });
+  }
+
+  async function chooseFolder() {
+    try {
+      const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
+      const selected = await openDialog({ directory: true, multiple: false });
+      if (typeof selected === "string" && selected.trim()) return selected;
+      if (Array.isArray(selected) && typeof selected[0] === "string") return selected[0];
+      if (selected === null) return "";
+    } catch {
+      // Browser/dev builds and older packaged builds fall back to the backend picker.
+    }
+    const result = await api<{ path?: string; canceled?: boolean }>("/api/folder/pick", { method: "POST" });
+    return result.canceled ? "" : result.path ?? "";
   }
 
   async function scanExtraFolder() {
@@ -1839,10 +2020,7 @@
   }
 
   async function loadLogs() {
-    await run("logs", async () => {
-      const data = await api<{ logs: any[] }>("/api/logs?limit=100");
-      logs = data.logs;
-    });
+    await run("logs", fetchLogs, { refresh: "none" });
   }
 
   function startLogsPolling() {
@@ -1859,12 +2037,19 @@
 
   async function refreshLogsQuiet() {
     if (logsRefreshing) return;
+    await fetchLogs({ quiet: true });
+  }
+
+  async function fetchLogs(options: { quiet?: boolean } = {}) {
+    if (logsRefreshing) return;
     logsRefreshing = true;
+    logError = "";
     try {
-      const data = await api<{ logs: any[] }>("/api/logs?limit=100");
-      logs = data.logs;
+      const data = await api<{ logs: any[]; files?: any[] }>("/api/logs?limit=100");
+      logs = Array.isArray(data.logs) ? data.logs : [];
+      serviceLogFiles = Array.isArray(data.files) ? data.files : [];
     } catch {
-      // Keep Settings usable even if the backend is restarting.
+      if (!options.quiet) logError = t("loadBackendError", { error: "Could not load logs" });
     } finally {
       logsRefreshing = false;
     }
@@ -1905,15 +2090,16 @@
   function sourceProgressInfo(source: Source | Record<string, any>) {
     const local = sourceState.get(source.id);
     const downloadRow = downloadState.get(source.id);
-    const complete = sourceIsDownloaded(local ?? {}) || (downloadRow?.status === "complete" && Boolean(local?.local_path));
+    const downloadJob = activeDownloadJobs.get(String(source.id));
+    const complete = sourceIsDownloaded(local ?? {}) || downloadRow?.status === "complete";
     const total = complete
       ? Number(local?.size_bytes || downloadRow?.bytes_received || downloadRow?.total_bytes || source.expected_size_bytes || 0)
-      : Number(downloadRow?.total_bytes || source.expected_size_bytes || 0);
-    const received = complete ? total : Number(downloadRow?.bytes_received || 0);
+      : Number(downloadRow?.total_bytes || downloadJob?.totalBytes || source.expected_size_bytes || 0);
+    const received = complete ? total : Math.max(Number(downloadRow?.bytes_received || 0), Number(downloadJob?.bytesReceived || 0));
     const progress = total > 0 ? Math.min(100, Math.round((received / total) * 100)) : complete ? 100 : 0;
     const totalKnown = complete || received === 0 || total > received;
-    const status = complete ? (local?.status === "downloaded_unverified" ? "downloaded" : local?.status ?? "downloaded") : (downloadRow?.status ?? local?.status ?? "missing");
-    return { local, downloadRow, complete, total, received, progress, totalKnown, status };
+    const status = complete ? (local?.status === "downloaded_unverified" ? "downloaded" : local?.status ?? "downloaded") : (downloadJob?.status ?? downloadRow?.status ?? local?.status ?? "missing");
+    return { local, downloadRow, downloadJob, complete, total, received, progress, totalKnown, status };
   }
 
   function downloadJobProgressInfo(job: Record<string, any>) {
@@ -1977,9 +2163,18 @@
     const total = items.reduce((sum, item) => sum + item.total, 0);
     const progress = total > 0 ? Math.min(100, Math.round((received / total) * 100)) : 0;
     const done = items.filter((item) => item.complete || item.downloadRow?.status === "complete").length;
-    const active = items.filter((item) => ["queued", "downloading", "resuming"].includes(String(item.downloadRow?.status ?? ""))).length;
-    const failed = items.filter((item) => ["failed", "paused"].includes(String(item.downloadRow?.status ?? ""))).length;
+    const active = items.filter((item) => isActiveDownloadStatus(item.status)).length;
+    const failed = items.filter((item) => ["failed", "paused"].includes(String(item.status ?? ""))).length;
     return { received, total, progress, done, active, failed, count: items.length };
+  }
+
+  function isActiveDownloadStatus(status: unknown) {
+    return ["queued", "downloading", "resuming"].includes(String(status ?? ""));
+  }
+
+  function sourceIsDownloading(sourceId: unknown, info?: Record<string, any>) {
+    const id = String(sourceId ?? "");
+    return isActiveDownloadStatus(info?.status) || activeDownloadJobs.has(id) || isActiveDownloadStatus(downloadState.get(id)?.status);
   }
 
   function sourceIsDownloaded(source: Source | Record<string, any>) {
@@ -1989,7 +2184,7 @@
   function profileHasDownloadableSources(profile: Profile) {
     return profile.sourceIds.some((id) => {
       const source = sourceState.get(id);
-      return !sourceIsDownloaded(source ?? {});
+      return !sourceIsDownloaded(source ?? {}) && !sourceIsDownloading(id);
     });
   }
 
@@ -2042,6 +2237,10 @@
     return selected;
   }
 
+  function localAiRuntimeInstalled(service: Record<string, any> | null) {
+    return ["available", "running", "stopped", "installed"].includes(String(service?.status ?? ""));
+  }
+
   function recommendedProfile(systemInfo: any, profilesCatalog: Profile[]) {
     const allowedIds = new Set(profilesCatalog.map((profile) => profile.id));
     if (systemInfo?.recommendedProfile?.id && allowedIds.has(systemInfo.recommendedProfile.id)) return systemInfo.recommendedProfile;
@@ -2072,7 +2271,7 @@
     return parts.join(" + ") || t("calculatingRecommendedModels");
   }
 
-  function preparedSize(source: Source) {
+  function preparedSize(source: Source | Record<string, any>) {
     return Number(source.prepared_size_bytes ?? source.expected_size_bytes ?? 0);
   }
 
@@ -2414,16 +2613,16 @@
       <div class="stats">
         <span>{contentProfiles.length} {t("profiles").toLowerCase()}</span>
         <span>{contentSources.length} {t("catalogSources")}</span>
-        <span>{state.documents.length} {t("indexedDocuments")}</span>
-        <span>{state.blobs.length} {t("uniqueBlobs")}</span>
-        <span>{state.services.filter((service) => service.status === "running").length} {t("servicesRunning")}</span>
+        <span>{stateDocuments.length} {t("indexedDocuments")}</span>
+        <span>{stateBlobs.length} {t("uniqueBlobs")}</span>
+        <span>{stateServices.filter((service) => service.status === "running").length} {t("servicesRunning")}</span>
       </div>
 	      {#if system}
 	        <div class="stats">
 	          <span>{system.platform}/{system.arch}</span>
           <span>{system.cpuCount} {t("cpuThreads")}</span>
           <span>{gb(system.totalMemBytes)} RAM</span>
-          <span>{t("aiRecommendations")}: {system.aiRecommendation.join(", ") || t("aiNone")}</span>
+          <span>{t("aiRecommendations")}: {(system.aiRecommendation ?? []).join(", ") || t("aiNone")}</span>
 	        </div>
 	      {/if}
 	      {#if activeIndexingProgress?.status === "running"}
@@ -2487,7 +2686,7 @@
             <small>{profileSubtitle(profile, index)}</small>
           </div>
           <span class="tooltipHost" title={downloadProfileTooltip(profile)}>
-            <button aria-label={downloadProfileTooltip(profile)} on:click={() => downloadProfile(profile)} disabled={!hasDownloadableSources || busy.has(`profile-${profile.id}`)}>
+            <button type="button" aria-label={downloadProfileTooltip(profile)} on:click={() => downloadProfile(profile)} disabled={!hasDownloadableSources || busy.has(`profile-${profile.id}`)}>
               {hasDownloadableSources ? t("downloadFullProfile") : t("profileDownloaded")}
             </button>
           </span>
@@ -2513,22 +2712,23 @@
             <span>{t("addonSource")}</span><span>{t("type")}</span><span>{t("preparedDiskColumn")}</span><span>{t("status")}</span><span>{t("actions")}</span>
           </div>
           {#each added as source}
-            {@const info = sourceProgressInfo(source)}
-            {@const indexInfo = sourceIndexInfo(source.id)}
-            {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(info.downloadRow?.status ?? ""))}
-            {@const downloaded = sourceIsDownloaded(info.local ?? {})}
-            {@const indexBusy = sourceIsIndexing(source.id)}
+            {@const liveSource = sourceLiveView(source)}
+            {@const info = sourceProgressInfo(liveSource)}
+            {@const indexInfo = sourceIndexInfo(liveSource.id)}
+            {@const sourceDownloading = sourceIsDownloading(liveSource.id, info)}
+            {@const downloaded = info.complete}
+            {@const indexBusy = sourceIsIndexing(liveSource.id)}
             {@const indexLine = sourceIndexProgressLine(indexInfo)}
-            {@const verifyNotice = verifyFeedback[source.id]}
+            {@const verifyNotice = verifyFeedback[liveSource.id]}
             <div class="row">
               <span>
-                <strong>{sourceTitle(source)}</strong>
-                <small>{sourceCategory(source)} · {licenseLabel(source.license)} · {info.local?.local_path ?? t("notDownloaded")}</small>
+                <strong>{sourceTitle(liveSource)}</strong>
+                <small>{sourceCategory(liveSource)} · {licenseLabel(liveSource.license)} · {info.local?.local_path ?? liveSource.local_path ?? (info.complete ? t("downloaded") : t("notDownloaded"))}</small>
               </span>
-              <span>{sourceTypeLabel(source.type)}</span>
-              <span>{gb(preparedSize(source))}</span>
+              <span>{sourceTypeLabel(liveSource.type)}</span>
+              <span>{gb(preparedSize(liveSource))}</span>
               <span class="sourceProgress">
-                <span class:ok={!indexBusy && (indexInfo?.complete || statusTone(info.status) === "ok")} class:warn={indexBusy || statusTone(info.status) === "warn"} class:bad={indexInfo?.failed || statusTone(info.status) === "bad"}>{indexBusy ? indexActionLabel(source.id) : indexInfo?.label ?? statusLabel(info.status)}</span>
+                <span class:ok={!indexBusy && (indexInfo?.complete || statusTone(info.status) === "ok")} class:warn={indexBusy || statusTone(info.status) === "warn"} class:bad={indexInfo?.failed || statusTone(info.status) === "bad"}>{indexBusy ? indexActionLabel(liveSource.id) : indexInfo?.label ?? statusLabel(info.status)}</span>
                 {#if indexBusy}
                   <progress></progress>
                   <small>{indexLine || t("indexingLargeFiles")}</small>
@@ -2546,19 +2746,21 @@
               <span class="actions">
                 {#if downloaded}
                   <small>{t("downloaded")}</small>
+                {:else if sourceDownloading}
+                  <small class="inlineFeedback liveFeedback">{statusLabel(info.status)} · {info.progress}%</small>
                 {:else}
-                  <span class="tooltipHost" title={downloadTooltip(source)}>
-                    <button aria-label={downloadTooltip(source)} on:click={() => download(source.id)} disabled={busy.has(`download-${source.id}`) || sourceDownloading}>{t("download")}</button>
+                  <span class="tooltipHost" title={downloadTooltip(liveSource)}>
+                    <button type="button" aria-label={downloadTooltip(liveSource)} on:pointerdown={(event) => activateDownload(liveSource.id, event)} on:click={(event) => activateDownload(liveSource.id, event)} disabled={busy.has(`download-${liveSource.id}`) || downloadActivations.has(liveSource.id) || sourceDownloading}>{t("download")}</button>
                   </span>
                 {/if}
-                <span class="tooltipHost" title={verifyTooltip(source)}>
-                  <button aria-label={verifyTooltip(source)} on:click={() => verify(source.id)} disabled={!info.local?.local_path || busy.has(`verify-${source.id}`) || sourceDownloading}>{t("verify")}</button>
+                <span class="tooltipHost" title={verifyTooltip(liveSource)}>
+                  <button type="button" aria-label={verifyTooltip(liveSource)} on:click={() => verify(liveSource.id)} disabled={!(info.local?.local_path ?? liveSource.local_path) || busy.has(`verify-${liveSource.id}`) || sourceDownloading}>{t("verify")}</button>
                 </span>
-                <span class="tooltipHost" title={indexTooltip(source)}>
-                  <button aria-label={indexTooltip(source)} on:click={() => indexSource(source.id)} disabled={indexingActive || !info.local?.local_path || busy.has(`index-${source.id}`) || sourceDownloading || indexBusy}>{indexActionLabel(source.id)}</button>
+                <span class="tooltipHost" title={indexTooltip(liveSource)}>
+                  <button type="button" aria-label={indexTooltip(liveSource)} on:click={() => indexSource(liveSource.id)} disabled={indexingActive || !(info.local?.local_path ?? liveSource.local_path) || busy.has(`index-${liveSource.id}`) || sourceDownloading || indexBusy}>{indexActionLabel(liveSource.id)}</button>
                 </span>
-                <span class="tooltipHost" title={openTooltip(source)}>
-                  <button aria-label={openTooltip(source)} on:click={() => openOriginal(source.id)} disabled={!info.local?.local_path || busy.has(`open-${source.id}`)}>{t("open")}</button>
+                <span class="tooltipHost" title={openTooltip(liveSource)}>
+                  <button type="button" aria-label={openTooltip(liveSource)} on:click={() => openOriginal(liveSource.id)} disabled={!(info.local?.local_path ?? liveSource.local_path) || busy.has(`open-${liveSource.id}`)}>{t("open")}</button>
                 </span>
                 {#if indexBusy}
                   <small class="inlineFeedback liveFeedback">{indexLine || t("indexingLargeFiles")}</small>
@@ -2601,7 +2803,7 @@
         <div class="row head">
           <span>{t("source")}</span><span>{t("status")}</span><span>{t("progress")}</span><span>{t("total")}</span><span>{t("actions")}</span>
         </div>
-        {#each state.downloads as downloadRow}
+        {#each downloadRows as downloadRow}
           {@const canPause = ["queued", "downloading", "resuming"].includes(String(downloadRow.status))}
           {@const canRetry = ["failed", "paused"].includes(String(downloadRow.status))}
           {@const downloadReceived = Number(downloadRow.bytes_received || 0)}
@@ -2625,9 +2827,9 @@
             <span>{gb(downloadRow.total_bytes)}</span>
             <span class="actions">
               {#if canPause}
-                <button on:click={() => pause(downloadRow.source_id)} disabled={pauseBusy}>{t("pause")}</button>
+                <button type="button" on:click={() => pause(downloadRow.source_id)} disabled={pauseBusy}>{t("pause")}</button>
               {:else if canRetry}
-                <button on:click={() => retry(downloadRow.source_id)} disabled={retryBusy}>{t("retry")}</button>
+                <button type="button" on:click={() => retry(downloadRow.source_id)} disabled={retryBusy}>{t("retry")}</button>
               {:else}
                 <small>{t("noActionNeeded")}</small>
               {/if}
@@ -2859,7 +3061,7 @@
 		            {#each notSearchableDownloads as source}
 		              {@const downloadRow = downloadState.get(source.id)}
 		              {@const indexInfo = sourceIndexInfo(source.id)}
-		              {@const sourceDownloading = ["queued", "downloading", "resuming"].includes(String(downloadRow?.status ?? ""))}
+		              {@const sourceDownloading = sourceIsDownloading(source.id)}
 	                {@const verifyNotice = verifyFeedback[source.id]}
 	                <div class="resourceRow">
 		                  <span>
@@ -2925,8 +3127,8 @@
           <h2>{t("recommendedLocalAiSetup")}</h2>
           <small>{t("localAiInstallHelp")}</small>
         </div>
-        <button class="primaryAction" on:click={installRecommendedAi} disabled={loadingCatalog || busy.has("ai-install")}>
-          {busy.has("ai-install") ? t("installingAllRecommended") : t("installAllRecommended")}
+        <button class="primaryAction" on:click={installRecommendedAi} disabled={loadingCatalog || busy.has("ai-install") || allRecommendedAiInstalled}>
+          {busy.has("ai-install") ? t("installingAllRecommended") : allRecommendedAiInstalled ? t("installed") : t("installAllRecommended")}
         </button>
       </div>
       <div class="stats">
@@ -3136,18 +3338,12 @@
               <option value="windows">{t("primaryLauncherWindows")}</option>
               <option value="macos">{t("primaryLauncherMacos")}</option>
             </select>
-            <button type="button" on:click={pickShareAppsFolder} disabled={busy.has("share-apps-folder")}>{t("appBundleFolder")}</button>
             <button class="primaryAction startEasyInstallButton" title={hasActiveDownloads ? t("shareWaitForDownloads") : ""} on:click={generateSharePackage} disabled={hasActiveDownloads || indexingActive || busy.has("share-package") || !shareProfile}>
               {busy.has("share-package") ? t("generatingSharePackage") : t("sharePackage")}
             </button>
           </span>
         {/if}
       </article>
-      {#if shareAppsPath}
-        <small class="pathHint">{t("appBundleFolderValue", { path: shareAppsPath })}</small>
-      {:else}
-        <small class="pathHint">{t("appBundleFolderHelp")}</small>
-      {/if}
       {#if showSharePackageProgress}
         <div class="progressPanel">
           <div class="progressHeader">
@@ -3202,9 +3398,27 @@
     <section id="logs" class="band">
       <div class="sectionHeader">
         <h2>{t("logs")}</h2>
-        <button on:click={loadLogs} disabled={busy.has("logs")}>{t("refreshLogs")}</button>
+        <button on:click={loadLogs} disabled={busy.has("logs") || logsRefreshing}>{busy.has("logs") || logsRefreshing ? t("refreshingLogs") : t("refreshLogs")}</button>
       </div>
-      <div class="logTableWrap">
+      <div class="stats">
+        <span>{t("logsLoaded", { events: logs.length, files: serviceLogFiles.length })}</span>
+      </div>
+      {#if logError}
+        <div class="alert">{logError}</div>
+      {/if}
+      {#if logsRefreshing && !logs.length && !serviceLogFiles.length}
+        <div class="progressPanel">
+          <progress></progress>
+          <small>{t("refreshingLogs")}</small>
+        </div>
+      {:else if !logs.length && !serviceLogFiles.length}
+        <article class="answer">
+          <strong>{t("noLogsYet")}</strong>
+          <small>{t("noLogsYetHelp")}</small>
+        </article>
+      {/if}
+      {#if logs.length}
+        <div class="logTableWrap">
         <table class="logTable">
           <thead>
             <tr>
@@ -3218,20 +3432,47 @@
               <tr>
                 <td><strong>{logTitle(log)}</strong></td>
                 <td>
-                  <details class="logDetails">
-                    <summary>{t("details")}</summary>
-                    <p>{logDescription(log)}</p>
-                    {#if log.data}
-                      <small>{log.data}</small>
-                    {/if}
-                  </details>
+                  <p>{logDescription(log)}</p>
+                  {#if log.data}
+                    <details class="logDetails">
+                      <summary>{t("details")}</summary>
+                      {#if log.data}
+                        <small>{log.data}</small>
+                      {/if}
+                    </details>
+                  {/if}
                 </td>
                 <td><time datetime={log.created_at}>{logDateLabel(log)}</time></td>
               </tr>
             {/each}
           </tbody>
         </table>
-      </div>
+        </div>
+      {/if}
+      {#if serviceLogFiles.length}
+        <h3>{t("serviceLogFiles")}</h3>
+        <div class="table">
+          <div class="row head">
+            <span>{t("title")}</span><span>{t("updated")}</span><span>{t("bytes")}</span><span>{t("details")}</span>
+          </div>
+          {#each serviceLogFiles as file}
+            <div class="row">
+              <span>
+                <strong>{file.name}</strong>
+                <small>{file.path}</small>
+              </span>
+              <span>{logDateLabel({ created_at: file.updatedAt })}</span>
+              <span>{gb(file.sizeBytes)}</span>
+              <span>
+                <details class="logDetails">
+                  <summary>{t("details")}</summary>
+                  <pre>{file.tail}</pre>
+                </details>
+              </span>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </section>
     {/if}
   </section>

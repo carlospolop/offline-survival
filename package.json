@@ -22,6 +22,7 @@
   "dependencies": {
     "@openzim/libzim": "^4.2.0",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
     "markdown-it": "^14.1.0",
     "pdf-parse": "^2.4.5",
     "svelte": "^5.19.5",

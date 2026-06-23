@@ -14,6 +14,7 @@ pub fn run() {
     let shutdown_backend_child = backend_child.clone();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             let resource_dir = app

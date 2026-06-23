@@ -347,14 +347,15 @@ describe("library workflows", () => {
       expect(await fs.readFile(result.checksumPath, "utf8")).toContain(path.basename(result.archivePath));
       expect(result.primaryOs).toBe("windows");
       expect(result.instructions.join(" ")).toContain("Run-Offline-Survival-Windows.bat");
-      expect(result.apps.map((app) => app.label).sort()).toEqual(["linux-x64", "macos-arm64", "windows-x64"]);
-      const script = await fs.readFile(path.join(result.packageDir, "Run-Offline-Survival-Linux.sh"), "utf8");
-      expect(script).toContain("SCA_LIBRARY_ROOT");
+      expect(result.apps.map((app) => app.label).sort()).toEqual(["windows-x64"]);
       expect(await fs.stat(path.join(result.packageDir, "Run-Offline-Survival-Windows.bat"))).toBeTruthy();
-      expect(await fs.stat(path.join(result.packageDir, "Run-Offline-Survival-macOS.command"))).toBeTruthy();
+      const script = await fs.readFile(path.join(result.packageDir, "Run-Offline-Survival-Windows.bat"), "utf8");
+      expect(script).toContain("SCA_LIBRARY_ROOT");
+      await expect(fs.stat(path.join(result.packageDir, "Run-Offline-Survival-Linux.sh"))).rejects.toThrow();
+      await expect(fs.stat(path.join(result.packageDir, "Run-Offline-Survival-macOS.command"))).rejects.toThrow();
       expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/windows-x64/Offline Survival.msi"))).toBeTruthy();
-      expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/macos-arm64/Offline Survival.dmg"))).toBeTruthy();
-      expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/linux-x64/Offline Survival_0.1.0_amd64.AppImage"))).toBeTruthy();
+      await expect(fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/macos-arm64/Offline Survival.dmg"))).rejects.toThrow();
+      await expect(fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps/linux-x64/Offline Survival_0.1.0_amd64.AppImage"))).rejects.toThrow();
       expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/shared.html"))).toBeTruthy();
       await expect(fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/private.html"))).rejects.toThrow();
       await expect(fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/archive-state.sqlite-wal"))).rejects.toThrow();
@@ -394,14 +395,46 @@ describe("library workflows", () => {
     upsertSource(db, first, { status: "indexed", local_path: "raw/html/first.html", size_bytes: 12 });
     upsertSource(db, second, { status: "verified", local_path: "raw/html/second.html", size_bytes: 13 });
     try {
-      const result = await buildSharePackage({ db, libraryRoot: root, projectRoot, profile, catalogSources: [first, second] });
+      const result = await buildSharePackage({ db, libraryRoot: root, projectRoot, profile: { ...profile, primaryOs: "macos" }, catalogSources: [first, second] });
       expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/first.html"))).toBeTruthy();
       expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Library/raw/html/second.html"))).toBeTruthy();
       const manifest = JSON.parse(await fs.readFile(path.join(result.packageDir, "share-manifest.json"), "utf8"));
       expect(manifest.profile.id).toBe("all-downloaded");
       expect(manifest.apps_dir).toBe("OfflineSurvival-Apps");
-      expect(manifest.apps.map((app) => app.platform).sort()).toEqual(["linux", "macos", "windows"]);
+      expect(manifest.apps.map((app) => app.platform).sort()).toEqual(["macos"]);
       expect(manifest.sources.map((source) => source.id).sort()).toEqual([first.id, second.id].sort());
+    } finally {
+      db.close();
+      await fs.rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps a discovered macOS app bundle usable in a share package", async () => {
+    const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "sca-project-"));
+    const appBundle = path.join(projectRoot, "Offline Survival.app");
+    await fs.mkdir(path.join(appBundle, "Contents", "MacOS"), { recursive: true });
+    await fs.writeFile(path.join(appBundle, "Contents", "MacOS", "survival-civilization-archive"), "fake macos app");
+    await fs.mkdir(path.join(root, "raw/html"), { recursive: true });
+    await fs.writeFile(path.join(root, "raw/html/mac.html"), "mac package source");
+    const source = {
+      id: "mac-share-source",
+      title: "Mac Share Source",
+      type: "html",
+      license: "CC0",
+      url: "https://example.test/mac.html",
+      expected_size_bytes: 18,
+      runtime: ["index"]
+    };
+    const profile = { id: "mac-share", title: "Mac Share", description: "mac package", sourceIds: [source.id], primaryOs: "macos" };
+    const db = openState(root);
+    upsertSource(db, source, { status: "indexed", local_path: "raw/html/mac.html", size_bytes: 18 });
+    try {
+      const result = await buildSharePackage({ db, libraryRoot: root, projectRoot, profile, catalogSources: [source] });
+      const appLabel = process.arch === "arm64" ? "macos-arm64" : "macos-x64";
+      expect(result.apps.map((app) => app.label)).toEqual([appLabel]);
+      expect(await fs.stat(path.join(result.packageDir, "OfflineSurvival-Apps", appLabel, "Offline Survival.app", "Contents", "MacOS", "survival-civilization-archive"))).toBeTruthy();
+      const script = await fs.readFile(path.join(result.packageDir, "Run-Offline-Survival-macOS.command"), "utf8");
+      expect(script).toContain("find \"$APP_DIR\" -maxdepth 3 -type d -name '*.app'");
     } finally {
       db.close();
       await fs.rm(projectRoot, { recursive: true, force: true });

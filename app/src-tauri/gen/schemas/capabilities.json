@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default desktop capability for local archive control panel","local":true,"windows":["main"],"permissions":["core:default","shell:allow-open"]}}
+{"default":{"identifier":"default","description":"Default desktop capability for local archive control panel","local":true,"windows":["main"],"permissions":["core:default","dialog:allow-open","shell:allow-open"]}}
