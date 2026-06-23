@@ -67,7 +67,8 @@ if [ "$OS_KIND" = "linux" ]; then
   sudo apt-get update -y
   sudo apt-get install -y "$deb" || { sudo dpkg -i "$deb" || true; sudo apt-get -f install -y; }
   pkg="$(dpkg-deb -f "$deb" Package)"
-  bin="$(dpkg -L "$pkg" | grep -E '^/usr/bin/' | head -1 || true)"
+  # Pick the real app binary, not the bundled "sca-node" Node sidecar.
+  bin="$(dpkg -L "$pkg" | grep -E '^/usr/bin/' | grep -v '/sca-node$' | head -1 || true)"
   [ -n "$bin" ] || fail "could not locate installed binary for package $pkg"
   log "Installed binary: $bin"
   if ldd "$bin" | grep -i 'not found'; then fail ".deb binary has missing libraries"; fi
