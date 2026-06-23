@@ -109,7 +109,7 @@ elif [ "$OS_KIND" = "macos" ]; then
   log "Launching $appname"
   open "/Applications/$appname.app"
   # Give it time to start its backend and show the window.
-  win=0 i
+  win=0
   for i in $(seq 1 30); do
     if ! pgrep -f "$procmatch" >/dev/null 2>&1; then break; fi
     # Window counting via System Events needs Accessibility rights that CI may
