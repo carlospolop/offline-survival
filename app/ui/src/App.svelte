@@ -1059,6 +1059,7 @@
   $: askProgress = progressObject(stateSettings.askProgress);
   $: activeIndexingProgress = activeIndexProgress(easyInstallProgress, indexingProgress);
   $: indexUiVersion = indexStateVersion(activeIndexingProgress, queuedIndexSourceIds);
+  $: singleIndexBusySourceIds = singleIndexBusyIds(busy);
   $: backendIndexingActive = jobs.some((job) => String(job.kind ?? "") === "index" && ["running", "queued"].includes(String(job.status ?? "")));
   $: indexingActive = activeIndexingProgress?.status === "running" || backendIndexingActive;
   $: activeIndexItems = Array.isArray(activeIndexingProgress?.items) ? activeIndexingProgress.items : [];
@@ -2250,12 +2251,19 @@
     const easyIndexing = progressObject(easyProgress?.indexing);
     if (easyIndexing && ["running", "failed"].includes(String(easyIndexing.status ?? ""))) return easyIndexing;
     if (globalProgress && ["running", "failed"].includes(String(globalProgress.status ?? ""))) return globalProgress;
-    return easyIndexing ?? globalProgress;
+    return null;
+  }
+
+  function singleIndexBusyIds(labels: Set<string>) {
+    return new Set([...labels]
+      .filter((label) => label.startsWith("index-") && label !== "index-all-downloaded")
+      .map((label) => label.slice("index-".length)));
   }
 
   function sourceIndexInfo(sourceId: unknown) {
     const id = String(sourceId ?? "");
     if (!sourceHasDownloadedLocalFile(id)) return null;
+    if (singleIndexBusySourceIds.size && !singleIndexBusySourceIds.has(id)) return null;
     const item = activeIndexItems.find((entry: any) => entry.sourceId === id);
     const activeIds = Array.isArray(activeIndexingProgress?.currentSourceIds) ? activeIndexingProgress.currentSourceIds.map(String) : [];
     const current = activeIndexingProgress?.status === "running" && (activeIds.includes(id) || activeIndexingProgress?.currentSourceId === id || item?.status === "indexing");
