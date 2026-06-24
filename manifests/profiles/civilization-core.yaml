@@ -22,6 +22,8 @@ sources:
   - engineering-stackexchange-zim
   - 3dprinting-stackexchange-zim
   - bicycles-stackexchange-zim
+  - nhs-eprr-framework
+  - who-prehospital-trauma-care
 models:
   recommended:
     - qwen3-8b

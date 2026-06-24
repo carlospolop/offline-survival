@@ -1,95 +1,95 @@
 {
-  "generated_at": "2026-06-08T15:38:45.390Z",
+  "generated_at": "2026-06-24T08:42:19.688Z",
   "profiles": [
     {
       "id": "survival-essential",
       "title": "Survival Essential",
-      "source_count": 5,
-      "expected_size_bytes": 3601679256
+      "source_count": 9,
+      "expected_size_bytes": 3608843091
     },
     {
       "id": "survival-essential-es",
       "title": "Survival Essential ES",
-      "source_count": 5,
-      "expected_size_bytes": 29564682
+      "source_count": 15,
+      "expected_size_bytes": 53631579
     },
     {
       "id": "survival-essential-bilingual",
       "title": "Survival Essential Bilingual",
-      "source_count": 10,
-      "expected_size_bytes": 3631243938
+      "source_count": 24,
+      "expected_size_bytes": 3662474670
     },
     {
       "id": "survival-plus",
       "title": "Survival Plus",
-      "source_count": 13,
-      "expected_size_bytes": 30157889052
+      "source_count": 19,
+      "expected_size_bytes": 30174265382
     },
     {
       "id": "survival-plus-es",
       "title": "Survival Plus ES",
-      "source_count": 9,
-      "expected_size_bytes": 5034022238
+      "source_count": 20,
+      "expected_size_bytes": 5060103969
     },
     {
       "id": "survival-plus-bilingual",
       "title": "Survival Plus Bilingual",
-      "source_count": 22,
-      "expected_size_bytes": 35191911290
+      "source_count": 39,
+      "expected_size_bytes": 35234369351
     },
     {
       "id": "civilization-core",
       "title": "Civilization Core",
-      "source_count": 27,
-      "expected_size_bytes": 54998184767
+      "source_count": 35,
+      "expected_size_bytes": 55015852862
     },
     {
       "id": "civilization-core-es",
       "title": "Civilization Core ES",
-      "source_count": 11,
-      "expected_size_bytes": 5707376968
+      "source_count": 22,
+      "expected_size_bytes": 5733458699
     },
     {
       "id": "civilization-core-bilingual",
       "title": "Civilization Core Bilingual",
-      "source_count": 38,
-      "expected_size_bytes": 60705561735
+      "source_count": 57,
+      "expected_size_bytes": 60749311561
     },
     {
       "id": "civilization-rebuild",
       "title": "Civilization Rebuild",
-      "source_count": 32,
-      "expected_size_bytes": 83550805154
+      "source_count": 40,
+      "expected_size_bytes": 83568473249
     },
     {
       "id": "civilization-rebuild-es",
       "title": "Civilization Rebuild ES",
-      "source_count": 17,
-      "expected_size_bytes": 8810197050
+      "source_count": 28,
+      "expected_size_bytes": 8836278781
     },
     {
       "id": "civilization-rebuild-bilingual",
       "title": "Civilization Rebuild Bilingual",
-      "source_count": 49,
-      "expected_size_bytes": 92361002204
+      "source_count": 68,
+      "expected_size_bytes": 92404752030
     },
     {
       "id": "civilization-max",
       "title": "Civilization Max",
-      "source_count": 34,
-      "expected_size_bytes": 149088282174
+      "source_count": 42,
+      "expected_size_bytes": 149105950269
     },
     {
       "id": "civilization-max-es",
       "title": "Civilization Max ES",
-      "source_count": 18,
-      "expected_size_bytes": 20903840561
+      "source_count": 29,
+      "expected_size_bytes": 20929922292
     },
     {
       "id": "civilization-max-bilingual",
       "title": "Civilization Max Bilingual",
-      "source_count": 52,
-      "expected_size_bytes": 169992122735
+      "source_count": 71,
+      "expected_size_bytes": 170035872561
     }
   ],
   "sources": [
@@ -508,6 +508,158 @@
       "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-05.zim",
       "expected_size_bytes": 12093643511,
       "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "family-emergency-communication-plan",
+      "title": "FEMA Family Emergency Communication Plan",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2025-06/family-communication-plan_fillable-card.pdf",
+      "expected_size_bytes": 640035,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "fema-effak",
+      "title": "FEMA Emergency Financial First Aid Kit (EFFAK)",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2020-03/ready_emergency-financial-first-aid-toolkit.pdf",
+      "expected_size_bytes": 1699398,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "ready-caregivers-preparedness-guide",
+      "title": "Ready.gov Disaster Preparedness Guide for Caregivers",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2024-02/ready-gov_caregivers-preparedness-guide.pdf",
+      "expected_size_bytes": 2495103,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "ifrc-household-water-treatment",
+      "title": "IFRC Household Water Treatment and Safe Storage in Emergencies",
+      "type": "pdf",
+      "url": "https://wash.ifrc.org/wp-content/uploads/2025/06/ifrc-hwts-manual-english.pdf",
+      "expected_size_bytes": 2329299,
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "id": "ifrc-first-aid-guidelines-2025",
+      "title": "IFRC International First Aid, Resuscitation and Education Guidelines 2025",
+      "type": "pdf",
+      "url": "https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid%2C%20Resuscitation%20and%20Education%20Guidelines%202025.pdf",
+      "expected_size_bytes": 6261070,
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "id": "cert-hazard-annexes",
+      "title": "FEMA CERT Hazard Annexes Participant Manual",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2019.CERT_.HazardAnnexes.PM_.FINAL_.508c.pdf",
+      "expected_size_bytes": 2951425,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "nhs-eprr-framework",
+      "title": "NHS Emergency Preparedness, Resilience and Response Framework",
+      "type": "pdf",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2022/07/B0900-NHS-Emergency-Preparedness-Resilience-and-Response-Framework-version-3.pdf",
+      "expected_size_bytes": 744863,
+      "license": "OGL-3.0"
+    },
+    {
+      "id": "who-prehospital-trauma-care",
+      "title": "WHO Prehospital Trauma Care Systems",
+      "type": "pdf",
+      "url": "https://iris.who.int/server/api/core/bitstreams/ea9f1bd6-3eb8-4726-a3c5-d8d4d1bcb83a/content",
+      "expected_size_bytes": 546902,
+      "license": "CC-BY-NC-SA-3.0-IGO"
+    },
+    {
+      "id": "plan-familiar-emergencias-es",
+      "title": "Plan Familiar de Emergencias (Protección Civil)",
+      "type": "pdf",
+      "url": "https://ficheros.proteccioncivil.es/unidadesFormativas/Plan_Familiar_Emergencias_Creacion_propia_UnidadPsicologiaDGPCYE.pdf",
+      "expected_size_bytes": 1426315,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "guia-autoproteccion-es",
+      "title": "Guía de Autoprotección Ciudadana (Protección Civil)",
+      "type": "pdf",
+      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_autoproteccion_126230971.pdf",
+      "expected_size_bytes": 2600000,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "guia-inundaciones-es",
+      "title": "Guía Ciudadana ante el Riesgo de Inundaciones (Protección Civil)",
+      "type": "pdf",
+      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf",
+      "expected_size_bytes": 2500000,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "guia-incendios-forestales-es",
+      "title": "Guía Ciudadana ante Incendios Forestales (Protección Civil)",
+      "type": "pdf",
+      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_incendios_forestales_126230859.pdf",
+      "expected_size_bytes": 2500000,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "guia-riesgo-sismico-es",
+      "title": "Guía Ciudadana ante el Riesgo Sísmico (Protección Civil)",
+      "type": "pdf",
+      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_sismico_126230919.pdf",
+      "expected_size_bytes": 2500000,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "guia-meteorologia-adversa-es",
+      "title": "Guía Ciudadana ante Fenómenos Meteorológicos Adversos (Protección Civil)",
+      "type": "pdf",
+      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_fenomenos-meteorologicos_adversos_126230950.pdf",
+      "expected_size_bytes": 2500000,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "who-primeros-auxilios-comunidad-es",
+      "title": "Respuesta de Primeros Auxilios en la Comunidad: Guía de Bolsillo (OMS)",
+      "type": "pdf",
+      "url": "https://cdn.who.int/media/docs/default-source/documents/gui-a-de-bolsillo-cfar.pdf?sfvrsn=1112bd0a_1",
+      "expected_size_bytes": 2952499,
+      "license": "CC-BY-NC-SA-3.0-IGO"
+    },
+    {
+      "id": "cruz-roja-nos-preparamos-es",
+      "title": "Cruz Roja: Ante una Emergencia, ¿Nos Preparamos?",
+      "type": "pdf",
+      "url": "https://www2.cruzroja.es/documents/5640665/3292747578/Tips%2Bpreparaci%C3%B3n%2B%2B%2Bcheklist%2Bmochila.pdf/1473cff5-9bdf-ea02-d487-c802c96f2286?t=1750845270868",
+      "expected_size_bytes": 572130,
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "id": "cruz-roja-primeros-auxilios-es",
+      "title": "Cruz Roja: Súmate a Practicar los Primeros Auxilios",
+      "type": "pdf",
+      "url": "https://www.cruzroja.es/prevencion/descargas/hogar/Folletoaccidentes2015_Castellano.pdf",
+      "expected_size_bytes": 2747786,
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "id": "ifrc-tratamiento-agua-es",
+      "title": "IFRC: Tratamiento y Almacenamiento Doméstico de Agua en Emergencias",
+      "type": "pdf",
+      "url": "https://wash.ifrc.org/wp-content/uploads/2025/06/ifrc-hwts-manual-spanish.pdf",
+      "expected_size_bytes": 3768167,
+      "license": "CC-BY-NC-SA-4.0"
+    },
+    {
+      "id": "fema-effak-es",
+      "title": "FEMA Kit de Primeros Auxilios Financieros de Emergencia (EFFAK)",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2020-05/effak_spanish.pdf",
+      "expected_size_bytes": 2014834,
+      "license": "public-domain-us"
     }
   ]
 }

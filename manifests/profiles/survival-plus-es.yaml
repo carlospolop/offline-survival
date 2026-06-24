@@ -12,6 +12,7 @@ sources:
   - wikipedia-es-medicine-zim
   - ifixit-es-zim
   - wikivoyage-es-zim
+  - fema-effak-es
 models:
   recommended:
     - qwen3-8b

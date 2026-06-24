@@ -16,6 +16,8 @@ sources:
   - wikivoyage-zim
   - gardening-stackexchange-zim
   - cooking-stackexchange-zim
+  - ifrc-first-aid-guidelines-2025
+  - cert-hazard-annexes
 models:
   recommended:
     - qwen3-8b

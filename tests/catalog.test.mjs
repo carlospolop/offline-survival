@@ -47,8 +47,8 @@ describe("catalog", () => {
     expect(byLanguage("en")).toHaveLength(5);
     expect(byLanguage("es")).toHaveLength(5);
     expect(byLanguage("both")).toHaveLength(5);
-    expect(catalog.sources.filter((source) => source.language === "en")).toHaveLength(34);
-    expect(catalog.sources.filter((source) => source.language === "es")).toHaveLength(18);
+    expect(catalog.sources.filter((source) => source.language === "en")).toHaveLength(42);
+    expect(catalog.sources.filter((source) => source.language === "es")).toHaveLength(29);
     expect(catalog.sources.filter((source) => !source.language)).toHaveLength(0);
   });
 

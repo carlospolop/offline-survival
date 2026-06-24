@@ -11,6 +11,10 @@ sources:
   - simplewiki-zim
   - who-basic-emergency-care
   - wikem-zim
+  - family-emergency-communication-plan
+  - fema-effak
+  - ready-caregivers-preparedness-guide
+  - ifrc-household-water-treatment
 models:
   optional:
     - nomic-embed-text

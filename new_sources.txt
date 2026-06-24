@@ -1,0 +1,258 @@
+
+Offline Survival Repository Research
+Executive summary
+The repository currently defines 52 sources in a single centralized manifest, manifests/sources/catalog.yaml: 34 English sources and 18 Spanish sources. The app profiles are defined separately in manifests/profiles/*.yaml, with five English profiles, five Spanish profiles, and five bilingual composite profiles. English coverage is substantially broader in overall count and in “rebuild civilization” topics; Spanish coverage is narrower but already includes some strong official preparedness material in the smallest profile, such as WHO Basic Emergency Care (Spanish), WHO quick cards, FEMA CERT in Spanish, and a CDC emergency-kit resource. 
+
+The repository is strongest today in these areas: offline encyclopedic knowledge, repair and rebuilding, basic emergency medicine, and practical reference collections. It is weaker in authoritative household emergency preparedness and civil-protection guidance, especially in English. The most noticeable gap is that the English “survival-essential” tier does not currently include FEMA/Ready.gov or Red Cross first-line household preparedness documents, while the Spanish “survival-essential-es” tier already includes official emergency-preparedness items. 
+
+My highest-confidence recommendation is to add a small set of low-size, high-authority PDFs to the essential profiles in each language: FEMA/Ready family-planning and preparedness PDFs, IFRC first-aid guidance, IFRC household water treatment guidance, Spain’s official family emergency plan, and Spain’s 2024 citizen guides for self-protection, floods, wildfires, earthquakes, and adverse weather. These additions are directly relevant to the project’s use case, are authoritative, and fit the repository’s offline-first design. 
+
+During validation, I also captured first-page screenshot evidence for several of the recommended PDFs, including the IFRC 2025 first-aid guidelines, Spain’s family emergency plan worksheet, and WHO’s Spanish community first-aid pocket guide. 
+
+Repository structure and profile architecture
+All source definitions are centralized in manifests/sources/catalog.yaml. The repository tree also contains manifests/profiles/, which defines profile composition and intended use. The profile files visible in the repo include survival-essential*, survival-plus*, civilization-core*, civilization-rebuild*, and civilization-max*, with English, Spanish, and bilingual variants. 
+
+The profile logic is hierarchical. English profiles build upward from survival-essential to survival-plus, then civilization-core, civilization-rebuild, and civilization-max; Spanish follows the same ladder; bilingual profiles are composites that include the English and Spanish profiles at the same tier. That means a source explicitly attached to survival-essential is effectively inherited by all larger English profiles and by the bilingual profiles that include them. 
+
+survival-essential
+
+survival-plus
+
+civilization-core
+
+civilization-rebuild
+
+civilization-max
+
+survival-essential-es
+
+survival-plus-es
+
+civilization-core-es
+
+civilization-rebuild-es
+
+civilization-max-es
+
+survival-essential-bilingual
+
+survival-plus-bilingual
+
+civilization-core-bilingual
+
+civilization-rebuild-bilingual
+
+civilization-max-bilingual
+
+
+
+Show code
+App profiles and intended use
+The table below normalizes the profile YAML descriptions from manifests/profiles/*.yaml. English, Spanish, and bilingual variants are separate app profiles. 
+
+Profile ID	Repo file	Intended use
+survival-essential	manifests/profiles/survival-essential.yaml	Small offline survival stack for low-capacity devices; focuses on survival basics, simple reference, WHO emergency care, and emergency medicine.
+survival-essential-es	manifests/profiles/survival-essential-es.yaml	Small Spanish emergency-preparedness stack with WHO BEC Spanish, WHO quick cards, FEMA CERT Spanish, CDC kit guidance, and Vikidia ES.
+survival-essential-bilingual	manifests/profiles/survival-essential-bilingual.yaml	Combines the English and Spanish essential stacks for bilingual households or communities.
+survival-plus	manifests/profiles/survival-plus.yaml	Laptop-class, broader practical profile; adds repair, medicine, agriculture, travel, biology, and practical Q&A.
+survival-plus-es	manifests/profiles/survival-plus-es.yaml	Spanish broadened survival/repair profile; adds Spanish Wikipedia topical packs, iFixit ES, and Wikivoyage ES.
+survival-plus-bilingual	manifests/profiles/survival-plus-bilingual.yaml	Bilingual practical survival profile combining the English and Spanish “plus” layers.
+civilization-core	manifests/profiles/civilization-core.yaml	Community knowledge station for practical reconstruction: Wikibooks/Wiktionary, CDC public health, Appropedia, OSE, maker/repair/engineering stacks, and OSM.
+civilization-core-es	manifests/profiles/civilization-core-es.yaml	Spanish community knowledge station emphasizing education and language reference on top of the Spanish survival base.
+civilization-core-bilingual	manifests/profiles/civilization-core-bilingual.yaml	Bilingual reconstruction/repair/education/public-health station.
+civilization-rebuild	manifests/profiles/civilization-rebuild.yaml	Workstation-scale archive for deeper education, science, engineering, medicine, agriculture, and cultural continuity.
+civilization-rebuild-es	manifests/profiles/civilization-rebuild-es.yaml	Spanish workstation-scale education and continuity archive adding topical Wikipedia packs, Wikisource ES, and Project Gutenberg ES.
+civilization-rebuild-bilingual	manifests/profiles/civilization-rebuild-bilingual.yaml	Bilingual deep archive with English STEM depth and Spanish topical/reference/literary coverage.
+civilization-max	manifests/profiles/civilization-max.yaml	Large-drive preservation profile with broad image-rich Wikipedia and larger Gutenberg coverage.
+civilization-max-es	manifests/profiles/civilization-max-es.yaml	Large Spanish reference archive adding full Spanish Wikipedia without images.
+civilization-max-bilingual	manifests/profiles/civilization-max-bilingual.yaml	Largest bilingual preservation profile for very large archive drives.
+
+Current English and Spanish sources
+All source definitions below come from one file: manifests/sources/catalog.yaml. The profile references shown are the direct profile references recorded in the catalog; bilingual inheritance is produced by the profile include graph shown above. 
+
+Current English sources
+Source ID	Title	Category	Direct profile refs
+3dprinting-stackexchange-zim	3D Printing Stack Exchange ZIM	reconstruction	civilization-core, civilization-rebuild, civilization-max
+appropedia-snapshot	Appropedia Snapshot	reconstruction	civilization-core, civilization-rebuild, civilization-max
+arduino-stackexchange-zim	Arduino Stack Exchange ZIM	repair	civilization-core, civilization-rebuild, civilization-max
+bicycles-stackexchange-zim	Bicycles Stack Exchange ZIM	repair	civilization-core, civilization-rebuild, civilization-max
+cdc-public-health-pack	CDC Public Health Pack	medicine	civilization-core, civilization-rebuild, civilization-max
+cooking-stackexchange-zim	Cooking Stack Exchange ZIM	food-systems	survival-plus, civilization-core, civilization-rebuild, civilization-max
+diy-stackexchange-zim	DIY Stack Exchange ZIM	repair	civilization-core, civilization-rebuild, civilization-max
+electronics-stackexchange-zim	Electronics Stack Exchange ZIM	repair	civilization-core, civilization-rebuild, civilization-max
+energypedia-zim	Energypedia English No Images ZIM	reconstruction	civilization-core, civilization-rebuild, civilization-max
+engineering-stackexchange-zim	Engineering Stack Exchange ZIM	reconstruction	civilization-core, civilization-rebuild, civilization-max
+fao-small-agriculture-pack	FAO Agriculture Starter Pack	food-systems	survival-plus, civilization-core, civilization-rebuild, civilization-max
+gardening-stackexchange-zim	Gardening Stack Exchange ZIM	food-systems	survival-plus, civilization-core, civilization-rebuild, civilization-max
+ifixit-zim	iFixit ZIM	repair	survival-plus, civilization-core, civilization-rebuild, civilization-max
+libretexts-chemistry	LibreTexts Chemistry ZIM	science-education	civilization-rebuild, civilization-max
+libretexts-core-science	LibreTexts Math ZIM	science-education	civilization-rebuild, civilization-max
+libretexts-physics	LibreTexts Physics ZIM	science-education	civilization-rebuild, civilization-max
+open-source-ecology	Open Source Ecology	reconstruction	civilization-core, civilization-rebuild, civilization-max
+openstax-biology-2e	LibreTexts Biology ZIM	science-education	survival-plus, civilization-core, civilization-rebuild, civilization-max
+openstreetmap-wiki-zim	OpenStreetMap Wiki No Images ZIM	geography	civilization-core, civilization-rebuild, civilization-max
+project-gutenberg-large	Project Gutenberg English Literature ZIM	science-education	civilization-max
+project-gutenberg-small	Project Gutenberg Technology ZIM	science-education	civilization-rebuild, civilization-max
+simplewiki-zim	Simple English Wikipedia ZIM	science-education	survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max
+survivalmanual-ebook	SurvivalManual ebook	survival	survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max
+survivalmanual-wiki	SurvivalManual Wiki	survival	survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max
+who-basic-emergency-care	WHO Basic Emergency Care	medicine	survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max
+wikem-zim	WikEM Emergency Medicine ZIM	medicine	survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max
+wikibooks-zim	Wikibooks English ZIM	science-education	civilization-core, civilization-rebuild, civilization-max
+wikipedia-medicine-zim	Wikipedia Medicine ZIM	medicine	survival-plus, civilization-core, civilization-rebuild, civilization-max
+wikipedia-top1m-maxi	Wikipedia Top 1M With Images	science-education	civilization-max
+wikipedia-top1m-zim	Wikipedia Top 1M No Images	science-education	survival-plus, civilization-core, civilization-rebuild, civilization-max
+wikisource-zim	Wikisource English ZIM	science-education	civilization-rebuild, civilization-max
+wikivoyage-zim	Wikivoyage English No Images ZIM	geography	survival-plus, civilization-core, civilization-rebuild, civilization-max
+wiktionary-zim	Wiktionary English ZIM	science-education	civilization-core, civilization-rebuild, civilization-max
+woodworking-stackexchange-zim	Woodworking Stack Exchange ZIM	repair	civilization-core, civilization-rebuild, civilization-max
+
+Current Spanish sources
+Source ID	Title	Category	Direct profile refs
+cdc-build-emergency-kit-es	CDC Build Emergency Kit Spanish	survival	survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+cert-basic-training-es	CERT Basic Training Spanish	survival	survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+ifixit-es-zim	iFixit Spanish ZIM	repair	survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+project-gutenberg-es-zim	Project Gutenberg Spanish ZIM	science-education	civilization-rebuild-es, civilization-max-es
+vikidia-es-zim	Vikidia Spanish No Images ZIM	science-education	survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+who-basic-emergency-care-es	WHO Basic Emergency Care Spanish Flyer	medicine	survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+who-bec-quick-cards-es	WHO BEC Quick Cards Spanish	medicine	survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+wikibooks-es-zim	Wikibooks Spanish No Images ZIM	science-education	civilization-core-es, civilization-rebuild-es, civilization-max-es
+wikipedia-es-all-nopic-zim	Wikipedia Spanish All No Images ZIM	science-education	civilization-max-es
+wikipedia-es-computer-zim	Wikipedia Spanish Computing No Images ZIM	science-education	civilization-rebuild-es, civilization-max-es
+wikipedia-es-history-zim	Wikipedia Spanish History No Images ZIM	science-education	civilization-rebuild-es, civilization-max-es
+wikipedia-es-mathematics-zim	Wikipedia Spanish Mathematics No Images ZIM	science-education	civilization-rebuild-es, civilization-max-es
+wikipedia-es-medicine-zim	Wikipedia Spanish Medicine No Images ZIM	medicine	survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+wikipedia-es-physics-zim	Wikipedia Spanish Physics No Images ZIM	science-education	civilization-rebuild-es, civilization-max-es
+wikipedia-es-top-zim	Wikipedia Spanish Top No Images ZIM	science-education	survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+wikisource-es-zim	Wikisource Spanish No Images ZIM	science-education	civilization-rebuild-es, civilization-max-es
+wikivoyage-es-zim	Wikivoyage Spanish No Images ZIM	geography	survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es
+wiktionary-es-zim	Wiktionary Spanish No Images ZIM	science-education	civilization-core-es, civilization-rebuild-es, civilization-max-es
+
+Analytical reading of the current source mix
+The current profile design is coherent: essential focuses on lightweight survival and medicine; plus adds practical repair/agriculture depth; core adds reconstruction and community reference; rebuild adds broader science, literature, and education; max expands preservation breadth. 
+
+What is missing is not structure, but authoritative preparedness content density. In English, official household-preparedness and civil-defense documents are comparatively thin in the current manifests. In Spanish, the smallest profile already includes more official preparedness material than English, but it still lacks Spain-specific civil-protection guides that are directly on-point for offline resilience. 
+
+Missing authoritative sources and recommended additions
+I excluded otherwise interesting resources when I could not confirm a stable, directly downloadable URL during this session. The suggestions below are therefore limited to working direct-download files I could validate from the publisher domain or a direct PDF result. Where useful, I also indicate the most appropriate target profile tier. 
+
+Recommended English additions
+Priority	Suggested source	Authority	Exact downloadable URL	Add to profile(s)	Why it adds value	Tested evidence
+Highest	Family Emergency Communication Plan	Ready.gov / FEMA	https://www.ready.gov/sites/default/files/2025-06/family-communication-plan_fillable-card.pdf	survival-essential and all supersets	A compact, printable, low-friction household communication plan. This is one of the clearest “must-have offline” forms for sudden disruption, evacuation, and family reunification. 
+Direct PDF result resolved live. 
+Highest	Emergency Financial First Aid Kit	FEMA	https://www.fema.gov/media-library-data/1441313659995-38b0760a58131b871d494ddacbf52b6e/EFFAK_2015_508_enabled.pdf	survival-essential and all supersets	The current repo has practical survival content but no strong English offline package for records, insurance, identity, and financial recovery. EFFAK fills that gap. 
+Direct PDF result resolved live. 
+Highest	Disaster Preparedness Guide for Caregivers	Ready.gov / FEMA	https://www.ready.gov/sites/default/files/2024-02/ready-gov_caregivers-preparedness-guide.pdf	survival-essential and all supersets	Adds preparedness for medically dependent, elderly, or disabled household members, which is currently underrepresented in the English essential stack. 
+Direct PDF result resolved live. 
+Highest	International First Aid, Resuscitation and Education Guidelines 2025	IFRC	https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid%2C%20Resuscitation%20and%20Education%20Guidelines%202025.pdf	survival-plus; optionally survival-essential if size is acceptable	This is the strongest missing first-aid authority in the repo: current English medicine relies on WHO BEC, WikEM, and Wikipedia Medicine, but not a modern Red Cross evidence benchmark. 
+Direct PDF result resolved live; first-page screenshot captured. 
+High	Household Water Treatment and Safe Storage in Emergencies	IFRC WASH	https://wash.ifrc.org/wp-content/uploads/2025/06/ifrc-hwts-manual-english.pdf	survival-essential and all supersets	Water safety is a core offline-survival domain, and this gives practical Red Cross guidance for household-level emergency water treatment and storage. 
+Direct PDF result resolved live. 
+High	CERT Hazard Annexes Participant Manual	Ready.gov / FEMA	https://www.ready.gov/sites/default/files/2019.CERT_.HazardAnnexes.PM_.FINAL_.508c.pdf	survival-plus; optionally survival-essential	The repo already includes FEMA CERT in Spanish but not a parallel English CERT document. This annex set adds hazard-specific operational preparedness. 
+Direct PDF search result resolved live. 
+Medium	NHS Emergency Preparedness, Resilience and Response Framework	NHS England	https://www.england.nhs.uk/wp-content/uploads/2022/07/B0900-NHS-Emergency-Preparedness-Resilience-and-Response-Framework-version-3.pdf	civilization-core and above	Not a household manual, but a strong official framework for health-system preparedness, useful for community/clinic/nodal archive deployments. 
+Direct PDF result resolved live. 
+Medium	Prehospital trauma care systems	WHO	https://iris.who.int/bitstreams/ea9f1bd6-3eb8-4726-a3c5-d8d4d1bcb83a/download	civilization-core and above	More systems-oriented than household-oriented, but valuable for community first-response capability and organized emergency-care thinking. 
+Direct PDF result resolved live. 
+
+Recommended Spanish additions
+Priority	Suggested source	Authority	Exact downloadable URL	Add to profile(s)	Why it adds value	Tested evidence
+Highest	Plan Familiar de Emergencias	Dirección General de Protección Civil y Emergencias	https://ficheros.proteccioncivil.es/unidadesFormativas/Plan_Familiar_Emergencias_Creacion_propia_UnidadPsicologiaDGPCYE.pdf	survival-essential-es and all supersets	This is the single most directly relevant Spain-specific household preparedness addition: printable family planning, contacts, medical data, and 72-hour-kit logic. 
+Direct PDF result resolved live; first-page screenshot captured. 
+Highest	Guía de información al ciudadano sobre Autoprotección	Ministerio del Interior / Protección Civil	https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_autoproteccion_126230971.pdf	survival-essential-es and all supersets	Official Spain-wide citizen self-protection guide. This is exactly aligned to the repository’s offline-survival mission and more authoritative than generic web pages. 
+Direct PDF result resolved live. 
+Highest	Guía de información al ciudadano ante el riesgo de inundaciones	Ministerio del Interior / Protección Civil	https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf	survival-essential-es and all supersets	Floods are one of Spain’s highest-practicality civil-protection risks. Current repo lacks a Spain official flood guide. 
+Direct PDF result resolved live. 
+Highest	Guía de información al ciudadano ante el riesgo de incendios forestales	Ministerio del Interior / Protección Civil	https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_incendios_forestales_126230859.pdf	survival-essential-es and all supersets	Essential for Iberian context and summer fire risk; highly relevant to rural/off-grid/offline preparedness. 
+Direct PDF result resolved live. 
+Highest	Guía de información al ciudadano ante el riesgo sísmico	Ministerio del Interior / Protección Civil	https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_sismico_126230919.pdf	survival-essential-es and all supersets	Adds official, localized guidance for earthquakes, which is missing today in the Spanish stack. 
+Direct PDF result resolved live. 
+High	Guía de información al ciudadano ante fenómenos meteorológicos adversos	Ministerio del Interior / Protección Civil	https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_fenomenos-meteorologicos_adversos_126230950.pdf	survival-essential-es and all supersets	Strong official umbrella guide for storms, heat, snow, severe weather, and warning interpretation. 
+Direct PDF result resolved live. 
+High	Respuesta de primeros auxilios en la comunidad: guía de bolsillo	WHO	https://cdn.who.int/media/docs/default-source/documents/gui-a-de-bolsillo-cfar.pdf?sfvrsn=1112bd0a_1	survival-essential-es and all supersets	The current Spanish essential stack includes a flyer and quick cards, but this adds a more substantial WHO first-aid pocket guide. 
+Direct PDF result resolved live; first-page screenshot captured. 
+High	Ante una emergencia, ¿Nos preparamos?	Cruz Roja Española	https://www2.cruzroja.es/documents/5640665/3292747578/Tips%2Bpreparaci%C3%B3n%2B%2B%2Bcheklist%2Bmochila.pdf/1473cff5-9bdf-ea02-d487-c802c96f2286?t=1750845270868	survival-essential-es and all supersets	A concise, highly practical Red Cross checklist for emergency kit, roles, contacts, and household preparation. 
+Direct PDF result resolved live. 
+High	Sumate a practicar los primeros auxilios	Cruz Roja Española	https://www.cruzroja.es/prevencion/descargas/hogar/Folletoaccidentes2015_Castellano.pdf	survival-essential-es and all supersets	Strong complement to WHO BEC quick cards: more household-oriented first-aid basics in Spanish, from a top NGO. 
+Direct PDF result resolved live. 
+Medium	Sistemas domésticos de tratamiento y almacenamiento de agua en emergencias	IFRC WASH	https://wash.ifrc.org/wp-content/uploads/2025/06/ifrc-hwts-manual-spanish.pdf	survival-essential-es and all supersets	Adds practical household water-treatment guidance in Spanish, a key resilience gap. 
+Direct PDF result resolved live. 
+Medium	Kit de Primeros Auxilios Financieros de Emergencia	Ready.gov / FEMA	https://www.ready.gov/sites/default/files/2020-05/effak_spanish.pdf	survival-plus-es and above	Useful Spanish-language financial-preparedness complement to the current emergency-kit and CERT materials. 
+Direct PDF result resolved live. 
+
+Comparative analysis and prioritization
+The most important comparison is not “current versus suggested” in the abstract, but what kind of authority and function each tier currently provides versus what the recommended additions would provide.
+
+Current versus suggested by language and topic
+Language	Topic	Current repo coverage	Suggested additions	Analytical conclusion
+English	Household preparedness	Derived SurvivalManual, SimpleWiki, WHO BEC, WikEM; no strong FEMA/Ready essential-document set in the current essential tier. 
+FEMA family communication plan, EFFAK, caregiver preparedness guide, CERT hazard annexes. 
+This is the biggest English gap and the highest-value fix.
+English	First aid	WHO BEC + WikEM + Wikipedia Medicine. 
+IFRC 2025 first-aid guidelines; optionally WHO trauma-system references for higher tiers. 
+Add IFRC first; it is the clearest authoritative upgrade.
+English	Water / sanitation	No direct household emergency water-treatment manual is obvious in current essential/plus coverage. 
+IFRC household water treatment manual. 
+High relevance, low size, very strong fit.
+English	Civil defense / system planning	CDC public-health pack appears only at civilization-core and above. 
+NHS EPRR framework, WHO prehospital trauma systems. 
+Good core-tier additions, but not as urgent as household docs.
+Spanish	Household preparedness	WHO BEC ES flyer + quick cards, FEMA CERT ES, CDC kit ES, Vikidia ES. 
+Spain official family emergency plan, self-protection guide, flood/wildfire/earthquake/weather guides, Cruz Roja emergency checklist. 
+Spanish already has a good base, but it lacks the most authoritative Spain-native civil-protection documents.
+Spanish	First aid	WHO BEC ES quick cards and flyer; Spanish Wikipedia Medicine in higher tiers. 
+WHO community first-aid pocket guide; Cruz Roja first-aid booklet. 
+These are the most useful Spanish medical additions.
+Spanish	Water / sanitation	No direct Red Cross/IFRC household-water manual in current Spanish manifests. 
+IFRC Spanish household water treatment manual. 
+Strong practical addition with excellent fit.
+
+Prioritized recommendation tiers
+Tier A — add immediately
+
+These are the best additions on the combined axes of relevance, reliability, and profile fit.
+
+Language	Source	Recommended target
+English	Family Emergency Communication Plan	survival-essential
+English	Emergency Financial First Aid Kit	survival-essential
+English	Disaster Preparedness Guide for Caregivers	survival-essential
+English	IFRC International First Aid Guidelines 2025	survival-plus
+English	IFRC Household Water Treatment and Safe Storage in Emergencies	survival-essential
+Spanish	Plan Familiar de Emergencias	survival-essential-es
+Spanish	Guía sobre Autoprotección	survival-essential-es
+Spanish	Guía ante riesgo de inundaciones	survival-essential-es
+Spanish	Guía ante incendios forestales	survival-essential-es
+Spanish	Guía ante riesgo sísmico	survival-essential-es
+Spanish	WHO community first-aid pocket guide	survival-essential-es
+Spanish	Cruz Roja “¿Nos preparamos?” checklist	survival-essential-es
+
+Tier B — add next
+
+These are still excellent, but slightly more specialized or less foundational.
+
+Language	Source	Recommended target
+English	CERT Hazard Annexes Participant Manual	survival-plus
+English	NHS EPRR Framework	civilization-core
+English	WHO Prehospital Trauma Care Systems	civilization-core
+Spanish	Guía ante fenómenos meteorológicos adversos	survival-essential-es
+Spanish	Cruz Roja primeros auxilios booklet	survival-essential-es
+Spanish	IFRC household water treatment manual Spanish	survival-essential-es
+Spanish	FEMA EFFAK Spanish	survival-plus-es
+
+Suggested implementation logic
+For the repository’s current profile philosophy, the cleanest strategy is:
+
+Put compact, household-critical PDFs in survival-essential / survival-essential-es.
+Put deeper first-aid manuals and extended hazard annexes in survival-plus / survival-plus-es.
+Put system, framework, and organized emergency-care references in civilization-core and above.
+That preserves the size discipline of the profile ladder while significantly improving authority and preparedness coverage. The existing YAML descriptions already support this progression model. 
+
+Open questions and limitations
+A few details remain worth noting.
+
+The repository does not maintain separate manifest files for English and Spanish sources; instead, both languages live in the same centralized source catalog and are differentiated by the language field and by profile references. That is clear in the current tree and catalog layout. 
+
+For source-to-profile mapping, I treated bilingual profiles as effective inheritances rather than direct source references, because the bilingual YAMLs are composites that include the same-tier English and Spanish profiles rather than listing sources independently. That interpretation follows the profile include graph in the profile YAMLs. 
+
+I also excluded some otherwise appealing documents because I could not confirm a stable, direct-download URL in-session without ambiguity. In other words, the recommendation set above is deliberately conservative: it favors validated file URLs over broader but less certain coverage.
+

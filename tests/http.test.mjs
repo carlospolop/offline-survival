@@ -257,7 +257,7 @@ describe("HTTP API", () => {
     expect(cleaned.status).toBe("cleaned");
 
     const state = await (await fetch(`http://127.0.0.1:${port}/api/state`)).json();
-    expect(state.sources).toHaveLength(52);
+    expect(state.sources).toHaveLength(71);
     expect(state.sources.some((source) => source.id === imported.imported[0].id)).toBe(false);
     expect(state.sources.every((source) => !source.local_path && source.status === "missing")).toBe(true);
     expect(state.downloads).toHaveLength(0);

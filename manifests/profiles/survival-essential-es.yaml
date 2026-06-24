@@ -11,6 +11,16 @@ sources:
   - who-bec-quick-cards-es
   - cert-basic-training-es
   - cdc-build-emergency-kit-es
+  - plan-familiar-emergencias-es
+  - guia-autoproteccion-es
+  - guia-inundaciones-es
+  - guia-incendios-forestales-es
+  - guia-riesgo-sismico-es
+  - guia-meteorologia-adversa-es
+  - who-primeros-auxilios-comunidad-es
+  - cruz-roja-nos-preparamos-es
+  - cruz-roja-primeros-auxilios-es
+  - ifrc-tratamiento-agua-es
 models:
   optional:
     - bge-m3

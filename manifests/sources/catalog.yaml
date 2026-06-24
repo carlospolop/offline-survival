@@ -1079,6 +1079,389 @@ sources:
       action: kiwix_serve
       label: Start the local Kiwix server and open the ZIM library in a browser.
     profiles: [ civilization-max-es ]
+  # --- Authoritative emergency-preparedness additions (see new_sources.txt) ---
+  # English household-preparedness and first-aid documents.
+  - id: family-emergency-communication-plan
+    title: FEMA Family Emergency Communication Plan
+    description: Printable household communication plan with contacts, meeting
+      places, and reunification details for evacuations and disruptions.
+    type: pdf
+    category: survival
+    tags: [ preparedness, household, emergency-plan ]
+    license: public-domain-us
+    attribution: U.S. Federal Emergency Management Agency / Ready.gov.
+    url: https://www.ready.gov/sites/default/files/2025-06/family-communication-plan_fillable-card.pdf
+    source_url: https://www.ready.gov/plan
+    expected_size_bytes: 640035
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: fema-effak
+    title: FEMA Emergency Financial First Aid Kit (EFFAK)
+    description: Toolkit and checklists for organizing financial, insurance,
+      identity, and household records before and after a disaster.
+    type: pdf
+    category: survival
+    tags: [ preparedness, household, financial, records ]
+    license: public-domain-us
+    attribution: U.S. Federal Emergency Management Agency / Ready.gov.
+    url: https://www.ready.gov/sites/default/files/2020-03/ready_emergency-financial-first-aid-toolkit.pdf
+    source_url: https://www.ready.gov/financial-preparedness
+    expected_size_bytes: 1699398
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: ready-caregivers-preparedness-guide
+    title: Ready.gov Disaster Preparedness Guide for Caregivers
+    description: Preparedness guidance for caring for elderly, disabled, or
+      medically dependent household members during emergencies.
+    type: pdf
+    category: survival
+    tags: [ preparedness, household, caregivers, accessibility ]
+    license: public-domain-us
+    attribution: U.S. Federal Emergency Management Agency / Ready.gov.
+    url: https://www.ready.gov/sites/default/files/2024-02/ready-gov_caregivers-preparedness-guide.pdf
+    source_url: https://www.ready.gov/
+    expected_size_bytes: 2495103
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: ifrc-household-water-treatment
+    title: IFRC Household Water Treatment and Safe Storage in Emergencies
+    description: Red Cross/Red Crescent practical guidance on treating and storing
+      drinking water safely at the household level during emergencies.
+    type: pdf
+    category: survival
+    tags: [ water, sanitation, preparedness, household ]
+    license: CC-BY-NC-SA-4.0
+    attribution: International Federation of Red Cross and Red Crescent Societies (IFRC WASH).
+    url: https://wash.ifrc.org/wp-content/uploads/2025/06/ifrc-hwts-manual-english.pdf
+    source_url: https://wash.ifrc.org/
+    expected_size_bytes: 2329299
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential, survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: ifrc-first-aid-guidelines-2025
+    title: IFRC International First Aid, Resuscitation and Education Guidelines 2025
+    description: Modern evidence-based first-aid and resuscitation guidelines from
+      the International Federation of Red Cross and Red Crescent Societies.
+    type: pdf
+    category: medicine
+    tags: [ first-aid, medicine/emergency-care, resuscitation ]
+    license: CC-BY-NC-SA-4.0
+    attribution: International Federation of Red Cross and Red Crescent Societies (IFRC).
+    url: https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid%2C%20Resuscitation%20and%20Education%20Guidelines%202025.pdf
+    source_url: https://www.ifrc.org/our-work/health-and-care/first-aid
+    expected_size_bytes: 6261070
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: cert-hazard-annexes
+    title: FEMA CERT Hazard Annexes Participant Manual
+    description: Hazard-specific Community Emergency Response Team training annexes
+      covering operational preparedness for a range of disasters.
+    type: pdf
+    category: survival
+    tags: [ preparedness, cert, disaster-response, training ]
+    license: public-domain-us
+    attribution: U.S. Federal Emergency Management Agency / Ready.gov.
+    url: https://www.ready.gov/sites/default/files/2019.CERT_.HazardAnnexes.PM_.FINAL_.508c.pdf
+    source_url: https://www.ready.gov/cert
+    expected_size_bytes: 2951425
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-plus, civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: nhs-eprr-framework
+    title: NHS Emergency Preparedness, Resilience and Response Framework
+    description: Official NHS England framework for health-system emergency
+      preparedness, resilience, and response; useful for community/clinic nodes.
+    type: pdf
+    category: medicine
+    tags: [ preparedness, public-health, system-planning ]
+    license: OGL-3.0
+    attribution: NHS England (UK Open Government Licence v3.0).
+    url: https://www.england.nhs.uk/wp-content/uploads/2022/07/B0900-NHS-Emergency-Preparedness-Resilience-and-Response-Framework-version-3.pdf
+    source_url: https://www.england.nhs.uk/ourwork/eprr/
+    expected_size_bytes: 744863
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  - id: who-prehospital-trauma-care
+    title: WHO Prehospital Trauma Care Systems
+    description: WHO guidance on organizing prehospital trauma care systems,
+      capacity, data, transport, and communication for community first response.
+    type: pdf
+    category: medicine
+    tags: [ medicine/emergency-care, trauma, system-planning ]
+    license: CC-BY-NC-SA-3.0-IGO
+    attribution: World Health Organization.
+    url: https://iris.who.int/server/api/core/bitstreams/ea9f1bd6-3eb8-4726-a3c5-d8d4d1bcb83a/content
+    source_url: https://iris.who.int/handle/10665/43167
+    expected_size_bytes: 546902
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ civilization-core, civilization-rebuild, civilization-max ]
+    language: en
+  # Spanish household-preparedness and civil-protection documents.
+  - id: plan-familiar-emergencias-es
+    title: Plan Familiar de Emergencias (Protección Civil)
+    description: Plantilla oficial española para planificación familiar de
+      emergencias, contactos, datos médicos y kit de 72 horas.
+    type: pdf
+    category: survival
+    tags: [ preparacion, hogar, plan-emergencia, espana ]
+    license: spanish-gov
+    attribution: Dirección General de Protección Civil y Emergencias (España).
+    url: https://ficheros.proteccioncivil.es/unidadesFormativas/Plan_Familiar_Emergencias_Creacion_propia_UnidadPsicologiaDGPCYE.pdf
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 1426315
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: guia-autoproteccion-es
+    title: Guía de Autoprotección Ciudadana (Protección Civil)
+    description: Guía oficial española de información al ciudadano sobre
+      autoprotección ante situaciones de riesgo y emergencia.
+    type: pdf
+    category: survival
+    tags: [ preparacion, autoproteccion, espana ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_autoproteccion_126230971.pdf
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 2600000
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: guia-inundaciones-es
+    title: Guía Ciudadana ante el Riesgo de Inundaciones (Protección Civil)
+    description: Guía oficial española de información al ciudadano sobre cómo
+      prepararse y actuar ante el riesgo de inundaciones.
+    type: pdf
+    category: survival
+    tags: [ preparacion, inundaciones, espana ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 2500000
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: guia-incendios-forestales-es
+    title: Guía Ciudadana ante Incendios Forestales (Protección Civil)
+    description: Guía oficial española de información al ciudadano sobre prevención
+      y actuación ante incendios forestales.
+    type: pdf
+    category: survival
+    tags: [ preparacion, incendios-forestales, espana ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_incendios_forestales_126230859.pdf
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 2500000
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: guia-riesgo-sismico-es
+    title: Guía Ciudadana ante el Riesgo Sísmico (Protección Civil)
+    description: Guía oficial española de información al ciudadano sobre cómo
+      prepararse y actuar ante terremotos.
+    type: pdf
+    category: survival
+    tags: [ preparacion, terremotos, espana ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_sismico_126230919.pdf
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 2500000
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: guia-meteorologia-adversa-es
+    title: Guía Ciudadana ante Fenómenos Meteorológicos Adversos (Protección Civil)
+    description: Guía oficial española de información al ciudadano sobre tormentas,
+      calor, frío, nieve y fenómenos meteorológicos adversos.
+    type: pdf
+    category: survival
+    tags: [ preparacion, meteorologia, espana ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_fenomenos-meteorologicos_adversos_126230950.pdf
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 2500000
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: who-primeros-auxilios-comunidad-es
+    title: 'Respuesta de Primeros Auxilios en la Comunidad: Guía de Bolsillo (OMS)'
+    description: Guía de bolsillo de la OMS sobre primeros auxilios comunitarios
+      para respuesta rápida en entornos con recursos limitados.
+    type: pdf
+    category: medicine
+    tags: [ primeros-auxilios, medicine/emergency-care, comunidad ]
+    license: CC-BY-NC-SA-3.0-IGO
+    attribution: Organización Mundial de la Salud (OMS).
+    url: https://cdn.who.int/media/docs/default-source/documents/gui-a-de-bolsillo-cfar.pdf?sfvrsn=1112bd0a_1
+    source_url: https://www.who.int/
+    expected_size_bytes: 2952499
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: cruz-roja-nos-preparamos-es
+    title: 'Cruz Roja: Ante una Emergencia, ¿Nos Preparamos?'
+    description: Lista práctica de Cruz Roja Española para preparar el kit de
+      emergencia, roles, contactos y la mochila de 72 horas.
+    type: pdf
+    category: survival
+    tags: [ preparacion, hogar, kit-emergencia, espana ]
+    license: CC-BY-NC-SA-4.0
+    attribution: Cruz Roja Española.
+    url: https://www2.cruzroja.es/documents/5640665/3292747578/Tips%2Bpreparaci%C3%B3n%2B%2B%2Bcheklist%2Bmochila.pdf/1473cff5-9bdf-ea02-d487-c802c96f2286?t=1750845270868
+    source_url: https://www.cruzroja.es/
+    expected_size_bytes: 572130
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: cruz-roja-primeros-auxilios-es
+    title: 'Cruz Roja: Súmate a Practicar los Primeros Auxilios'
+    description: Folleto de Cruz Roja Española con nociones básicas de primeros
+      auxilios para el hogar y accidentes cotidianos.
+    type: pdf
+    category: medicine
+    tags: [ primeros-auxilios, hogar, espana ]
+    license: CC-BY-NC-SA-4.0
+    attribution: Cruz Roja Española.
+    url: https://www.cruzroja.es/prevencion/descargas/hogar/Folletoaccidentes2015_Castellano.pdf
+    source_url: https://www.cruzroja.es/
+    expected_size_bytes: 2747786
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: ifrc-tratamiento-agua-es
+    title: 'IFRC: Tratamiento y Almacenamiento Doméstico de Agua en Emergencias'
+    description: Guía de la Cruz Roja/Media Luna Roja sobre tratamiento y
+      almacenamiento seguro de agua a nivel doméstico en emergencias.
+    type: pdf
+    category: survival
+    tags: [ agua, saneamiento, preparacion, hogar ]
+    license: CC-BY-NC-SA-4.0
+    attribution: Federación Internacional de Sociedades de la Cruz Roja y de la Media Luna Roja (IFRC WASH).
+    url: https://wash.ifrc.org/wp-content/uploads/2025/06/ifrc-hwts-manual-spanish.pdf
+    source_url: https://wash.ifrc.org/
+    expected_size_bytes: 3768167
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-essential-es, survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
+  - id: fema-effak-es
+    title: FEMA Kit de Primeros Auxilios Financieros de Emergencia (EFFAK)
+    description: Versión en español del kit FEMA para organizar documentos
+      financieros, de seguros e identidad ante una emergencia.
+    type: pdf
+    category: survival
+    tags: [ preparacion, financiero, documentos, espana ]
+    license: public-domain-us
+    attribution: U.S. Federal Emergency Management Agency / Ready.gov.
+    url: https://www.ready.gov/sites/default/files/2020-05/effak_spanish.pdf
+    source_url: https://www.ready.gov/financial-preparedness
+    expected_size_bytes: 2014834
+    sha256: null
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles:
+      [ survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
+    language: es
 models:
   - id: qwen2_5-1_5b
     title: Qwen2.5 1.5B
