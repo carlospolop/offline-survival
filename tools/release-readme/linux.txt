@@ -11,8 +11,13 @@ many distro versions.
 
 Debian / Ubuntu / Mint / Pop!_OS
   Double-click the .deb to open your software installer, or run:
-      sudo apt install ./Offline*Survival*.deb
+      sudo dpkg -i ./Offline*Survival*.deb
   Then launch "Offline Survival" from your applications menu.
+
+  Note: "sudo apt install ./Offline*Survival*.deb" also works, but when the
+  file is in your home/Downloads folder apt prints a confusing (harmless)
+  message — "Download is performed unsandboxed as root ... Permission denied".
+  The package still installs. "dpkg -i" avoids that message entirely.
 
 Fedora / RHEL / openSUSE
   Double-click the .rpm, or run:
