@@ -88,7 +88,7 @@ The standard HTTP downloader remains the default. Explicit disk budgets also use
 the standard downloader. Aria2 uses sparse partial files and its adjacent `.aria2`
 control files for segmented resume; retain both when interrupting these transfers.
 
-Review validation results: 90 automated tests passed; the frontend build, Cargo
+Review validation results: 91 automated tests passed; the frontend build, Cargo
 check, `.deb` build, real installation, and package window/render verification
 passed. The package verifier recorded a rendered window with 3,713 distinct
 colors. Browser navigation through Dashboard, Downloads, Search, Extra Knowledge,
@@ -122,3 +122,10 @@ late book chunk and keeping citations aligned when context is bounded.
 
 `SCA_DOWNLOAD_CONNECTIONS` optionally sets 1–32 aria2 segments per archive
 (default 8), with a maximum of 16 connections to each mirror.
+
+
+Accelerated transfers now wait for their downloader process to close when paused
+or shut down, and force termination after two seconds if it ignores SIGTERM.
+This prevents orphaned writers from competing with a resumed transfer. A regression
+test uses a downloader that ignores SIGTERM and verifies that its process is gone
+before pause completes. Late progress callbacks cannot overwrite completed rows.

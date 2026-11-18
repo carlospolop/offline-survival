@@ -3,7 +3,7 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { Readable } from "node:stream";
 import { promisify } from "node:util";
@@ -168,11 +168,11 @@ async function transferWithAria2({ db, source, tmpPath, signal }) {
   const updateProgress = async () => {
     const size = await fsp.stat(tmpPath).then((stat) => Math.min(stat.size, stat.blocks * 512)).catch(() => 0);
     if (signal.aborted) return;
-    db.prepare("UPDATE downloads SET bytes_received=?, updated_at=? WHERE id=?").run(size, now(), source.id);
+    db.prepare("UPDATE downloads SET bytes_received=?, updated_at=? WHERE id=? AND status IN ('downloading', 'resuming')").run(size, now(), source.id);
   };
   const timer = setInterval(() => updateProgress().catch(() => {}), progressIntervalMs);
   try {
-    await execFileAsync("aria2c", [
+    const args = [
       "--continue=true", "--auto-file-renaming=false", "--allow-overwrite=true",
       "--file-allocation=none", `--split=${downloadConnections}`, `--max-connection-per-server=${Math.min(16, downloadConnections)}`,
       "--min-split-size=8M", "--timeout=60", "--connect-timeout=15",
@@ -181,7 +181,32 @@ async function transferWithAria2({ db, source, tmpPath, signal }) {
       ...(downloadMaxBytesPerSecond > 0 ? [`--max-download-limit=${Math.floor(downloadMaxBytesPerSecond)}`] : []),
       `--dir=${path.dirname(tmpPath)}`, `--out=${path.basename(tmpPath)}`,
       ...candidateUrls(source)
-    ], { signal, maxBuffer: 1024 * 1024 });
+    ];
+    await new Promise((resolve, reject) => {
+      const child = spawn("aria2c", args, { stdio: ["ignore", "ignore", "pipe"] });
+      let errorOutput = "";
+      let spawnError = null;
+      let killTimer = null;
+      const abort = () => {
+        child.kill("SIGTERM");
+        // Wait for close before returning: an aborted execFile promise can reject
+        // while its child still writes to a partial file reused by the next run.
+        killTimer = setTimeout(() => child.kill("SIGKILL"), 2000);
+        killTimer.unref?.();
+      };
+      child.stderr.on("data", (chunk) => { errorOutput = (errorOutput + chunk).slice(-16_384); });
+      child.once("error", (error) => { spawnError = error; });
+      child.once("close", (code) => {
+        clearTimeout(killTimer);
+        signal.removeEventListener("abort", abort);
+        if (signal.aborted) reject(new Error("Download paused"));
+        else if (spawnError) reject(spawnError);
+        else if (code === 0) resolve();
+        else reject(new Error(`aria2 exited with code ${code}: ${errorOutput.trim()}`));
+      });
+      signal.addEventListener("abort", abort, { once: true });
+      if (signal.aborted) abort();
+    });
     await updateProgress();
   } finally {
     clearInterval(timer);

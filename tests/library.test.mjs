@@ -901,6 +901,42 @@ describe("library workflows", () => {
     } finally { db.close(); }
   });
 
+  it.skipIf(process.platform === "win32")("waits for an accelerated transfer process to exit when paused", async () => {
+    const bin = path.join(root, "bin");
+    const pidFile = path.join(root, "aria2.pid");
+    await fs.mkdir(bin);
+    await fs.writeFile(path.join(bin, "aria2c"), `#!${process.execPath}\nconst fs = require('node:fs');\nprocess.on('SIGTERM', () => {});\nfs.writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));\nsetInterval(() => {}, 1000);\n`, { mode: 0o755 });
+    const previousPath = process.env.PATH;
+    const previousTransport = process.env.SCA_DOWNLOAD_TRANSPORT;
+    process.env.PATH = `${bin}${path.delimiter}${previousPath}`;
+    process.env.SCA_DOWNLOAD_TRANSPORT = "aria2";
+    const source = { id: "accelerated-pause", title: "Accelerated Pause", type: "zim", license: "CC0", url: "https://example.test/book.zim", expected_size_bytes: 80 };
+    const db = openState(root);
+    let transfer;
+    try {
+      upsertSource(db, source);
+      transfer = downloadSource({ db, libraryRoot: root, source });
+      // The fake downloader ignores SIGTERM, exercising the bounded kill fallback.
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        if (await fs.access(pidFile).then(() => true).catch(() => false)) break;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      const pid = Number(await fs.readFile(pidFile, "utf8"));
+      pauseDownload(db, source.id);
+      await expect(transfer).rejects.toThrow("Download paused");
+      expect(() => process.kill(pid, 0)).toThrow();
+      expect(db.prepare("SELECT status FROM downloads WHERE id=?").get(source.id).status).toBe("paused");
+    } finally {
+      pauseDownload(db, source.id);
+      await transfer?.catch(() => {});
+      db.close();
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+      if (previousTransport === undefined) delete process.env.SCA_DOWNLOAD_TRANSPORT;
+      else process.env.SCA_DOWNLOAD_TRANSPORT = previousTransport;
+    }
+  }, 15_000);
+
   it("clones git archives even when the process cwd has been removed", async () => {
     try {
       await execFileAsync("git", ["--version"], { cwd: root });
