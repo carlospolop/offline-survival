@@ -25,6 +25,8 @@ pub fn run() {
     let shutdown_backend_child = backend_child.clone();
 
     tauri::Builder::default()
+        .manage(backend_child.clone())
+        .invoke_handler(tauri::generate_handler![backend_config])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
@@ -124,6 +126,15 @@ struct BackendProcess {
     child: CommandChild,
     port: u16,
     token: String,
+}
+
+// The webview asks after its JavaScript has loaded. One-off eval calls during
+// setup can run before navigation and disappear with the initial document.
+#[tauri::command]
+fn backend_config(backend: tauri::State<'_, BackendChild>) -> Result<(u16, String), String> {
+    let backend = backend.lock().map_err(|_| "Backend state unavailable")?;
+    let backend = backend.as_ref().ok_or("The local backend has stopped")?;
+    Ok((backend.port, backend.token.clone()))
 }
 
 fn kill_backend_child(backend: &BackendChild) {

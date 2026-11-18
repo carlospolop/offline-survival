@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 export type Source = {
   id: string;
   title: string;
@@ -35,8 +37,7 @@ declare global {
   }
 }
 
-let cachedBackendPort = 0;
-const failedBackendPorts = new Set<number>();
+let backendConfigRequest: Promise<number> | null = null;
 
 async function apiOrigins() {
   const configuredPort = await packagedBackendPort();
@@ -50,6 +51,7 @@ async function apiOrigins() {
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   let lastError: unknown = null;
+  const signal = options.signal ?? (isStartupRequest(path) ? AbortSignal.timeout(15_000) : undefined);
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const targets = path.startsWith("/api") ? (await apiOrigins()).map((origin) => `${origin}${path}`) : [path];
@@ -59,14 +61,15 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       try {
         const response = await fetch(target, {
           ...options,
-          headers: apiHeaders(options.headers)
+          headers: apiHeaders(options.headers),
+          signal
         });
         const data = await parseJson(response);
         if (!response.ok || data.error) throw new Error(data.error ?? response.statusText);
         return data as T;
       } catch (err) {
+        if (signal?.aborted) throw new Error("The local backend request timed out or was cancelled. Please retry.");
         lastError = err;
-        markBackendPortFailed(target);
       }
     }
     await wait(Math.min(250 * (attempt + 1), 1000));
@@ -91,25 +94,40 @@ function backendTokenFromWindow() {
 async function packagedBackendPort() {
   if (!isPackagedTauri()) return 0;
   const existing = backendPortFromWindow();
-  if (existing && !failedBackendPorts.has(existing)) {
-    cachedBackendPort = existing;
-    return existing;
-  }
-  if (cachedBackendPort && !failedBackendPorts.has(cachedBackendPort)) return cachedBackendPort;
+  if (existing && backendTokenFromWindow()) return existing;
 
-  const injected = await waitForBackendPort(1000);
-  if (injected && !failedBackendPorts.has(injected)) {
-    cachedBackendPort = injected;
-    return injected;
+  // Ask the native process directly rather than scanning local ports. The
+  // launch-time eval may have happened before the current document existed.
+  if (!backendConfigRequest) {
+    backendConfigRequest = requestBackendConfig().finally(() => {
+      backendConfigRequest = null;
+    });
   }
+  return backendConfigRequest;
+}
 
-  const discovered = await discoverPackagedBackendPort(existing || cachedBackendPort);
-  if (discovered) {
-    cachedBackendPort = discovered;
-    failedBackendPorts.delete(discovered);
-    return discovered;
+async function requestBackendConfig() {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const [port, token] = await Promise.race([
+      invoke<[number, string]>("backend_config"),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("The desktop app did not provide its backend connection details.")), 3000);
+      })
+    ]);
+    if (!Number.isInteger(port) || port <= 0 || port > 65535 || !token) {
+      throw new Error("The desktop app provided invalid backend connection details.");
+    }
+    window.__SCA_API_PORT = port;
+    window.__SCA_API_TOKEN = token;
+    return port;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
-  return injected || existing || cachedBackendPort;
+}
+
+function isStartupRequest(path: string) {
+  return ["/api/catalog", "/api/state", "/api/system", "/api/jobs"].includes(path);
 }
 
 function backendPortFromWindow() {
@@ -122,86 +140,6 @@ function isPackagedTauri() {
   if (typeof window === "undefined") return false;
   const origin = window.location.origin;
   return Boolean(window.__TAURI_INTERNALS__) || window.location.protocol === "tauri:" || origin.includes("tauri.localhost");
-}
-
-function waitForBackendPort(timeoutMs = 5000) {
-  return new Promise<number>((resolve) => {
-    const ready = backendPortFromWindow();
-    if (ready) return resolve(ready);
-
-    let settled = false;
-    const finish = (port: number) => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("sca-backend-configured", onConfigured);
-      window.clearTimeout(timer);
-      resolve(port);
-    };
-    const onConfigured = () => finish(backendPortFromWindow());
-    const timer = window.setTimeout(() => finish(backendPortFromWindow()), timeoutMs);
-    window.addEventListener("sca-backend-configured", onConfigured, { once: true });
-  });
-}
-
-async function discoverPackagedBackendPort(hint = 0) {
-  const ports = backendPortCandidates(hint);
-  const batchSize = 96;
-  for (let index = 0; index < ports.length; index += batchSize) {
-    const found = (await Promise.all(ports.slice(index, index + batchSize).map(probeBackendPort))).find(Boolean);
-    if (found) return found;
-  }
-  return 0;
-}
-
-function backendPortCandidates(hint = 0) {
-  const ports: number[] = [];
-  const add = (port: number) => {
-    if (Number.isInteger(port) && port > 0 && port <= 65535 && !ports.includes(port)) ports.push(port);
-  };
-  add(hint);
-  if (hint) {
-    for (let offset = 1; offset <= 4096; offset += 1) {
-      add(hint + offset);
-      add(hint - offset);
-    }
-  } else {
-    for (let port = 62000; port <= 65535; port += 1) add(port);
-    for (let port = 49152; port < 62000; port += 1) add(port);
-  }
-  return ports;
-}
-
-async function probeBackendPort(port: number) {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 150);
-  try {
-    const response = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: controller.signal });
-    if (!response.ok) return 0;
-    const health = await response.json();
-    if (health?.status !== "ok" || !health?.packaged) return 0;
-    window.__SCA_API_PORT = Number(health.port ?? port);
-    window.__SCA_API_TOKEN = String(health.token ?? "");
-    window.dispatchEvent(new CustomEvent("sca-backend-configured"));
-    return Number(health.port ?? port);
-  } catch {
-    return 0;
-  } finally {
-    window.clearTimeout(timeout);
-  }
-}
-
-function markBackendPortFailed(target: string) {
-  if (!isPackagedTauri()) return;
-  let port = 0;
-  try {
-    port = Number(new URL(target).port);
-  } catch {
-    return;
-  }
-  if (!port) return;
-  failedBackendPorts.add(port);
-  if (cachedBackendPort === port) cachedBackendPort = 0;
-  if (backendPortFromWindow() === port) window.__SCA_API_PORT = 0;
 }
 
 async function parseJson(response: Response) {

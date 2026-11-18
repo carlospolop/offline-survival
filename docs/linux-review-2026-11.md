@@ -137,3 +137,20 @@ Bible editions are indexed and searchable; Foliate was installed as the laptop's
 EPUB reader and successfully opened the Spanish edition. New chat sessions select
 the smallest installed chat model by default, while preserving explicit model
 choices; browser checks confirmed both behaviors.
+
+The subsequent desktop launch exposed a startup race: the native launcher's
+one-time JavaScript injection could run before the webview's document loaded.
+The fallback port scan then missed Linux ports below 49152, leaving the window
+on "Reading the local catalog and library state". The frontend now requests its
+port and token through a native `backend_config` command, shares that request
+between concurrent startup calls, and retains the connection after transient
+HTTP failures. Port scanning was removed. Native connection requests time out
+after three seconds; dashboard HTTP requests have a shared 15-second deadline
+across retries, so failures reach the existing error and retry screen.
+
+The corrected Linux package was rebuilt and installed. An AT-SPI inspection of
+the actual native window confirmed the profile headings and the existing
+`/home/tester/SurvivalCivilizationArchive` library path after a desktop-entry
+launch. The previous screenshot color check alone was insufficient to detect
+this loading-screen failure. All 96 automated tests pass, including five new
+startup regression tests; the production UI build and Rust check also pass.
