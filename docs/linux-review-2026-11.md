@@ -104,3 +104,8 @@ with batching, compared with roughly two minutes using individual commits. A
 regression test verifies that the final batch remains searchable. Both Bible EPUBs
 were downloaded, SHA-256 checked, and indexed locally (2,299 English and 1,742
 Spanish chunks).
+
+The live release run also exposed a retired GitHub runner: macOS ARM build and
+verification jobs used `macos-14`, which GitHub retired on November 2, 2026.
+Both jobs now use the supported `macos-15` ARM runner. See
+[GitHub's retirement notice](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/).
