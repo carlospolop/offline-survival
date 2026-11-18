@@ -106,8 +106,8 @@ The profiles are ordered from small to large:
 
 The sidebar recommends the largest profile that fits a conservative disk budget for the current machine.
 
-The November 2026 catalog contains 53 English and 34 Spanish sources. **Civilization
-Max Bilingual** includes all 87, with approximately **169 GB of downloads**. Allow
+The November 2026 catalog contains 54 English and 35 Spanish sources. **Civilization
+Max Bilingual** includes all 89, with approximately **169 GB of downloads**. Allow
 250–300 GB of free space for the files, working space, and growth; optional AI
 models and full-text indexes require additional space. Sizes change as upstream
 archives are replaced. The app shows estimates from the current catalog.

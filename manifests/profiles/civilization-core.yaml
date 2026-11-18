@@ -8,6 +8,7 @@ disk_budget_gb: 300
 includes:
   - survival-plus
 sources:
+  - bible-web-en
   - ham-stackexchange-zim
   - mechanics-stackexchange-zim
   - wikibooks-zim

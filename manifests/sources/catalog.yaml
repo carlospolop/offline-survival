@@ -1753,6 +1753,43 @@ sources:
     profiles: [ survival-essential-es ]
     language: es
 
+  - id: bible-web-en
+    title: "Bible: World English Bible (Classic)"
+    description: "Complete English Bible in a compact EPUB, preserved for cultural, historical, and religious reference."
+    type: epub
+    category: culture-reference
+    tags: [ culture, religion, bible, public-domain-books ]
+    license: public-domain
+    attribution: "World English Bible contributors / eBible.org. Text dedicated to the public domain; the World English Bible name is a trademark identifying the unmodified translation."
+    url: https://ebible.org/epub/eng-web.epub
+    source_url: https://ebible.org/bible/details.php?id=eng-web
+    expected_size_bytes: 3560535
+    sha256: 95d49499fb51744623b309436a26de54313786cdfa48b2ba25a4c7b3bf96cce3
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded Bible with the system EPUB reader.
+    profiles: [ civilization-core ]
+    language: en
+  - id: bible-rv1909-es
+    title: "Biblia: Reina-Valera 1909"
+    description: "Biblia completa en español en formato EPUB, para consulta cultural, histórica y religiosa."
+    type: epub
+    category: culture-reference
+    tags: [ culture, religion, bible, public-domain-books ]
+    license: public-domain
+    attribution: "Casiodoro de Reina and Cipriano de Valera, 1909 revision; digital edition provided by eBible.org. Public-domain text."
+    url: https://ebible.org/epub/spaRV1909.epub
+    source_url: https://ebible.org/bible/details.php?id=spaRV1909
+    expected_size_bytes: 2113432
+    sha256: 021356bb7cb27a5ff2795aacdd73673df03c3f630d1838a4266a41c22f70823a
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded Bible with the system EPUB reader.
+    profiles: [ civilization-core-es ]
+    language: es
+
 models:
   - id: qwen2_5-1_5b
     title: Qwen2.5 1.5B

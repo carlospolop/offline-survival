@@ -156,6 +156,21 @@ describe("library workflows", () => {
     db.close();
   });
 
+  it("indexes every chunk of a large book across multiple transaction batches", async () => {
+    const source = { id: "large-book", title: "Large Book", type: "html", license: "CC0", url: "https://example.test/book.html", expected_size_bytes: 1 };
+    const file = "raw/html/large-book.html";
+    await fs.writeFile(path.join(root, file), "water ".repeat(230_000) + "winterbackupmarker");
+    const db = openState(root);
+    try {
+      upsertSource(db, source, { status: "downloaded", local_path: file });
+      const result = await normalizeAndIndex({ db, libraryRoot: root, sourceId: source.id });
+      expect(result.chunks).toBeGreaterThan(500);
+      expect(db.prepare("SELECT count(*) n FROM chunks WHERE source_id=?").get(source.id).n).toBe(result.chunks);
+      expect(db.prepare("SELECT count(*) n FROM fts WHERE source_id=?").get(source.id).n).toBe(result.chunks);
+      expect(search(db, "winterbackupmarker")[0].source_id).toBe(source.id);
+    } finally { db.close(); }
+  }, 20_000);
+
   it("searches inside the selected source before applying broad result limits", async () => {
     const noisy = {
       id: "noisy-zim",

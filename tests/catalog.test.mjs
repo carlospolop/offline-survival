@@ -53,6 +53,8 @@ describe("catalog", () => {
     const max = catalog.profiles.find((profile) => profile.id === "civilization-max-bilingual");
     expect([...max.sourceIds].sort()).toEqual(catalog.sources.map((source) => source.id).sort());
     expect(max.sourceIds).toEqual(expect.arrayContaining(["fema-are-you-ready", "fema-are-you-ready-es", "fao-family-garden-es", "usda-home-canning-1", "epa-emergency-drinking-water-es"]));
+    expect(catalog.profiles.find((profile) => profile.id === "civilization-core").sourceIds).toContain("bible-web-en");
+    expect(catalog.profiles.find((profile) => profile.id === "civilization-core-es").sourceIds).toContain("bible-rv1909-es");
   });
 
   it("shows only per-tier added sources for bilingual profiles", async () => {

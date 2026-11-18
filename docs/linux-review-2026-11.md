@@ -1,6 +1,6 @@
 # Linux review and catalog refresh — November 2026
 
-The catalog contains 87 sources: 53 English and 34 Spanish. Civilization Max
+The catalog contains 89 sources: 54 English and 35 Spanish. Civilization Max
 Bilingual includes every source. The estimated download is 169.3 GB, before
 search indexes, optional AI models, and future content updates. The English and
 bilingual Max profile planning ranges now reflect the catalog rather than the
@@ -16,6 +16,7 @@ old 1–2 TB placeholders.
 | FAO *Una huerta para todos*, fifth edition (2014) | Spanish | Survival Plus ES | Illustrated 289-page family-gardening manual |
 | Protección Civil tsunami and volcanic-risk guides | Spanish | Survival Essential ES | Illustrated evacuation and hazard-preparedness guides |
 | Vehicle maintenance and amateur-radio Stack Exchange archives | English | Civilization Core | Practical repair and community communications references |
+| World English Bible (Classic) and Reina-Valera 1909 | English, Spanish | Civilization Core / Core ES | Public-domain EPUBs in culture and reference, included in the larger tiers |
 
 The new PDFs were downloaded, checked for PDF signatures, measured, and assigned
 SHA-256 checksums. The two new ZIM URLs were range-probed against upstream and
@@ -29,6 +30,7 @@ Publisher pages and reuse evidence:
 - [FAO family-gardening manual](https://www.fao.org/family-farming/detail/es/c/317903/): the PDF copyright page permits attributed noncommercial copying and dissemination. The working PDF is hosted by the University of La Plata. Translation, adaptation, and commercial reuse require separate permission; it is not labeled Creative Commons.
 - [Protección Civil publications](https://www.proteccioncivil.es/documentacion/publicaciones): official Spanish government publications, using the existing catalog's `spanish-gov` designation.
 - [Kiwix Stack Exchange directory](https://download.kiwix.org/zim/stack_exchange/): attribution and the applicable CC BY-SA terms of individual posts must be retained.
+- [World English Bible](https://ebible.org/bible/details.php?id=eng-web) and [Reina-Valera 1909](https://ebible.org/bible/details.php?id=spaRV1909): eBible.org identifies both texts as public domain. The English translation's name is a trademark, so the text is retained unmodified. Both EPUB ZIP containers and their EPUB mimetype entries were checked, and their sizes and SHA-256 hashes recorded.
 
 25 retired Kiwix archive URLs were replaced with available releases and exact
 upstream sizes. Five blocked Interior Ministry PDF URLs were replaced with
@@ -86,7 +88,7 @@ The standard HTTP downloader remains the default. Explicit disk budgets also use
 the standard downloader. Aria2 uses sparse partial files and its adjacent `.aria2`
 control files for segmented resume; retain both when interrupting these transfers.
 
-Review validation results: 88 automated tests passed; the frontend build, Cargo
+Review validation results: 89 automated tests passed; the frontend build, Cargo
 check, `.deb` build, real installation, and package window/render verification
 passed. The package verifier recorded a rendered window with 3,713 distinct
 colors. Browser navigation through Dashboard, Downloads, Search, Extra Knowledge,
@@ -95,3 +97,10 @@ probe found the retired WikEM link and two transient connection failures (IFRC
 water treatment and USDA part 1); both transient failures passed on retry. Thus 86 sources have working upstream or mirror probes; the remaining WikEM source already exists in the laptop library.
 The new library checker is tested against a complete fixture catalog and against
 missing/corrupt files. A clean-install dry run accepts the updated lockfile.
+
+Large EPUB/PDF/text books now use the same 500-chunk transaction batches as ZIM
+indexing. On this laptop, indexing the English Bible (2,299 chunks) took 6.3 seconds
+with batching, compared with roughly two minutes using individual commits. A
+regression test verifies that the final batch remains searchable. Both Bible EPUBs
+were downloaded, SHA-256 checked, and indexed locally (2,299 English and 1,742
+Spanish chunks).

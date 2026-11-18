@@ -8,6 +8,7 @@ disk_budget_gb: 15
 includes:
   - survival-plus-es
 sources:
+  - bible-rv1909-es
   - wikibooks-es-zim
   - wiktionary-es-zim
 models:

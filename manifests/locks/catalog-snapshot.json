@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-18T12:10:02.293Z",
+  "generated_at": "2026-11-18T12:27:34.829Z",
   "profiles": [
     {
       "id": "survival-essential",
@@ -40,56 +40,56 @@
     {
       "id": "civilization-core",
       "title": "Civilization Core",
-      "source_count": 46,
-      "expected_size_bytes": 61073801790
+      "source_count": 47,
+      "expected_size_bytes": 61077362325
     },
     {
       "id": "civilization-core-es",
       "title": "Civilization Core ES",
-      "source_count": 27,
-      "expected_size_bytes": 5989707961
+      "source_count": 28,
+      "expected_size_bytes": 5991821393
     },
     {
       "id": "civilization-core-bilingual",
       "title": "Civilization Core Bilingual",
-      "source_count": 73,
-      "expected_size_bytes": 67063509751
+      "source_count": 75,
+      "expected_size_bytes": 67069183718
     },
     {
       "id": "civilization-rebuild",
       "title": "Civilization Rebuild",
-      "source_count": 51,
-      "expected_size_bytes": 81707311039
+      "source_count": 52,
+      "expected_size_bytes": 81710871574
     },
     {
       "id": "civilization-rebuild-es",
       "title": "Civilization Rebuild ES",
-      "source_count": 33,
-      "expected_size_bytes": 8746571693
+      "source_count": 34,
+      "expected_size_bytes": 8748685125
     },
     {
       "id": "civilization-rebuild-bilingual",
       "title": "Civilization Rebuild Bilingual",
-      "source_count": 84,
-      "expected_size_bytes": 90453882732
+      "source_count": 86,
+      "expected_size_bytes": 90459556699
     },
     {
       "id": "civilization-max",
       "title": "Civilization Max",
-      "source_count": 53,
-      "expected_size_bytes": 147244788059
+      "source_count": 54,
+      "expected_size_bytes": 147248348594
     },
     {
       "id": "civilization-max-es",
       "title": "Civilization Max ES",
-      "source_count": 34,
-      "expected_size_bytes": 22044787121
+      "source_count": 35,
+      "expected_size_bytes": 22046900553
     },
     {
       "id": "civilization-max-bilingual",
       "title": "Civilization Max Bilingual",
-      "source_count": 87,
-      "expected_size_bytes": 169289575180
+      "source_count": 89,
+      "expected_size_bytes": 169295249147
     }
   ],
   "sources": [
@@ -788,6 +788,22 @@
       "url": "https://www.proteccioncivil.es/documents/20121/0/03-Riesgos_Volcanicos_accesible.pdf/6694c5a6-0bba-e147-7d9d-d3b7eae1afaa",
       "expected_size_bytes": 1661967,
       "license": "spanish-gov"
+    },
+    {
+      "id": "bible-web-en",
+      "title": "Bible: World English Bible (Classic)",
+      "type": "epub",
+      "url": "https://ebible.org/epub/eng-web.epub",
+      "expected_size_bytes": 3560535,
+      "license": "public-domain"
+    },
+    {
+      "id": "bible-rv1909-es",
+      "title": "Biblia: Reina-Valera 1909",
+      "type": "epub",
+      "url": "https://ebible.org/epub/spaRV1909.epub",
+      "expected_size_bytes": 2113432,
+      "license": "public-domain"
     }
   ]
 }

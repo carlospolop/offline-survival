@@ -3,6 +3,7 @@ import path from "node:path";
 import { now, recordEvent } from "./state.mjs";
 
 const licenseRules = {
+  "public-domain": { redistribution: "allowed", commercial_use: "allowed", attribution_required: false, llm_ingestion_allowed: "allowed" },
   "CC-BY-SA-4.0": { redistribution: "allowed", commercial_use: "allowed", attribution_required: true, llm_ingestion_allowed: "unknown" },
   "CC-BY-4.0": { redistribution: "allowed", commercial_use: "allowed", attribution_required: true, llm_ingestion_allowed: "unknown" },
   "CC-BY-NC-SA-3.0": { redistribution: "personal-only", commercial_use: "non-commercial-only", attribution_required: true, llm_ingestion_allowed: "restricted" },

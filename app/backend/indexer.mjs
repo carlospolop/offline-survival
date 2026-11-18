@@ -98,9 +98,8 @@ export async function normalizeAndIndex({ db, libraryRoot, sourceId, sourceConfi
   await fs.writeFile(path.join(libraryRoot, "chunks", `${sourceId}.jsonl`), chunks.map((chunk) => JSON.stringify(chunk)).join("\n") + "\n");
   const insertFts = optionalFtsInsert(db);
   const insertChunk = db.prepare("INSERT INTO chunks (id, source_id, title, path, heading_path, body, token_estimate, vector, safety_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET body=excluded.body, token_estimate=excluded.token_estimate, vector=excluded.vector, created_at=excluded.created_at");
-  for (const chunk of chunks) {
-    insertChunk.run(chunk.id, chunk.source_id, chunk.title, chunk.path, "", chunk.body, estimateTokens(chunk.body), JSON.stringify(chunk.vector), "general", now());
-    insertFtsRow(insertFts, chunk.source_id, chunk.title, chunk.body, chunk.path);
+  for (let offset = 0; offset < chunks.length; offset += 500) {
+    flushChunks(db, insertFts, insertChunk, chunks.slice(offset, offset + 500));
   }
   db.prepare("INSERT INTO documents (id, source_id, title, path, text_path, chunk_count, indexed_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET text_path=excluded.text_path, chunk_count=excluded.chunk_count, indexed_at=excluded.indexed_at")
     .run(sourceId, sourceId, source.title, extracted.path ?? source.local_path, textRel, chunks.length, now());
