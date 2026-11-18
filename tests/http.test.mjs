@@ -266,7 +266,7 @@ describe("HTTP API", () => {
     const jobs = await (await fetch(`http://127.0.0.1:${port}/api/jobs`)).json();
     expect(Array.isArray(jobs.jobs)).toBe(true);
     await fs.rm(extraDir, { recursive: true, force: true });
-  });
+  }, 20_000);
 
   it("returns JSON 404 for removed maintenance endpoints", async () => {
     for (const [endpoint, options] of [

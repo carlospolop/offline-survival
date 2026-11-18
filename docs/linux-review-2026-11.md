@@ -88,7 +88,7 @@ The standard HTTP downloader remains the default. Explicit disk budgets also use
 the standard downloader. Aria2 uses sparse partial files and its adjacent `.aria2`
 control files for segmented resume; retain both when interrupting these transfers.
 
-Review validation results: 89 automated tests passed; the frontend build, Cargo
+Review validation results: 90 automated tests passed; the frontend build, Cargo
 check, `.deb` build, real installation, and package window/render verification
 passed. The package verifier recorded a rendered window with 3,713 distinct
 colors. Browser navigation through Dashboard, Downloads, Search, Extra Knowledge,
@@ -109,3 +109,16 @@ The live release run also exposed a retired GitHub runner: macOS ARM build and
 verification jobs used `macos-14`, which GitHub retired on November 2, 2026.
 Both jobs now use the supported `macos-15` ARM runner. See
 [GitHub's retirement notice](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/).
+
+
+Live Local AI testing found that a 2,875-token retrieval prompt exhausted the
+120-second generation deadline on this laptop, even with Qwen2.5 1.5B. Search now
+retains the matched chunk body instead of looking up the longest chunk sharing
+its file path. Generation sends at most 4,000 characters of retrieved context by
+default, configurable with `SCA_OLLAMA_CONTEXT_MAX_CHARS`, and citations refer only
+to the excerpts actually included. A cold-model local test answered in 55.7 seconds
+with 1,069 prompt tokens and a passage-supported answer. Tests cover matching a
+late book chunk and keeping citations aligned when context is bounded.
+
+`SCA_DOWNLOAD_CONNECTIONS` optionally sets 1–32 aria2 segments per archive
+(default 8), with a maximum of 16 connections to each mirror.

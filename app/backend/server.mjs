@@ -1177,22 +1177,22 @@ async function retrieveAskContexts(body) {
     ...await searchExternalFts({ libraryRoot, query: askKeywordQuery(contextQuestion), limit: 12, filters })
   ];
   if (externalLexical.length) {
-    return await withDb((db) => enrichAskContexts(db, externalLexical));
+    return enrichAskContexts(externalLexical);
   }
   return await withDb((db) => {
     const lexical = [
       ...search(db, contextQuestion, 8, filters),
       ...search(db, askKeywordQuery(contextQuestion), 12, filters)
     ];
-    return enrichAskContexts(db, lexical);
+    return enrichAskContexts(lexical);
   });
 }
 
-function enrichAskContexts(db, lexical) {
+function enrichAskContexts(lexical) {
   const byKey = new Map();
   for (const context of lexical) {
     const key = `${context.source_id}:${context.path}:${context.snippet}`;
-    if (!byKey.has(key)) byKey.set(key, enrichAskContext(db, context));
+    if (!byKey.has(key)) byKey.set(key, enrichAskContext(context));
   }
   return uniqueAskContexts([...byKey.values()]).slice(0, 5);
 }
@@ -1226,17 +1226,10 @@ function askContextQuery(question, history) {
   return `${priorQuestions} ${question}`.trim();
 }
 
-function enrichAskContext(db, context) {
-  const chunk = db.prepare(`
-    SELECT body
-    FROM chunks
-    WHERE source_id=? AND path=?
-    ORDER BY token_estimate DESC
-    LIMIT 1
-  `).get(context.source_id, context.path);
+function enrichAskContext(context) {
   return {
     ...context,
-    snippet: cleanPromptText(chunk?.body || context.snippet || "")
+    snippet: cleanPromptText(context.body || context.snippet || "")
   };
 }
 

@@ -168,6 +168,7 @@ describe("library workflows", () => {
       expect(db.prepare("SELECT count(*) n FROM chunks WHERE source_id=?").get(source.id).n).toBe(result.chunks);
       expect(db.prepare("SELECT count(*) n FROM fts WHERE source_id=?").get(source.id).n).toBe(result.chunks);
       expect(search(db, "winterbackupmarker")[0].source_id).toBe(source.id);
+      expect(search(db, "winterbackupmarker")[0].body).toContain("winterbackupmarker");
     } finally { db.close(); }
   }, 20_000);
 

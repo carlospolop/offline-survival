@@ -232,6 +232,25 @@ describe("services", () => {
     expect(payload.prompt).toContain("Question: What about it next?");
   });
 
+  it("bounds retrieved context while keeping citations aligned with the prompt", async () => {
+    let prompt;
+    const result = await askOllama({
+      question: "What insulates a shelter?",
+      contexts: [
+        { source_id: "shelter", title: "Shelter", path: "shelter.md", snippet: "insulation ".repeat(1000) },
+        { source_id: "unused", title: "Unused source", path: "unused.md", snippet: "This source must not be cited." }
+      ],
+      fetchImpl: async (_url, options) => {
+        prompt = JSON.parse(options.body).prompt;
+        return new Response(JSON.stringify({ response: "Use insulating material [1]." }));
+      }
+    });
+    expect(prompt.length).toBeLessThan(5000);
+    expect(prompt).toContain("Question: What insulates a shelter?");
+    expect(prompt).not.toContain("Unused source");
+    expect(result.citations.map((citation) => citation.source_id)).toEqual(["shelter"]);
+  });
+
   it("reports generated token progress while reading Ollama streams", async () => {
     const progress = [];
     const encoder = new TextEncoder();

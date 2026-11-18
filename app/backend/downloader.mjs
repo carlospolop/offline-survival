@@ -19,6 +19,7 @@ const maxStreamAttempts = Number(process.env.SCA_DOWNLOAD_STREAM_ATTEMPTS ?? 4);
 const progressIntervalMs = Number(process.env.SCA_DOWNLOAD_PROGRESS_INTERVAL_MS ?? 1_000);
 const downloadMaxBytesPerSecond = Number(process.env.SCA_DOWNLOAD_MAX_MBPS ?? 0) * 1_000_000;
 const hashMaxBytesPerSecond = Number(process.env.SCA_HASH_MAX_MBPS ?? 0) * 1_000_000;
+const downloadConnections = Math.max(1, Math.min(32, Math.floor(Number(process.env.SCA_DOWNLOAD_CONNECTIONS) || 8)));
 const downloadedStatuses = new Set(["downloaded", "verified", "indexed", "indexed-original-only", "downloaded_unverified"]);
 
 export async function sha256File(file) {
@@ -173,7 +174,7 @@ async function transferWithAria2({ db, source, tmpPath, signal }) {
   try {
     await execFileAsync("aria2c", [
       "--continue=true", "--auto-file-renaming=false", "--allow-overwrite=true",
-      "--file-allocation=none", "--split=8", "--max-connection-per-server=8",
+      "--file-allocation=none", `--split=${downloadConnections}`, `--max-connection-per-server=${Math.min(16, downloadConnections)}`,
       "--min-split-size=8M", "--timeout=60", "--connect-timeout=15",
       "--max-tries=5", "--retry-wait=5", "--summary-interval=0",
       "--console-log-level=warn", "--download-result=hide",

@@ -438,6 +438,16 @@ async function waitForOllama() {
 }
 
 export async function askOllama({ question, contexts, history = [], model = "qwen3:8b", fetchImpl = fetch, onProgress = null, abortSignal = null }) {
+  // Bound CPU prompt processing and retain citation numbering for exactly the
+  // excerpts sent to the model, rather than timing out on a large retrieval.
+  let remaining = Math.max(1000, Number(process.env.SCA_OLLAMA_CONTEXT_MAX_CHARS) || 4000);
+  contexts = contexts.flatMap((context) => {
+    if (remaining <= 0) return [];
+    const text = cleanPromptText(context.snippet ?? context.body ?? "").slice(0, remaining);
+    if (!text) return [];
+    remaining -= text.length;
+    return [{ ...context, snippet: text }];
+  });
   if (!contexts.length) {
     return {
       answer: noContextAnswer(history),

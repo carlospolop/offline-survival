@@ -681,6 +681,7 @@ export async function searchExternalFts({ libraryRoot, query, limit = 20, filter
     SELECT json_object(
       'source_id', source_id,
       'title', title,
+      'body', body,
       'snippet', snippet(fts, 2, '<mark>', '</mark>', '...', 16),
       'path', path,
       'rank', rank
@@ -709,7 +710,7 @@ function ftsSearchRows(db, query, limit, filters = {}) {
   if (!matchQuery) return [];
   const filter = buildSearchFilter(filters);
   const sql = `
-    SELECT source_id, title, snippet(fts, 2, '<mark>', '</mark>', '...', 16) AS snippet, path, rank
+    SELECT source_id, title, body, snippet(fts, 2, '<mark>', '</mark>', '...', 16) AS snippet, path, rank
     FROM fts
     WHERE fts MATCH ?
       ${filter.sql ? `AND ${filter.sql}` : ""}
@@ -766,7 +767,7 @@ function rankFallbackCandidates(candidates, terms, limit) {
     .map((row) => {
       const haystack = `${row.title}\n${row.path}\n${row.body}`.toLowerCase();
       const score = loweredTerms.reduce((sum, term) => sum + (haystack.includes(term) ? 1 : 0), 0);
-      return { source_id: row.source_id, title: row.title, snippet: row.body.slice(0, 240), path: row.path, rank: -score, score };
+      return { source_id: row.source_id, title: row.title, body: row.body, snippet: row.body.slice(0, 240), path: row.path, rank: -score, score };
     })
     .filter((row) => row.score >= minimumMatches)
     .sort((a, b) => b.score - a.score)
