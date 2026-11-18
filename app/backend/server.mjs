@@ -58,16 +58,19 @@ const backgroundJobs = new Map();
 let activeIndexOperation = null;
 let activeAskOperation = null;
 
-async function syncCatalog() {
-  configureManagedRuntimes();
+async function syncCatalog(targetRoot = libraryRoot) {
+  if (targetRoot === libraryRoot) configureManagedRuntimes();
   const catalog = await loadCatalog();
-  const db = openState(libraryRoot);
-  removeSourcesNotInCatalog(db, catalog.sources);
-  for (const source of catalog.sources) upsertSource(db, source);
-  for (const model of catalog.models) upsertModel(db, model);
-  refreshAdapters(db, catalog.sources);
-  setSetting(db, "libraryRoot", libraryRoot);
-  db.close();
+  const db = openState(targetRoot);
+  try {
+    removeSourcesNotInCatalog(db, catalog.sources);
+    for (const source of catalog.sources) upsertSource(db, source);
+    for (const model of catalog.models) upsertModel(db, model);
+    refreshAdapters(db, catalog.sources);
+    setSetting(db, "libraryRoot", targetRoot);
+  } finally {
+    db.close();
+  }
 }
 
 async function clearStaleProgressSettings() {
@@ -325,7 +328,12 @@ function activeDownloadCount(db) {
   return db.prepare("SELECT COUNT(*) AS count FROM downloads WHERE status IN ('queued', 'downloading', 'resuming')").get().count;
 }
 
-function shutdownAuthorized(req) {
+async function requireIdleLibrary() {
+  const { jobs } = await jobsSnapshot();
+  if (jobs.length) throw new Error("Wait for active downloads, indexing, AI, and packaging jobs to finish before changing or cleaning the library.");
+}
+
+function backendAuthorized(req) {
   const token = process.env.SCA_BACKEND_TOKEN ?? "";
   if (!token) return true;
   return req.headers["x-sca-backend-token"] === token;
@@ -364,12 +372,14 @@ async function route(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
     if (req.method === "OPTIONS") return send(res, 204, "");
+    if (url.pathname.startsWith("/api/") && !backendAuthorized(req)) {
+      return send(res, 403, { error: "The local backend connection is not authorized. Reopen the desktop app." });
+    }
     if (url.pathname === "/api/health") return send(res, 200, {
       status: "ok",
       pid: process.pid,
       port,
       packaged: process.env.SCA_PACKAGED === "1",
-      token: process.env.SCA_BACKEND_TOKEN ?? "",
       backendDir
     });
     if (url.pathname === "/api/catalog") return send(res, 200, await loadCatalog());
@@ -386,9 +396,15 @@ async function route(req, res) {
     }
     if (url.pathname === "/api/library" && req.method === "POST") {
       const body = await json(req);
-      libraryRoot = path.resolve(body.path || defaultLibraryRoot());
-      await ensureLibrary(libraryRoot);
-      await syncCatalog();
+      const targetRoot = path.resolve(body.path || defaultLibraryRoot());
+      if (targetRoot === libraryRoot) return send(res, 200, { libraryRoot });
+      await requireIdleLibrary();
+      // Do not discard a working library when the chosen destination cannot be
+      // created or opened. Publish the new root only once its catalog is ready.
+      await ensureLibrary(targetRoot);
+      await syncCatalog(targetRoot);
+      libraryRoot = targetRoot;
+      configureManagedRuntimes();
       return send(res, 200, { libraryRoot });
     }
     if (url.pathname === "/api/download" && req.method === "POST") {
@@ -450,6 +466,7 @@ async function route(req, res) {
       return send(res, 200, result);
     }
     if (url.pathname === "/api/clean-sources" && req.method === "POST") {
+      await requireIdleLibrary();
       const result = await withDb((db) => cleanSources(db));
       await ensureLibrary(libraryRoot);
       await syncCatalog();
@@ -692,8 +709,8 @@ async function route(req, res) {
       return send(res, 200, result);
     }
     if (url.pathname === "/api/shutdown" && req.method === "POST") {
-      if (!shutdownAuthorized(req)) return send(res, 403, { error: "Forbidden" });
       shuttingDown = true;
+      await stopDownloads();
       const services = await stopRuntimeServices();
       send(res, 200, { status: "shutting_down", services });
       setTimeout(() => closeBackend(), 50).unref?.();

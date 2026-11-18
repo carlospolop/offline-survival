@@ -1415,8 +1415,14 @@
       busy.delete(label);
       busy = busy;
     }
-    if (options.refresh === "state") await refreshState();
-    else if (options.refresh !== "none") await load();
+    try {
+      if (options.refresh === "state") await refreshState();
+      else if (options.refresh !== "none") await load();
+    } catch (err) {
+      // Keep the original action failure visible even if its follow-up refresh
+      // also fails; event handlers must not leak an unhandled rejection.
+      if (!fnError) fnError = String((err as Error).message ?? err);
+    }
     if (fnError) error = fnError;
   }
 

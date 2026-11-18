@@ -187,7 +187,7 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb x11-utils xdotool imagemagick dbus-x11 openbox
+          sudo apt-get install -y xvfb x11-utils xdotool imagemagick dbus-x11 openbox python3-gi gir1.2-atspi-2.0 at-spi2-core
           sudo apt-get install -y libfuse2t64 || sudo apt-get install -y libfuse2 || true
 
       - name: Start virtual display (Linux)

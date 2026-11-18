@@ -113,6 +113,20 @@ async function fetchJsonWithTimeout(url, options, timeoutMs) {
 }
 
 describe("HTTP API", () => {
+  it("keeps the current library usable when a new folder cannot be opened", async () => {
+    const blocker = path.join(root, "not-a-directory");
+    await fs.writeFile(blocker, "a file cannot contain a library");
+    const response = await fetch(`http://127.0.0.1:${port}/api/library`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: path.join(blocker, "library") })
+    });
+    expect(response.ok).toBe(false);
+    const state = await (await fetch(`http://127.0.0.1:${port}/api/state`)).json();
+    expect(state.settings.libraryRoot).toBe(root);
+    expect(state.sources.length).toBeGreaterThan(0);
+  });
+
   it("serves catalog, system, adapters, license report, and integrity", async () => {
     const catalog = await (await fetch(`http://127.0.0.1:${port}/api/catalog`)).json();
     expect(catalog.profiles).toHaveLength(15);

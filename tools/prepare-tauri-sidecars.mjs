@@ -101,7 +101,10 @@ async function extractArchive(archive, destination, kind) {
       await run("powershell", [
         "-NoProfile",
         "-Command",
-        `Expand-Archive -LiteralPath ${powershellQuote(archive)} -DestinationPath ${powershellQuote(destination)} -Force`
+        // A PowerShell 7 runner can leave PSModulePath pointing at its Archive
+        // module even when this invokes Windows PowerShell 5.1. That module's
+        // three-argument extraction overload does not exist in .NET Framework.
+        `$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory(${powershellQuote(archive)}, ${powershellQuote(destination)})`
       ]);
     } else {
       await run("unzip", ["-oq", archive, "-d", destination]);

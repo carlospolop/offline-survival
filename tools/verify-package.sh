@@ -19,49 +19,30 @@ mkdir -p "$SHOT_DIR"
 log()  { printf '\n=== %s ===\n' "$*"; }
 fail() { printf '\nVERIFY FAILED: %s\n' "$*" >&2; exit 1; }
 
-# Launch a Linux GUI binary, wait for its window to map, and confirm the window
-# renders non-blank content. A Tauri app keeps its process alive even when the
-# webview fails to paint, so "process alive" is NOT proof it works — an actual
-# mapped, rendered window is.
+# Exercise the real webview, including a loaded catalog and every main tab.
+# Use a fresh library and D-Bus session so this cannot touch a user's downloads
+# or mistake an already open window for the package being tested.
 linux_functional_check() {
   local label="$1" cmd="$2"
   local safe="${label//[^A-Za-z0-9_.-]/_}"
   local logf; logf="$(mktemp)"
   local shot="$SHOT_DIR/${safe}.png"
+  local report="$SHOT_DIR/${safe}.json"
+  local helper; helper="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/verify-linux-ui.py"
   export DISPLAY="${DISPLAY:-:99}"
-  log "Launching ($label): $cmd  (DISPLAY=$DISPLAY)"
-  WEBKIT_DISABLE_DMABUF_RENDERER=1 LIBGL_ALWAYS_SOFTWARE=1 \
-    dbus-run-session -- "$cmd" >"$logf" 2>&1 &
-  local pid=$! win="" i
-  for i in $(seq 1 60); do
-    if ! kill -0 "$pid" 2>/dev/null; then break; fi
-    win="$(xdotool search --name 'Offline Survival' 2>/dev/null | head -1 || true)"
-    [ -n "$win" ] && break
-    sleep 1
-  done
-  echo "----- app output ($label) -----"; cat "$logf" || true; echo "-------------------------------"
-  if grep -Eiq 'error while loading shared libraries|cannot open shared object file' "$logf"; then
-    kill "$pid" 2>/dev/null || true
-    fail "$label: a required shared library is missing"
+  log "Exercising native UI ($label): $cmd (DISPLAY=$DISPLAY)"
+  if ! dbus-run-session -- /usr/bin/python3 "$helper" \
+      --command "$cmd" --report "$report" --screenshot "$shot" >"$logf" 2>&1; then
+    cat "$logf"
+    fail "$label: native UI workflow failed (report: $report)"
   fi
-  if [ -z "$win" ]; then
-    kill "$pid" 2>/dev/null || true
-    fail "$label: no application window appeared within 60s (the app did not render a window)"
-  fi
-  log "$label: window id $win mapped — letting it paint"
-  sleep 6
-  import -window "$win" "$shot" 2>/dev/null || import -window root "$shot" 2>/dev/null || true
+  cat "$logf"
   local colors=0
   if [ -f "$shot" ]; then colors="$(convert "$shot" -format '%k' info: 2>/dev/null || echo 0)"; fi
-  log "$label: screenshot saved to $shot with $colors distinct colors"
-  kill "$pid" 2>/dev/null || true
-  wait "$pid" 2>/dev/null || true
-  # A blank/failed webview is a near-solid fill (a handful of colors); a rendered
-  # UI has many. Require a clearly non-trivial render.
   if [ "${colors:-0}" -lt 24 ]; then
-    fail "$label: window rendered effectively blank ($colors distinct colors) — the UI did not load"
+    fail "$label: window rendered effectively blank ($colors distinct colors)"
   fi
-  log "$label: FUNCTIONAL CHECK PASSED (window mapped and rendered content)"
+  log "$label: FUNCTIONAL CHECK PASSED (catalog loaded, all main tabs exercised)"
 }
 
 if [ "$OS_KIND" = "linux" ]; then

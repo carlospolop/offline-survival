@@ -154,3 +154,40 @@ the actual native window confirmed the profile headings and the existing
 launch. The previous screenshot color check alone was insufficient to detect
 this loading-screen failure. All 96 automated tests pass, including five new
 startup regression tests; the production UI build and Rust check also pass.
+
+The follow-up audit added these fixes and checks:
+
+- HTTP errors are reported immediately. Mutating requests are sent once, even
+  when their response is lost, to avoid repeating imports, AI calls, or package
+  creation. Follow-up refresh failures cannot escape action event handlers as
+  unhandled rejections.
+- An invalid destination no longer replaces the working library root. Changing
+  or cleaning a library is rejected while downloads, indexing, AI, or packaging
+  jobs are active. Desktop HTTP shutdown waits for downloader processes to exit,
+  including workers that ignore SIGTERM. Tests use temporary libraries and an
+  owned fake downloader; they do not download network fixtures.
+- Every packaged API request requires the connection token. Health responses
+  no longer disclose it, and each native launch generates 32 random bytes from
+  the operating system. Browser/dev servers without a configured token retain
+  their existing behavior.
+- The Linux package verifier now inspects the actual webview through AT-SPI,
+  requires a loaded catalog, and activates Easy Install and every main tab. It
+  uses isolated library and webview state, kills its owned process group, and
+  saves a JSON report alongside the screenshot. A deliberately stuck WebKit
+  window displaying the original loading message was correctly rejected.
+- Windows sidecar preparation now calls the two-argument .NET ZIP extraction
+  API directly. The prior Windows build logs show `Expand-Archive` importing a
+  PowerShell 7 module into Windows PowerShell 5.1 and failing on an unavailable
+  three-argument overload. Windows execution still requires CI verification.
+
+Local source validation passes all 106 tests. Browser checks cover both Bible
+entries, Spanish UI, folder scanning, importing, indexing, keyword search, and
+opening matched documents. Simultaneous simulated AI and state-refresh failures
+send the action once, preserve the question, and produce no page errors. These
+failure checks simulate AI responses rather than claiming model accuracy.
+
+The dependency audit still reports seven high advisories stemming from
+picomatch through tooling dependencies, including libzim's node-gyp chain. The
+reported affected range includes every currently installed compatible release;
+the suggested changes include major downgrades. This is not a clean security
+audit or a claim that the application has no remaining bugs.

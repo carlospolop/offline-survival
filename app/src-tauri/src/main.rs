@@ -1,8 +1,7 @@
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::process;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::ShellExt;
@@ -176,11 +175,9 @@ fn reserve_backend_port() -> std::io::Result<u16> {
 }
 
 fn backend_token() -> String {
-    let millis = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_millis())
-        .unwrap_or_default();
-    format!("{}-{millis}", process::id())
+    let mut bytes = [0_u8; 32];
+    getrandom::fill(&mut bytes).expect("failed to generate backend connection token");
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn inject_backend_config(window: &tauri::WebviewWindow, port: u16, token: &str) {
@@ -221,7 +218,7 @@ fn backend_is_ready(port: u16, token: &str) -> bool {
     match stream.read(&mut response) {
         Ok(count) => {
             let body = String::from_utf8_lossy(&response[..count]);
-            body.contains("200 OK") && body.contains(token)
+            body.contains("200 OK") && body.contains("\"status\":\"ok\"")
         }
         Err(_) => false,
     }

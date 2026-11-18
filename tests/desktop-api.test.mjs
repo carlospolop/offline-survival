@@ -94,4 +94,24 @@ describe("desktop backend startup", () => {
     expect(timeout).toHaveBeenCalledExactlyOnceWith(15_000);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
+  it.each(["GET", "POST"])("does not replay a %s rejected by the backend", async (method) => {
+    window.__SCA_API_PORT = 41255;
+    window.__SCA_API_TOKEN = "this-window-token";
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ error: "Choose a valid folder" }), { status: 400 }));
+    vi.stubGlobal("fetch", fetch);
+    const { api } = await import("../app/ui/src/lib/api.ts");
+    await expect(api("/api/extra-knowledge/scan", { method })).rejects.toThrow("Choose a valid folder");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not replay a mutation when the connection fails after sending it", async () => {
+    window.__SCA_API_PORT = 41255;
+    window.__SCA_API_TOKEN = "this-window-token";
+    const fetch = vi.fn(async () => { throw new Error("Failed to fetch"); });
+    vi.stubGlobal("fetch", fetch);
+    const { api } = await import("../app/ui/src/lib/api.ts");
+    await expect(api("/api/share/package", { method: "POST", body: "{}" })).rejects.toThrow("Could not connect");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });

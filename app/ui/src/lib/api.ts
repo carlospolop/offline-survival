@@ -52,25 +52,32 @@ async function apiOrigins() {
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   let lastError: unknown = null;
   const signal = options.signal ?? (isStartupRequest(path) ? AbortSignal.timeout(15_000) : undefined);
+  const retryable = ["GET", "HEAD"].includes(String(options.method ?? "GET").toUpperCase());
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const targets = path.startsWith("/api") ? (await apiOrigins()).map((origin) => `${origin}${path}`) : [path];
     if (!targets.length) throw new Error("Could not connect to the packaged backend: the app did not provide a backend port.");
 
     for (const target of targets) {
+      let response: Response;
       try {
-        const response = await fetch(target, {
+        response = await fetch(target, {
           ...options,
           headers: apiHeaders(options.headers),
           signal
         });
-        const data = await parseJson(response);
-        if (!response.ok || data.error) throw new Error(data.error ?? response.statusText);
-        return data as T;
       } catch (err) {
         if (signal?.aborted) throw new Error("The local backend request timed out or was cancelled. Please retry.");
+        // A failed response can follow a successful action. Retrying a POST can
+        // duplicate imports, generation, or package creation on the server.
+        if (!retryable) throw new Error(readableApiError(err));
         lastError = err;
+        continue;
       }
+      const data = await parseJson(response);
+      // Application errors are definitive responses, not connection failures.
+      if (!response.ok || data?.error) throw new Error(data?.error ?? response.statusText);
+      return data as T;
     }
     await wait(Math.min(250 * (attempt + 1), 1000));
   }

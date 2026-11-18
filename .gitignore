@@ -35,6 +35,7 @@ site-dist/
 source-audit*.json
 *.log
 .DS_Store
+__pycache__/
 *.sqlite
 *.sqlite-*
 *.zim
