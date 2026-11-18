@@ -1336,7 +1336,8 @@
       return;
     }
     if (current && models.some((model) => model.id === current || model.pull === current)) return;
-    questionModel = models[0].pull ?? models[0].id;
+    const preferred = [...models].sort((a, b) => Number(a.expected_size_bytes ?? 0) - Number(b.expected_size_bytes ?? 0))[0];
+    questionModel = preferred.pull ?? preferred.id;
   }
 
   async function load() {

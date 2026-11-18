@@ -129,3 +129,11 @@ or shut down, and force termination after two seconds if it ignores SIGTERM.
 This prevents orphaned writers from competing with a resumed transfer. A regression
 test uses a downloader that ignores SIGTERM and verifies that its process is gone
 before pause completes. Late progress callbacks cannot overwrite completed rows.
+
+Final laptop verification passed for all 89 catalog sources, totaling
+169,637,359,700 source bytes. The independent library check matched every recorded
+SHA-256 hash, and all 45 ZIM archives passed their embedded checksum checks. Both
+Bible editions are indexed and searchable; Foliate was installed as the laptop's
+EPUB reader and successfully opened the Spanish edition. New chat sessions select
+the smallest installed chat model by default, while preserving explicit model
+choices; browser checks confirmed both behaviors.
