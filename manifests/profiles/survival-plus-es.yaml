@@ -8,6 +8,7 @@ disk_budget_gb: 10
 includes:
   - survival-essential-es
 sources:
+  - fao-family-garden-es
   - wikipedia-es-top-zim
   - wikipedia-es-medicine-zim
   - ifixit-es-zim

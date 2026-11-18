@@ -6,7 +6,7 @@ import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { loadCatalog } from "./catalog.mjs";
-import { downloadProfile, downloadSource, pauseDownload, retryDownload, verifySource } from "./downloader.mjs";
+import { downloadProfile, downloadSource, pauseDownload, retryDownload, stopDownloads, verifySource } from "./downloader.mjs";
 import { indexDownloadedSources, normalizeAndIndex, repairCorruptRepoArchiveIndexes, search, searchExternalFts, semanticSearch } from "./indexer.mjs";
 import { exportManifest, integrityReport, writeLock } from "./archive.mjs";
 import { openSearchResult, openSourceWithAdapter, prepareSourceForUse, refreshAdapters, sourceOpenPlan } from "./adapters.mjs";
@@ -348,6 +348,7 @@ async function stopRuntimeServices() {
 async function shutdownBackend({ exitCode = 0 } = {}) {
   if (shuttingDown) return;
   shuttingDown = true;
+  await stopDownloads();
   await stopRuntimeServices();
   closeBackend(exitCode);
 }

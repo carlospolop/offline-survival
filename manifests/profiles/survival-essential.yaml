@@ -6,6 +6,8 @@ description: Small emergency archive for limited disks. Includes SurvivalManual,
 target_size_gb: [5, 15]
 disk_budget_gb: 15
 sources:
+  - epa-emergency-drinking-water
+  - fema-are-you-ready
   - survivalmanual-wiki
   - survivalmanual-ebook
   - simplewiki-zim

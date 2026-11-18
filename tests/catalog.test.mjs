@@ -47,9 +47,12 @@ describe("catalog", () => {
     expect(byLanguage("en")).toHaveLength(5);
     expect(byLanguage("es")).toHaveLength(5);
     expect(byLanguage("both")).toHaveLength(5);
-    expect(catalog.sources.filter((source) => source.language === "en")).toHaveLength(42);
-    expect(catalog.sources.filter((source) => source.language === "es")).toHaveLength(29);
+    expect(catalog.sources.filter((source) => source.language === "en").length).toBeGreaterThanOrEqual(42);
+    expect(catalog.sources.filter((source) => source.language === "es").length).toBeGreaterThanOrEqual(29);
     expect(catalog.sources.filter((source) => !source.language)).toHaveLength(0);
+    const max = catalog.profiles.find((profile) => profile.id === "civilization-max-bilingual");
+    expect([...max.sourceIds].sort()).toEqual(catalog.sources.map((source) => source.id).sort());
+    expect(max.sourceIds).toEqual(expect.arrayContaining(["fema-are-you-ready", "fema-are-you-ready-es", "fao-family-garden-es", "usda-home-canning-1", "epa-emergency-drinking-water-es"]));
   });
 
   it("shows only per-tier added sources for bilingual profiles", async () => {

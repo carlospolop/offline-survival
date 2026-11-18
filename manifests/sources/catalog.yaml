@@ -73,12 +73,12 @@ sources:
     tags: [ reference, education ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_en_simple_all_maxi_2026-05.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_en-simple_all_maxi_2026-09.zim
     mirrors:
       - https://ftp.nluug.nl/pub/kiwix/zim/wikipedia/wikipedia_en_simple_all_maxi_2026-05.zim
       - https://mirrors.dotsrc.org/kiwix/zim/wikipedia/wikipedia_en_simple_all_maxi_2026-05.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 3466409738
+    expected_size_bytes: 3121060947
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -244,9 +244,9 @@ sources:
     tags: [ geography, travel, navigation ]
     license: CC-BY-SA-4.0
     attribution: Wikivoyage contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikivoyage/wikivoyage_en_all_nopic_2026-03.zim
+    url: https://download.kiwix.org/zim/wikivoyage/wikivoyage_en_all_nopic_2026-09.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 231621256
+    expected_size_bytes: 272495142
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -262,9 +262,9 @@ sources:
     tags: [ food-systems/gardening, food-systems/soil, composting ]
     license: CC-BY-SA-4.0
     attribution: Gardening Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-10.zim
     source_url: https://gardening.stackexchange.com/
-    expected_size_bytes: 925329853
+    expected_size_bytes: 933097375
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -281,9 +281,9 @@ sources:
     tags: [ food-systems/cooking, food-safety, preservation ]
     license: CC-BY-SA-4.0
     attribution: Cooking Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-10.zim
     source_url: https://cooking.stackexchange.com/
-    expected_size_bytes: 237170707
+    expected_size_bytes: 238098128
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -317,9 +317,9 @@ sources:
     tags: [ dictionary, language ]
     license: CC-BY-SA-4.0
     attribution: Wiktionary contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-05.zim
+    url: https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-11.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 9123591835
+    expected_size_bytes: 14847562421
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -410,9 +410,9 @@ sources:
     tags: [ geography, maps, openstreetmap ]
     license: CC-BY-SA-2.0
     attribution: OpenStreetMap Wiki contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_nopic_2026-10.zim
     source_url: https://wiki.openstreetmap.org/
-    expected_size_bytes: 472074286
+    expected_size_bytes: 534241061
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -429,9 +429,9 @@ sources:
     tags: [ repair/buildings, construction, maintenance ]
     license: CC-BY-SA-4.0
     attribution: DIY Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/diy.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/diy.stackexchange.com_en_all_2026-10.zim
     source_url: https://diy.stackexchange.com/
-    expected_size_bytes: 2050957131
+    expected_size_bytes: 2086024326
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -447,9 +447,9 @@ sources:
     tags: [ repair/tools, woodworking, construction ]
     license: CC-BY-SA-4.0
     attribution: Woodworking Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-10.zim
     source_url: https://woodworking.stackexchange.com/
-    expected_size_bytes: 105105615
+    expected_size_bytes: 106657287
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -465,9 +465,9 @@ sources:
     tags: [ repair/electronics, electronics, power ]
     license: CC-BY-SA-4.0
     attribution: Electronics Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/electronics.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/electronics.stackexchange.com_en_all_2026-10.zim
     source_url: https://electronics.stackexchange.com/
-    expected_size_bytes: 4182459470
+    expected_size_bytes: 4261397539
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -483,9 +483,9 @@ sources:
     tags: [ repair/electronics, microcontrollers, automation ]
     license: CC-BY-SA-4.0
     attribution: Arduino Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/arduino.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/arduino.stackexchange.com_en_all_2026-10.zim
     source_url: https://arduino.stackexchange.com/
-    expected_size_bytes: 259237565
+    expected_size_bytes: 259577739
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -502,9 +502,9 @@ sources:
     tags: [ engineering, reconstruction/materials, reconstruction/manufacturing ]
     license: CC-BY-SA-4.0
     attribution: Engineering Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/engineering.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/engineering.stackexchange.com_en_all_2026-10.zim
     source_url: https://engineering.stackexchange.com/
-    expected_size_bytes: 254016088
+    expected_size_bytes: 258556632
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -521,9 +521,9 @@ sources:
     tags: [ reconstruction/manufacturing, repair/tools, fabrication ]
     license: CC-BY-SA-4.0
     attribution: 3D Printing Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-10.zim
     source_url: https://3dprinting.stackexchange.com/
-    expected_size_bytes: 120411330
+    expected_size_bytes: 120337699
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -540,9 +540,9 @@ sources:
     tags: [ transport, repair/tools, maintenance ]
     license: CC-BY-SA-4.0
     attribution: Bicycles Stack Exchange contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/stack_exchange/bicycles.stackexchange.com_en_all_2026-02.zim
+    url: https://download.kiwix.org/zim/stack_exchange/bicycles.stackexchange.com_en_all_2026-10.zim
     source_url: https://bicycles.stackexchange.com/
-    expected_size_bytes: 489509597
+    expected_size_bytes: 499254876
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -558,9 +558,9 @@ sources:
     tags: [ history, culture, reference ]
     license: mixed-free
     attribution: Wikisource contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-05.zim
+    url: https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-09.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 11824699968
+    expected_size_bytes: 3905588830
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -688,9 +688,9 @@ sources:
     tags: [ reference, education, spanish ]
     license: CC-BY-SA-4.0
     attribution: Vikidia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-03.zim
+    url: https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-09.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 13569687
+    expected_size_bytes: 15533320
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -823,9 +823,9 @@ sources:
     tags: [ reference, education, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 1128822337
+    expected_size_bytes: 1209173292
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -848,9 +848,9 @@ sources:
     tags: [ medicine, first-aid, public-health, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 157097761
+    expected_size_bytes: 171178026
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -898,9 +898,9 @@ sources:
     tags: [ geography, travel, navigation, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikivoyage contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-03.zim
+    url: https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-09.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 37667208
+    expected_size_bytes: 43135959
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -940,9 +940,9 @@ sources:
     tags: [ dictionary, language, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wiktionary contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-03.zim
+    url: https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-09.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 561311192
+    expected_size_bytes: 655846102
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -958,9 +958,9 @@ sources:
     tags: [ history, culture, literature, spanish ]
     license: mixed-free
     attribution: Wikisource contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 763595002
+    expected_size_bytes: 399990401
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -977,9 +977,9 @@ sources:
     tags: [ history, education, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 184839013
+    expected_size_bytes: 196573264
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -996,9 +996,9 @@ sources:
     tags: [ mathematics, education, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 106635933
+    expected_size_bytes: 104892331
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -1014,9 +1014,9 @@ sources:
     tags: [ physics, education, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 90512771
+    expected_size_bytes: 92573033
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -1033,9 +1033,9 @@ sources:
     tags: [ computing, education, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-04.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 97131347
+    expected_size_bytes: 102728687
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -1070,9 +1070,9 @@ sources:
     tags: [ reference, education, encyclopedia, spanish ]
     license: CC-BY-SA-4.0
     attribution: Wikimedia contributors via Kiwix/OpenZIM.
-    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-05.zim
+    url: https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-10.zim
     source_url: https://library.kiwix.org/
-    expected_size_bytes: 12093643511
+    expected_size_bytes: 13298215428
     sha256: null
     runtime: [ serve, browse, search ]
     open:
@@ -1271,9 +1271,9 @@ sources:
     tags: [ preparacion, autoproteccion, espana ]
     license: spanish-gov
     attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
-    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_autoproteccion_126230971.pdf
+    url: https://www.proteccioncivil.es/documents/20121/0/07-Autoproteccion_accesible.pdf/4344b9ea-05ef-6415-0223-10ab4257effd
     source_url: https://www.proteccioncivil.es/documentacion/publicaciones
-    expected_size_bytes: 2600000
+    expected_size_bytes: 2942848
     sha256: null
     runtime: [ open, index, search, ai ]
     open:
@@ -1291,9 +1291,9 @@ sources:
     tags: [ preparacion, inundaciones, espana ]
     license: spanish-gov
     attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
-    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf
+    url: https://www.proteccioncivil.es/documents/20121/0/08-Inundaciones_accesible.pdf/9b11b38f-447a-5eea-38bd-088def20096f
     source_url: https://www.proteccioncivil.es/documentacion/publicaciones
-    expected_size_bytes: 2500000
+    expected_size_bytes: 1686716
     sha256: null
     runtime: [ open, index, search, ai ]
     open:
@@ -1311,9 +1311,9 @@ sources:
     tags: [ preparacion, incendios-forestales, espana ]
     license: spanish-gov
     attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
-    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_incendios_forestales_126230859.pdf
+    url: https://www.proteccioncivil.es/documents/20121/0/02-Incendios_Forestales_accesible.pdf/ba63caa6-901f-31c0-a4f3-5f0b7c87d927
     source_url: https://www.proteccioncivil.es/documentacion/publicaciones
-    expected_size_bytes: 2500000
+    expected_size_bytes: 3034326
     sha256: null
     runtime: [ open, index, search, ai ]
     open:
@@ -1331,9 +1331,9 @@ sources:
     tags: [ preparacion, terremotos, espana ]
     license: spanish-gov
     attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
-    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_sismico_126230919.pdf
+    url: https://www.proteccioncivil.es/documents/20121/0/01-Riesgos_Sismico_accesible.pdf/4a195b9a-680e-6232-c471-8520f79af96e
     source_url: https://www.proteccioncivil.es/documentacion/publicaciones
-    expected_size_bytes: 2500000
+    expected_size_bytes: 793906
     sha256: null
     runtime: [ open, index, search, ai ]
     open:
@@ -1351,9 +1351,9 @@ sources:
     tags: [ preparacion, meteorologia, espana ]
     license: spanish-gov
     attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
-    url: https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_fenomenos-meteorologicos_adversos_126230950.pdf
+    url: https://www.proteccioncivil.es/documents/20121/0/06-Fenomenos%20metereologicos.pdf/1295223b-96b3-ae95-d8ec-d7e296d9bb05
     source_url: https://www.proteccioncivil.es/documentacion/publicaciones
-    expected_size_bytes: 2500000
+    expected_size_bytes: 22783836
     sha256: null
     runtime: [ open, index, search, ai ]
     open:
@@ -1462,6 +1462,297 @@ sources:
     profiles:
       [ survival-plus-es, civilization-core-es, civilization-rebuild-es, civilization-max-es ]
     language: es
+  # Survival, household water, food preservation, and repair additions verified November 2026.
+  - id: fema-are-you-ready
+    title: "FEMA: Are You Ready? An In-Depth Guide to Citizen Preparedness"
+    description: "Illustrated household guide to emergency supplies, evacuation, sheltering, communication, and disaster recovery."
+    type: pdf
+    category: survival
+    tags: [ survival, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Federal Emergency Management Agency / Ready.gov."
+    url: "https://www.ready.gov/sites/default/files/2021-11/are-you-ready-guide.pdf"
+    source_url: "https://www.ready.gov/are-you-ready-guide"
+    expected_size_bytes: 4233522
+    sha256: 3873f8ae7528389adacab72259c37b9ae3c507bd3ae23783122e06586560040c
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-essential ]
+    language: en
+  - id: fema-are-you-ready-es
+    title: "FEMA: ¿Está preparado? Guía detallada para la preparación comunitaria"
+    description: "Guía ilustrada de preparación familiar, suministros, evacuación, refugio y respuesta ante desastres."
+    type: pdf
+    category: survival
+    tags: [ survival, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Federal Emergency Management Agency / Ready.gov."
+    url: "https://www.ready.gov/sites/default/files/2021-11/are-you-ready-guide_spanish.pdf"
+    source_url: "https://www.ready.gov/are-you-ready-guide"
+    expected_size_bytes: 4255969
+    sha256: 27694d00d62f7ca28478e4321a3ac2f5b78d263f7b03abe1502821d4f7bbbdbf
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-essential-es ]
+    language: es
+  - id: epa-emergency-drinking-water
+    title: "EPA: Emergency Disinfection of Drinking Water"
+    description: "Printable household reference for drinking-water safety when normal water supplies are disrupted by disasters."
+    type: pdf
+    category: survival
+    tags: [ survival, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Environmental Protection Agency, Office of Water; EPA 816-F-15-003."
+    url: "https://www.epa.gov/sites/default/files/2017-09/documents/emergency_disinfection_of_drinking_water_sept2017.pdf"
+    source_url: "https://www.epa.gov/ground-water-and-drinking-water/emergency-disinfection-drinking-water-0"
+    expected_size_bytes: 754723
+    sha256: f404083d00decedc267bf4265eda776bb250ccfe18c1f7b19152aa006ff727c5
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-essential ]
+    language: en
+  - id: epa-emergency-drinking-water-es
+    title: "EPA: Desinfección de agua potable en situaciones de emergencia"
+    description: "Referencia imprimible sobre agua potable durante cortes de suministro y contaminación después de desastres."
+    type: pdf
+    category: survival
+    tags: [ survival, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Environmental Protection Agency, Office of Water; EPA 816-F-15-003."
+    url: "https://espanol.epa.gov/sites/default/files/2016-05/documents/spanish_emergency_disinfection_drinking_water_0.pdf"
+    source_url: "https://espanol.epa.gov/espanol/desinfeccion-de-agua-potable-en-situaciones-de-emergencia-junio-de-2015"
+    expected_size_bytes: 250968
+    sha256: 4db7899c48ae8f3e737ca85bcb797be5c5aca9355ff3a3699a776d74e9ae07d0
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-essential-es ]
+    language: es
+  - id: fao-family-garden-es
+    title: "FAO: Una huerta para todos (quinta edición)"
+    description: "Manual ilustrado de 289 páginas sobre huertas familiares, suelo, siembra, riego, hidroponía y producción de hortalizas; edición chilena de 2014."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: FAO-noncommercial
+    attribution: "FAO, Alberto Pantoja and Meliza González. Una huerta para todos, fifth edition, Santiago, 2014. ISBN 978-92-5-308420-3. University of La Plata educational mirror."
+    url: "https://aulavirtual.agro.unlp.edu.ar/pluginfile.php/25825/mod_folder/content/0/Huerta%20para%20todos%20-%20FAO.pdf?forcedownload=1"
+    source_url: "https://www.fao.org/family-farming/detail/es/c/317903/"
+    expected_size_bytes: 33960178
+    sha256: 00991276e5e942b03cd8c6376e56229caa70468517e7e26613cfefcc8fb93457
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus-es ]
+    language: es
+  - id: usda-home-canning-1
+    title: "USDA Home Canning Guide 1: Principles of Home Canning"
+    description: "Part 1 of the USDA Complete Guide to Home Canning (2015 revision), covering principles of home canning."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE01_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 3794234
+    sha256: 60d1e1a74a9fe61c19e6f5312a76d291905a8ca51b28d0def04c677294416d86
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: usda-home-canning-2
+    title: "USDA Home Canning Guide 2: Selecting, Preparing, and Canning Fruit and Fruit Products"
+    description: "Part 2 of the USDA Complete Guide to Home Canning (2015 revision), covering selecting, preparing, and canning fruit and fruit products."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE02_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 1098841
+    sha256: 5f6918678e1410b72f9f87d652ebab2f5f5d39f3806db676399e5c785be0b58e
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: usda-home-canning-3
+    title: "USDA Home Canning Guide 3: Selecting, Preparing, and Canning Tomatoes and Tomato Products"
+    description: "Part 3 of the USDA Complete Guide to Home Canning (2015 revision), covering selecting, preparing, and canning tomatoes and tomato products."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE03_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 976490
+    sha256: 6f8d166be89c7260964bfa4746fae72e79164f19a712672b0c1aa3bb902d18ff
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: usda-home-canning-4
+    title: "USDA Home Canning Guide 4: Selecting, Preparing, and Canning Vegetables and Vegetable Products"
+    description: "Part 4 of the USDA Complete Guide to Home Canning (2015 revision), covering selecting, preparing, and canning vegetables and vegetable products."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE04_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 2013613
+    sha256: bb1d6ccce65146b5caad8bdaf766424c702119a90aa834b25269816da165641f
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: usda-home-canning-5
+    title: "USDA Home Canning Guide 5: Preparing and Canning Poultry, Red Meats, and Seafoods"
+    description: "Part 5 of the USDA Complete Guide to Home Canning (2015 revision), covering preparing and canning poultry, red meats, and seafoods."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE05_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 1356485
+    sha256: bffe17ee5a99d5b3393894b811508cbe797d30685b1b91d13496d7a768b589b7
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: usda-home-canning-6
+    title: "USDA Home Canning Guide 6: Preparing and Canning Fermented Foods and Pickled Vegetables"
+    description: "Part 6 of the USDA Complete Guide to Home Canning (2015 revision), covering preparing and canning fermented foods and pickled vegetables."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE06_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 3173534
+    sha256: fa4be9f7ac718801178f4f04efa169d74b8c64757d35aa29aa8226fbdaeee4bf
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: usda-home-canning-7
+    title: "USDA Home Canning Guide 7: Preparing and Canning Jams and Jellies"
+    description: "Part 7 of the USDA Complete Guide to Home Canning (2015 revision), covering preparing and canning jams and jellies."
+    type: pdf
+    category: food-systems
+    tags: [ food-systems, preparedness, reference ]
+    license: public-domain-us
+    attribution: "U.S. Department of Agriculture, Agriculture Information Bulletin No. 539, 2015 revision; hosted by the University of Georgia National Center for Home Food Preservation."
+    url: "https://nchfp.uga.edu/papers/guide/GUIDE07_HomeCan_rev0715.pdf"
+    source_url: "https://nchfp.uga.edu/resources/category/usda-guide"
+    expected_size_bytes: 1300368
+    sha256: 6023faf9ea45f8e20078c54c5d273a7717ce17c66eba57a18f363ba54021e411
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: "Open the downloaded PDF with the system PDF viewer."
+    profiles: [ survival-plus ]
+    language: en
+  - id: mechanics-stackexchange-zim
+    title: "Motor Vehicle Maintenance and Repair Stack Exchange ZIM"
+    description: "Offline community reference for vehicle diagnosis, maintenance, tools, and repairs."
+    type: zim
+    category: repair
+    tags: [ repair, preparedness, reference ]
+    license: CC-BY-SA-4.0
+    attribution: "Stack Exchange contributors via Kiwix/OpenZIM; individual posts retain their applicable CC BY-SA versions."
+    url: "https://download.kiwix.org/zim/stack_exchange/mechanics.stackexchange.com_en_all_2026-10.zim"
+    source_url: "https://mechanics.stackexchange.com/"
+    expected_size_bytes: 341672133
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: "Open the offline archive with the local Kiwix reader."
+    profiles: [ civilization-core ]
+    language: en
+  - id: ham-stackexchange-zim
+    title: "Amateur Radio Stack Exchange ZIM"
+    description: "Offline reference on radio equipment, antennas, power, and amateur communications for community resilience."
+    type: zim
+    category: engineering
+    tags: [ engineering, preparedness, reference ]
+    license: CC-BY-SA-4.0
+    attribution: "Stack Exchange contributors via Kiwix/OpenZIM; individual posts retain their applicable CC BY-SA versions."
+    url: "https://download.kiwix.org/zim/stack_exchange/ham.stackexchange.com_en_all_2026-10.zim"
+    source_url: "https://ham.stackexchange.com/"
+    expected_size_bytes: 77108284
+    sha256: null
+    runtime: [ serve, browse, search ]
+    open:
+      action: kiwix_serve
+      label: "Open the offline archive with the local Kiwix reader."
+    profiles: [ civilization-core ]
+    language: en
+
+  - id: guia-tsunamis-es
+    title: "Protección Civil: Guía ciudadana ante tsunamis"
+    description: "Guía ilustrada de preparación, evacuación y autoprotección ante tsunamis."
+    type: pdf
+    category: survival
+    tags: [ preparedness, evacuation, natural-hazards ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.proteccioncivil.es/documents/20121/0/04-Tsunamis_accesible.pdf/44b4d68b-a1bc-0026-ba09-c85810f4266f
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 1080034
+    sha256: a68065ae360d2e0532ac379323a8632380f50f21cf9b43a4264065db4347db3a
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles: [ survival-essential-es ]
+    language: es
+  - id: guia-riesgo-volcanico-es
+    title: "Protección Civil: Guía ciudadana ante el riesgo volcánico"
+    description: "Guía ilustrada de prevención, alertas, evacuación y autoprotección ante erupciones volcánicas."
+    type: pdf
+    category: survival
+    tags: [ preparedness, evacuation, natural-hazards ]
+    license: spanish-gov
+    attribution: Ministerio del Interior / Dirección General de Protección Civil y Emergencias (España).
+    url: https://www.proteccioncivil.es/documents/20121/0/03-Riesgos_Volcanicos_accesible.pdf/6694c5a6-0bba-e147-7d9d-d3b7eae1afaa
+    source_url: https://www.proteccioncivil.es/documentacion/publicaciones
+    expected_size_bytes: 1661967
+    sha256: 40efc6c60c0101587fadec1b6a6ae89da5fd28f5635c332e6983766e3df32515
+    runtime: [ open, index, search, ai ]
+    open:
+      action: direct_open
+      label: Open the downloaded PDF with the system PDF viewer.
+    profiles: [ survival-essential-es ]
+    language: es
+
 models:
   - id: qwen2_5-1_5b
     title: Qwen2.5 1.5B

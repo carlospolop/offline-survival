@@ -13,6 +13,7 @@ import { listZipEntries, readZipEntry, writeZipEntries, zipDirectoryToFile } fro
 
 const execFileAsync = promisify(execFile);
 const active = new Map();
+let acceptingDownloads = true;
 const connectTimeoutMs = Number(process.env.SCA_DOWNLOAD_CONNECT_TIMEOUT_MS ?? 30_000);
 const maxStreamAttempts = Number(process.env.SCA_DOWNLOAD_STREAM_ATTEMPTS ?? 4);
 const progressIntervalMs = Number(process.env.SCA_DOWNLOAD_PROGRESS_INTERVAL_MS ?? 1_000);
@@ -53,11 +54,19 @@ export async function currentLibraryBytes(root) {
 }
 
 export async function downloadSource({ db, libraryRoot, source, diskBudgetBytes = Infinity, fetchImpl = fetch }) {
+  if (!acceptingDownloads) throw new Error("Download paused: application shutting down");
   if (active.has(source.id)) return active.get(source.id).promise;
   const controller = new AbortController();
   const promise = doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl, signal: controller.signal }).finally(() => active.delete(source.id));
   active.set(source.id, { promise, controller });
   return promise;
+}
+
+export async function stopDownloads() {
+  acceptingDownloads = false;
+  const transfers = [...active.values()];
+  for (const transfer of transfers) transfer.controller.abort();
+  await Promise.allSettled(transfers.map((transfer) => transfer.promise));
 }
 
 async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl, signal }) {
@@ -83,6 +92,8 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
     let resumed = false;
     if (source.download?.action === "git_archive") {
       await cloneGitArchive({ db, source, tmpPath, signal });
+    } else if (process.env.SCA_DOWNLOAD_TRANSPORT === "aria2" && !hasDiskBudget(diskBudgetBytes) && source.type === "zim") {
+      await transferWithAria2({ db, source, tmpPath, signal });
     } else {
       for (let attempt = 1; attempt <= maxStreamAttempts; attempt += 1) {
         try {
@@ -99,9 +110,28 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
         }
       }
     }
+    if (["pdf", "zim"].includes(source.type)) {
+      const file = await fsp.open(tmpPath, "r");
+      let signature;
+      try {
+        const header = Buffer.alloc(8);
+        const { bytesRead } = await file.read(header, 0, header.length, 0);
+        signature = header.subarray(0, bytesRead);
+      } finally { await file.close(); }
+      const valid = source.type === "pdf"
+        ? signature.subarray(0, 5).equals(Buffer.from("%PDF-"))
+        : signature.length >= 4 && signature.readUInt32LE(0) === 0x044d495a;
+      if (!valid) {
+        await fsp.rm(tmpPath, { force: true });
+        throw new Error(`Invalid ${source.type.toUpperCase()} download: unexpected file signature`);
+      }
+    }
     const digest = await sha256File(tmpPath);
     const expectedHash = source.sha256 || await resolveChecksum(source, fetchImpl, signal);
-    if (expectedHash && digest !== expectedHash) throw new Error(`Checksum mismatch: expected ${expectedHash}, got ${digest}`);
+    if (expectedHash && digest !== expectedHash) {
+      await fsp.rm(tmpPath, { force: true });
+      throw new Error(`Checksum mismatch: expected ${expectedHash}, got ${digest}`);
+    }
     const existingBlob = db.prepare("SELECT * FROM blobs WHERE sha256=?").get(digest);
     if (existingBlob) {
       await fsp.rm(tmpPath, { force: true });
@@ -124,10 +154,36 @@ async function doDownload({ db, libraryRoot, source, diskBudgetBytes, fetchImpl,
     return { sourceId: source.id, path: relPath, size, sha256: digest };
   } catch (error) {
     const paused = isPauseError(error, signal);
-    if (!paused) await fsp.rm(tmpPath, { force: true });
+    // Keep interrupted transfers so a later retry can resume large archives.
     db.prepare("UPDATE downloads SET status=?, error=?, updated_at=? WHERE id=?").run(paused ? "paused" : "failed", String(error.message ?? error), now(), source.id);
     db.prepare("UPDATE sources SET status=?, updated_at=? WHERE id=?").run(paused ? "paused" : "broken", now(), source.id);
     throw error;
+  }
+}
+
+async function transferWithAria2({ db, source, tmpPath, signal }) {
+  // Optional acceleration for preparing large libraries on machines with aria2.
+  // Keep the normal fetch transport as the dependency-free default.
+  const updateProgress = async () => {
+    const size = await fsp.stat(tmpPath).then((stat) => Math.min(stat.size, stat.blocks * 512)).catch(() => 0);
+    if (signal.aborted) return;
+    db.prepare("UPDATE downloads SET bytes_received=?, updated_at=? WHERE id=?").run(size, now(), source.id);
+  };
+  const timer = setInterval(() => updateProgress().catch(() => {}), progressIntervalMs);
+  try {
+    await execFileAsync("aria2c", [
+      "--continue=true", "--auto-file-renaming=false", "--allow-overwrite=true",
+      "--file-allocation=none", "--split=8", "--max-connection-per-server=8",
+      "--min-split-size=8M", "--timeout=60", "--connect-timeout=15",
+      "--max-tries=5", "--retry-wait=5", "--summary-interval=0",
+      "--console-log-level=warn", "--download-result=hide",
+      ...(downloadMaxBytesPerSecond > 0 ? [`--max-download-limit=${Math.floor(downloadMaxBytesPerSecond)}`] : []),
+      `--dir=${path.dirname(tmpPath)}`, `--out=${path.basename(tmpPath)}`,
+      ...candidateUrls(source)
+    ], { signal, maxBuffer: 1024 * 1024 });
+    await updateProgress();
+  } finally {
+    clearInterval(timer);
   }
 }
 
@@ -274,6 +330,9 @@ async function transferToPartial({ db, source, tmpPath, existingBytes, expected,
   } finally {
     await new Promise((resolve, reject) => file.end((error) => (error ? reject(error) : resolve())));
   }
+  if (response.headers.has("content-length") && received !== total) {
+    throw new Error(`Incomplete download: expected ${total} bytes, received ${received}`);
+  }
   return { resumed };
 }
 
@@ -308,9 +367,12 @@ async function fetchWithFallback(source, fetchImpl, signal, existingPartial = 0)
     try {
       const headers = existingPartial ? { Range: `bytes=${existingPartial}-` } : {};
       let response = await fetchWithTimeout(fetchImpl, url, { signal, headers }, connectTimeoutMs);
-      if (existingPartial && response.status === 416) response = await fetchWithTimeout(fetchImpl, url, { signal }, connectTimeoutMs);
-      if (existingPartial && response.status !== 206) response = await fetchWithTimeout(fetchImpl, url, { signal }, connectTimeoutMs);
+      if (existingPartial && response.status === 416) {
+        await response.body?.cancel();
+        response = await fetchWithTimeout(fetchImpl, url, { signal }, connectTimeoutMs);
+      }
       if (response.ok || response.status === 206) return response;
+      await response.body?.cancel();
       errors.push(`${url}: HTTP ${response.status} ${response.statusText}`);
     } catch (error) {
       errors.push(`${url}: ${String(error.message ?? error)}`);
@@ -319,7 +381,7 @@ async function fetchWithFallback(source, fetchImpl, signal, existingPartial = 0)
   throw new Error(`All mirrors failed: ${errors.join("; ")}`);
 }
 
-function candidateUrls(source) {
+export function candidateUrls(source) {
   const urls = [source.url, ...(source.mirrors ?? []), ...(source.mirror_urls ?? [])].filter(Boolean);
   const expanded = [];
   for (const url of urls) {
@@ -334,9 +396,9 @@ function kiwixMirrorUrls(url) {
     const parsed = new URL(url);
     if (parsed.hostname !== "download.kiwix.org" || !parsed.pathname.startsWith("/zim/")) return [];
     return [
+      `https://ftp.fau.de/kiwix${parsed.pathname}`,
       `https://ftp.nluug.nl/pub/kiwix${parsed.pathname}`,
-      `https://mirrors.dotsrc.org/kiwix${parsed.pathname}`,
-      `https://ftp.fau.de/kiwix${parsed.pathname}`
+      `https://mirrors.dotsrc.org/kiwix${parsed.pathname}`
     ];
   } catch {
     return [];
@@ -346,17 +408,11 @@ function kiwixMirrorUrls(url) {
 async function fetchWithTimeout(fetchImpl, url, options, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`Connection timed out after ${timeoutMs}ms`)), timeoutMs);
-  const outerSignal = options.signal;
-  const abort = () => controller.abort(outerSignal.reason);
-  if (outerSignal) {
-    if (outerSignal.aborted) controller.abort(outerSignal.reason);
-    else outerSignal.addEventListener("abort", abort, { once: true });
-  }
+  const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
   try {
-    return await fetchImpl(url, { ...options, signal: controller.signal });
+    return await fetchImpl(url, { ...options, signal });
   } finally {
     clearTimeout(timer);
-    if (outerSignal) outerSignal.removeEventListener("abort", abort);
   }
 }
 
@@ -411,6 +467,8 @@ export async function downloadProfile({ db, libraryRoot, profile, sources, diskB
     throw new Error(message);
   }
   const limit = Math.max(1, Math.min(Number(concurrency) || 4, pending.length || 1));
+  // Make compact guides available before multi-gigabyte reference archives.
+  pending.sort((a, b) => Number(a.expected_size_bytes ?? 0) - Number(b.expected_size_bytes ?? 0));
   recordEvent(db, "profile-download-start", `${profile.title} profile download started`, { profileId: profile.id, count: selected.length, concurrency: limit });
   const failures = [];
   let cursor = 0;
@@ -447,6 +505,6 @@ export async function verifySource({ db, libraryRoot, sourceId }) {
   const full = path.join(libraryRoot, row.local_path);
   const digest = await sha256File(full);
   const ok = !row.sha256 || row.sha256 === digest;
-  db.prepare("UPDATE sources SET status=?, sha256=?, updated_at=? WHERE id=?").run(ok ? "verified" : "broken", digest, now(), sourceId);
+  db.prepare("UPDATE sources SET status=?, sha256=?, updated_at=? WHERE id=?").run(ok ? "verified" : "broken", row.sha256 || digest, now(), sourceId);
   return { sourceId, ok, sha256: digest };
 }

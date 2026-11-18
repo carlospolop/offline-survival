@@ -812,6 +812,79 @@ describe("library workflows", () => {
     db.close();
   });
 
+  it("retains partial transfers after retries are exhausted and resumes on the next download", async () => {
+    const source = { id: "exhausted", title: "Exhausted", type: "html", license: "CC0", url: "https://example.test/exhausted.html", expected_size_bytes: 10 };
+    const db = openState(root);
+    try {
+      upsertSource(db, source);
+      let first = true;
+      await expect(downloadSource({ db, libraryRoot: root, source, fetchImpl: async () => {
+        if (!first) throw new Error("offline");
+        first = false;
+        return new Response(new ReadableStream({ start(controller) {
+          controller.enqueue(new TextEncoder().encode("hello"));
+          setTimeout(() => controller.error(new Error("connection lost")), 5);
+        } }), { headers: { "content-length": "10" } });
+      } })).rejects.toThrow();
+      expect(await fs.readFile(path.join(root, "tmp/exhausted.part"), "utf8")).toBe("hello");
+      const result = await downloadSource({ db, libraryRoot: root, source, fetchImpl: async (_url, options) => {
+        expect(options.headers.Range).toBe("bytes=5-");
+        return new Response("world", { status: 206, headers: { "content-length": "5" } });
+      } });
+      expect(await fs.readFile(path.join(root, result.path), "utf8")).toBe("helloworld");
+    } finally { db.close(); }
+  });
+
+  it("rejects truncated successful responses instead of recording them as complete", async () => {
+    const source = { id: "truncated", title: "Truncated", type: "html", license: "CC0", url: "https://example.test/truncated.html", expected_size_bytes: 10 };
+    const db = openState(root);
+    try {
+      upsertSource(db, source);
+      await expect(downloadSource({ db, libraryRoot: root, source, fetchImpl: async () => new Response("short", { headers: { "content-length": "10" } }) })).rejects.toThrow("Incomplete download");
+      expect(db.prepare("SELECT status FROM downloads WHERE id=?").get(source.id).status).toBe("failed");
+    } finally { db.close(); }
+  });
+
+  it("does not overwrite the expected hash when verification detects corruption", async () => {
+    const source = { id: "corrupted", title: "Corrupted", type: "html", license: "CC0", url: "https://example.test/corrupted.html", expected_size_bytes: 4 };
+    const db = openState(root);
+    try {
+      upsertSource(db, source);
+      const downloaded = await downloadSource({ db, libraryRoot: root, source, fetchImpl: async () => response("good") });
+      await fs.writeFile(path.join(root, downloaded.path), "bad");
+      expect((await verifySource({ db, libraryRoot: root, sourceId: source.id })).ok).toBe(false);
+      expect((await verifySource({ db, libraryRoot: root, sourceId: source.id })).ok).toBe(false);
+      expect(db.prepare("SELECT sha256 FROM sources WHERE id=?").get(source.id).sha256).toBe(downloaded.sha256);
+    } finally { db.close(); }
+  });
+
+  it("rejects successful HTML error pages in place of PDF downloads", async () => {
+    const source = { id: "error-page", title: "Error Page", type: "pdf", license: "CC0", url: "https://example.test/book.pdf", expected_size_bytes: 10 };
+    const db = openState(root);
+    try {
+      upsertSource(db, source);
+      await expect(downloadSource({ db, libraryRoot: root, source, fetchImpl: async () => response("<html>Unavailable</html>") })).rejects.toThrow("Invalid PDF download");
+      expect(db.prepare("SELECT status FROM downloads WHERE id=?").get(source.id).status).toBe("failed");
+      await expect(fs.stat(path.join(root, "tmp/error-page.part"))).rejects.toThrow();
+    } finally { db.close(); }
+  });
+
+  it("aborts the response body when paused after the headers arrive", async () => {
+    const source = { id: "pause-body", title: "Pause Body", type: "html", license: "CC0", url: "https://example.test/body.html", expected_size_bytes: 10 };
+    const db = openState(root);
+    try {
+      upsertSource(db, source);
+      const transfer = downloadSource({ db, libraryRoot: root, source, fetchImpl: async (_url, { signal }) => new Response(new ReadableStream({ start(controller) {
+        controller.enqueue(Buffer.from("hello"));
+        signal.addEventListener("abort", () => controller.error(new Error("aborted")), { once: true });
+        setTimeout(() => pauseDownload(db, source.id), 20);
+      } }), { headers: { "content-length": "10" } }) });
+      await expect(transfer).rejects.toThrow();
+      expect(db.prepare("SELECT status FROM downloads WHERE id=?").get(source.id).status).toBe("paused");
+      expect(await fs.readFile(path.join(root, "tmp/pause-body.part"), "utf8")).toBe("hello");
+    } finally { db.close(); }
+  });
+
   it("clones git archives even when the process cwd has been removed", async () => {
     try {
       await execFileAsync("git", ["--version"], { cwd: root });

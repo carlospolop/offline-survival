@@ -8,6 +8,13 @@ disk_budget_gb: 60
 includes:
   - survival-essential
 sources:
+  - usda-home-canning-7
+  - usda-home-canning-6
+  - usda-home-canning-5
+  - usda-home-canning-4
+  - usda-home-canning-3
+  - usda-home-canning-2
+  - usda-home-canning-1
   - wikipedia-top1m-zim
   - wikipedia-medicine-zim
   - ifixit-zim

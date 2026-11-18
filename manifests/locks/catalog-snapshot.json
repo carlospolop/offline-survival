@@ -1,95 +1,95 @@
 {
-  "generated_at": "2026-06-24T08:42:19.688Z",
+  "generated_at": "2026-11-18T12:10:02.293Z",
   "profiles": [
     {
       "id": "survival-essential",
       "title": "Survival Essential",
-      "source_count": 9,
-      "expected_size_bytes": 3608843091
+      "source_count": 11,
+      "expected_size_bytes": 3268482545
     },
     {
       "id": "survival-essential-es",
       "title": "Survival Essential ES",
-      "source_count": 15,
-      "expected_size_bytes": 53631579
+      "source_count": 19,
+      "expected_size_bytes": 81485782
     },
     {
       "id": "survival-essential-bilingual",
       "title": "Survival Essential Bilingual",
-      "source_count": 24,
-      "expected_size_bytes": 3662474670
+      "source_count": 30,
+      "expected_size_bytes": 3349968327
     },
     {
       "id": "survival-plus",
       "title": "Survival Plus",
-      "source_count": 19,
-      "expected_size_bytes": 30174265382
+      "source_count": 28,
+      "expected_size_bytes": 29897187230
     },
     {
       "id": "survival-plus-es",
       "title": "Survival Plus ES",
-      "source_count": 20,
-      "expected_size_bytes": 5060103969
+      "source_count": 25,
+      "expected_size_bytes": 5221818321
     },
     {
       "id": "survival-plus-bilingual",
       "title": "Survival Plus Bilingual",
-      "source_count": 39,
-      "expected_size_bytes": 35234369351
+      "source_count": 53,
+      "expected_size_bytes": 35119005551
     },
     {
       "id": "civilization-core",
       "title": "Civilization Core",
-      "source_count": 35,
-      "expected_size_bytes": 55015852862
+      "source_count": 46,
+      "expected_size_bytes": 61073801790
     },
     {
       "id": "civilization-core-es",
       "title": "Civilization Core ES",
-      "source_count": 22,
-      "expected_size_bytes": 5733458699
+      "source_count": 27,
+      "expected_size_bytes": 5989707961
     },
     {
       "id": "civilization-core-bilingual",
       "title": "Civilization Core Bilingual",
-      "source_count": 57,
-      "expected_size_bytes": 60749311561
+      "source_count": 73,
+      "expected_size_bytes": 67063509751
     },
     {
       "id": "civilization-rebuild",
       "title": "Civilization Rebuild",
-      "source_count": 40,
-      "expected_size_bytes": 83568473249
+      "source_count": 51,
+      "expected_size_bytes": 81707311039
     },
     {
       "id": "civilization-rebuild-es",
       "title": "Civilization Rebuild ES",
-      "source_count": 28,
-      "expected_size_bytes": 8836278781
+      "source_count": 33,
+      "expected_size_bytes": 8746571693
     },
     {
       "id": "civilization-rebuild-bilingual",
       "title": "Civilization Rebuild Bilingual",
-      "source_count": 68,
-      "expected_size_bytes": 92404752030
+      "source_count": 84,
+      "expected_size_bytes": 90453882732
     },
     {
       "id": "civilization-max",
       "title": "Civilization Max",
-      "source_count": 42,
-      "expected_size_bytes": 149105950269
+      "source_count": 53,
+      "expected_size_bytes": 147244788059
     },
     {
       "id": "civilization-max-es",
       "title": "Civilization Max ES",
-      "source_count": 29,
-      "expected_size_bytes": 20929922292
+      "source_count": 34,
+      "expected_size_bytes": 22044787121
     },
     {
       "id": "civilization-max-bilingual",
       "title": "Civilization Max Bilingual",
-      "source_count": 71,
-      "expected_size_bytes": 170035872561
+      "source_count": 87,
+      "expected_size_bytes": 169289575180
     }
   ],
   "sources": [
@@ -113,8 +113,8 @@
       "id": "simplewiki-zim",
       "title": "Simple English Wikipedia ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en_simple_all_maxi_2026-05.zim",
-      "expected_size_bytes": 3466409738,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_en-simple_all_maxi_2026-09.zim",
+      "expected_size_bytes": 3121060947,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -177,24 +177,24 @@
       "id": "wikivoyage-zim",
       "title": "Wikivoyage English No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikivoyage/wikivoyage_en_all_nopic_2026-03.zim",
-      "expected_size_bytes": 231621256,
+      "url": "https://download.kiwix.org/zim/wikivoyage/wikivoyage_en_all_nopic_2026-09.zim",
+      "expected_size_bytes": 272495142,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "gardening-stackexchange-zim",
       "title": "Gardening Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 925329853,
+      "url": "https://download.kiwix.org/zim/stack_exchange/gardening.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 933097375,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "cooking-stackexchange-zim",
       "title": "Cooking Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 237170707,
+      "url": "https://download.kiwix.org/zim/stack_exchange/cooking.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 238098128,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -209,8 +209,8 @@
       "id": "wiktionary-zim",
       "title": "Wiktionary English ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-05.zim",
-      "expected_size_bytes": 9123591835,
+      "url": "https://download.kiwix.org/zim/wiktionary/wiktionary_en_all_nopic_2026-11.zim",
+      "expected_size_bytes": 14847562421,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -249,72 +249,72 @@
       "id": "openstreetmap-wiki-zim",
       "title": "OpenStreetMap Wiki No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_nopic_2026-04.zim",
-      "expected_size_bytes": 472074286,
+      "url": "https://download.kiwix.org/zim/other/openstreetmap-wiki_en_all_nopic_2026-10.zim",
+      "expected_size_bytes": 534241061,
       "license": "CC-BY-SA-2.0"
     },
     {
       "id": "diy-stackexchange-zim",
       "title": "DIY Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/diy.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 2050957131,
+      "url": "https://download.kiwix.org/zim/stack_exchange/diy.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 2086024326,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "woodworking-stackexchange-zim",
       "title": "Woodworking Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 105105615,
+      "url": "https://download.kiwix.org/zim/stack_exchange/woodworking.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 106657287,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "electronics-stackexchange-zim",
       "title": "Electronics Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/electronics.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 4182459470,
+      "url": "https://download.kiwix.org/zim/stack_exchange/electronics.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 4261397539,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "arduino-stackexchange-zim",
       "title": "Arduino Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/arduino.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 259237565,
+      "url": "https://download.kiwix.org/zim/stack_exchange/arduino.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 259577739,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "engineering-stackexchange-zim",
       "title": "Engineering Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/engineering.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 254016088,
+      "url": "https://download.kiwix.org/zim/stack_exchange/engineering.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 258556632,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "3dprinting-stackexchange-zim",
       "title": "3D Printing Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 120411330,
+      "url": "https://download.kiwix.org/zim/stack_exchange/3dprinting.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 120337699,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "bicycles-stackexchange-zim",
       "title": "Bicycles Stack Exchange ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/stack_exchange/bicycles.stackexchange.com_en_all_2026-02.zim",
-      "expected_size_bytes": 489509597,
+      "url": "https://download.kiwix.org/zim/stack_exchange/bicycles.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 499254876,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "wikisource-zim",
       "title": "Wikisource English ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-05.zim",
-      "expected_size_bytes": 11824699968,
+      "url": "https://download.kiwix.org/zim/wikisource/wikisource_en_all_nopic_2026-09.zim",
+      "expected_size_bytes": 3905588830,
       "license": "mixed-free"
     },
     {
@@ -369,8 +369,8 @@
       "id": "vikidia-es-zim",
       "title": "Vikidia Spanish No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-03.zim",
-      "expected_size_bytes": 13569687,
+      "url": "https://download.kiwix.org/zim/vikidia/vikidia_es_all_nopic_2026-09.zim",
+      "expected_size_bytes": 15533320,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -409,16 +409,16 @@
       "id": "wikipedia-es-top-zim",
       "title": "Wikipedia Spanish Top No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-04.zim",
-      "expected_size_bytes": 1128822337,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_top_nopic_2026-10.zim",
+      "expected_size_bytes": 1209173292,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "wikipedia-es-medicine-zim",
       "title": "Wikipedia Spanish Medicine No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-04.zim",
-      "expected_size_bytes": 157097761,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_medicine_nopic_2026-10.zim",
+      "expected_size_bytes": 171178026,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -433,8 +433,8 @@
       "id": "wikivoyage-es-zim",
       "title": "Wikivoyage Spanish No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-03.zim",
-      "expected_size_bytes": 37667208,
+      "url": "https://download.kiwix.org/zim/wikivoyage/wikivoyage_es_all_nopic_2026-09.zim",
+      "expected_size_bytes": 43135959,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -449,48 +449,48 @@
       "id": "wiktionary-es-zim",
       "title": "Wiktionary Spanish No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-03.zim",
-      "expected_size_bytes": 561311192,
+      "url": "https://download.kiwix.org/zim/wiktionary/wiktionary_es_all_nopic_2026-09.zim",
+      "expected_size_bytes": 655846102,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "wikisource-es-zim",
       "title": "Wikisource Spanish No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-04.zim",
-      "expected_size_bytes": 763595002,
+      "url": "https://download.kiwix.org/zim/wikisource/wikisource_es_all_nopic_2026-10.zim",
+      "expected_size_bytes": 399990401,
       "license": "mixed-free"
     },
     {
       "id": "wikipedia-es-history-zim",
       "title": "Wikipedia Spanish History No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-04.zim",
-      "expected_size_bytes": 184839013,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_history_nopic_2026-10.zim",
+      "expected_size_bytes": 196573264,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "wikipedia-es-mathematics-zim",
       "title": "Wikipedia Spanish Mathematics No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-04.zim",
-      "expected_size_bytes": 106635933,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_mathematics_nopic_2026-10.zim",
+      "expected_size_bytes": 104892331,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "wikipedia-es-physics-zim",
       "title": "Wikipedia Spanish Physics No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-04.zim",
-      "expected_size_bytes": 90512771,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_physics_nopic_2026-10.zim",
+      "expected_size_bytes": 92573033,
       "license": "CC-BY-SA-4.0"
     },
     {
       "id": "wikipedia-es-computer-zim",
       "title": "Wikipedia Spanish Computing No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-04.zim",
-      "expected_size_bytes": 97131347,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_computer_nopic_2026-10.zim",
+      "expected_size_bytes": 102728687,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -505,8 +505,8 @@
       "id": "wikipedia-es-all-nopic-zim",
       "title": "Wikipedia Spanish All No Images ZIM",
       "type": "zim",
-      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-05.zim",
-      "expected_size_bytes": 12093643511,
+      "url": "https://download.kiwix.org/zim/wikipedia/wikipedia_es_all_nopic_2026-10.zim",
+      "expected_size_bytes": 13298215428,
       "license": "CC-BY-SA-4.0"
     },
     {
@@ -585,40 +585,40 @@
       "id": "guia-autoproteccion-es",
       "title": "Guía de Autoprotección Ciudadana (Protección Civil)",
       "type": "pdf",
-      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_autoproteccion_126230971.pdf",
-      "expected_size_bytes": 2600000,
+      "url": "https://www.proteccioncivil.es/documents/20121/0/07-Autoproteccion_accesible.pdf/4344b9ea-05ef-6415-0223-10ab4257effd",
+      "expected_size_bytes": 2942848,
       "license": "spanish-gov"
     },
     {
       "id": "guia-inundaciones-es",
       "title": "Guía Ciudadana ante el Riesgo de Inundaciones (Protección Civil)",
       "type": "pdf",
-      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_inundaciones_12623087X.pdf",
-      "expected_size_bytes": 2500000,
+      "url": "https://www.proteccioncivil.es/documents/20121/0/08-Inundaciones_accesible.pdf/9b11b38f-447a-5eea-38bd-088def20096f",
+      "expected_size_bytes": 1686716,
       "license": "spanish-gov"
     },
     {
       "id": "guia-incendios-forestales-es",
       "title": "Guía Ciudadana ante Incendios Forestales (Protección Civil)",
       "type": "pdf",
-      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_incendios_forestales_126230859.pdf",
-      "expected_size_bytes": 2500000,
+      "url": "https://www.proteccioncivil.es/documents/20121/0/02-Incendios_Forestales_accesible.pdf/ba63caa6-901f-31c0-a4f3-5f0b7c87d927",
+      "expected_size_bytes": 3034326,
       "license": "spanish-gov"
     },
     {
       "id": "guia-riesgo-sismico-es",
       "title": "Guía Ciudadana ante el Riesgo Sísmico (Protección Civil)",
       "type": "pdf",
-      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_riesgo_sismico_126230919.pdf",
-      "expected_size_bytes": 2500000,
+      "url": "https://www.proteccioncivil.es/documents/20121/0/01-Riesgos_Sismico_accesible.pdf/4a195b9a-680e-6232-c471-8520f79af96e",
+      "expected_size_bytes": 793906,
       "license": "spanish-gov"
     },
     {
       "id": "guia-meteorologia-adversa-es",
       "title": "Guía Ciudadana ante Fenómenos Meteorológicos Adversos (Protección Civil)",
       "type": "pdf",
-      "url": "https://www.interior.gob.es/opencms/pdf/archivos-y-documentacion/documentacion-y-publicaciones/publicaciones-descargables/proteccion-civil/Guia_de_informacion_fenomenos-meteorologicos_adversos_126230950.pdf",
-      "expected_size_bytes": 2500000,
+      "url": "https://www.proteccioncivil.es/documents/20121/0/06-Fenomenos%20metereologicos.pdf/1295223b-96b3-ae95-d8ec-d7e296d9bb05",
+      "expected_size_bytes": 22783836,
       "license": "spanish-gov"
     },
     {
@@ -660,6 +660,134 @@
       "url": "https://www.ready.gov/sites/default/files/2020-05/effak_spanish.pdf",
       "expected_size_bytes": 2014834,
       "license": "public-domain-us"
+    },
+    {
+      "id": "fema-are-you-ready",
+      "title": "FEMA: Are You Ready? An In-Depth Guide to Citizen Preparedness",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2021-11/are-you-ready-guide.pdf",
+      "expected_size_bytes": 4233522,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "fema-are-you-ready-es",
+      "title": "FEMA: ¿Está preparado? Guía detallada para la preparación comunitaria",
+      "type": "pdf",
+      "url": "https://www.ready.gov/sites/default/files/2021-11/are-you-ready-guide_spanish.pdf",
+      "expected_size_bytes": 4255969,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "epa-emergency-drinking-water",
+      "title": "EPA: Emergency Disinfection of Drinking Water",
+      "type": "pdf",
+      "url": "https://www.epa.gov/sites/default/files/2017-09/documents/emergency_disinfection_of_drinking_water_sept2017.pdf",
+      "expected_size_bytes": 754723,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "epa-emergency-drinking-water-es",
+      "title": "EPA: Desinfección de agua potable en situaciones de emergencia",
+      "type": "pdf",
+      "url": "https://espanol.epa.gov/sites/default/files/2016-05/documents/spanish_emergency_disinfection_drinking_water_0.pdf",
+      "expected_size_bytes": 250968,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "fao-family-garden-es",
+      "title": "FAO: Una huerta para todos (quinta edición)",
+      "type": "pdf",
+      "url": "https://aulavirtual.agro.unlp.edu.ar/pluginfile.php/25825/mod_folder/content/0/Huerta%20para%20todos%20-%20FAO.pdf?forcedownload=1",
+      "expected_size_bytes": 33960178,
+      "license": "FAO-noncommercial"
+    },
+    {
+      "id": "usda-home-canning-1",
+      "title": "USDA Home Canning Guide 1: Principles of Home Canning",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE01_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 3794234,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "usda-home-canning-2",
+      "title": "USDA Home Canning Guide 2: Selecting, Preparing, and Canning Fruit and Fruit Products",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE02_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 1098841,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "usda-home-canning-3",
+      "title": "USDA Home Canning Guide 3: Selecting, Preparing, and Canning Tomatoes and Tomato Products",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE03_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 976490,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "usda-home-canning-4",
+      "title": "USDA Home Canning Guide 4: Selecting, Preparing, and Canning Vegetables and Vegetable Products",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE04_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 2013613,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "usda-home-canning-5",
+      "title": "USDA Home Canning Guide 5: Preparing and Canning Poultry, Red Meats, and Seafoods",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE05_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 1356485,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "usda-home-canning-6",
+      "title": "USDA Home Canning Guide 6: Preparing and Canning Fermented Foods and Pickled Vegetables",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE06_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 3173534,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "usda-home-canning-7",
+      "title": "USDA Home Canning Guide 7: Preparing and Canning Jams and Jellies",
+      "type": "pdf",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE07_HomeCan_rev0715.pdf",
+      "expected_size_bytes": 1300368,
+      "license": "public-domain-us"
+    },
+    {
+      "id": "mechanics-stackexchange-zim",
+      "title": "Motor Vehicle Maintenance and Repair Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/mechanics.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 341672133,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "ham-stackexchange-zim",
+      "title": "Amateur Radio Stack Exchange ZIM",
+      "type": "zim",
+      "url": "https://download.kiwix.org/zim/stack_exchange/ham.stackexchange.com_en_all_2026-10.zim",
+      "expected_size_bytes": 77108284,
+      "license": "CC-BY-SA-4.0"
+    },
+    {
+      "id": "guia-tsunamis-es",
+      "title": "Protección Civil: Guía ciudadana ante tsunamis",
+      "type": "pdf",
+      "url": "https://www.proteccioncivil.es/documents/20121/0/04-Tsunamis_accesible.pdf/44b4d68b-a1bc-0026-ba09-c85810f4266f",
+      "expected_size_bytes": 1080034,
+      "license": "spanish-gov"
+    },
+    {
+      "id": "guia-riesgo-volcanico-es",
+      "title": "Protección Civil: Guía ciudadana ante el riesgo volcánico",
+      "type": "pdf",
+      "url": "https://www.proteccioncivil.es/documents/20121/0/03-Riesgos_Volcanicos_accesible.pdf/6694c5a6-0bba-e147-7d9d-d3b7eae1afaa",
+      "expected_size_bytes": 1661967,
+      "license": "spanish-gov"
     }
   ]
 }

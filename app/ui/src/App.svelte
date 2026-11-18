@@ -143,6 +143,7 @@
       noProfilesFoundHelp: "The source catalog loaded, but it did not contain any configured profiles.",
       downloadFullProfile: "Download Full Profile",
       profileDownloaded: "Profile Downloaded",
+      downloading: "Downloading…",
       addonSourcesShown: "{count} add-on sources shown",
       preparedAddonDisk: "{size} prepared add-on disk",
       totalSourcesFullProfile: "{count} total sources in full profile",
@@ -477,6 +478,7 @@
       noProfilesFoundHelp: "El catálogo de fuentes cargó, pero no contiene perfiles configurados.",
       downloadFullProfile: "Descargar perfil completo",
       profileDownloaded: "Perfil descargado",
+      downloading: "Descargando…",
       addonSourcesShown: "{count} fuentes añadidas mostradas",
       preparedAddonDisk: "{size} de disco añadido preparado",
       totalSourcesFullProfile: "{count} fuentes totales en el perfil",
@@ -2298,8 +2300,8 @@
     const items = profile.sourceIds.map((id) => sourceCatalog.get(id)).filter((source): source is Source => Boolean(source)).map(sourceProgressInfo);
     const received = items.reduce((sum, item) => sum + item.received, 0);
     const total = items.reduce((sum, item) => sum + item.total, 0);
-    const progress = total > 0 ? Math.min(100, Math.round((received / total) * 100)) : 0;
     const done = items.filter((item) => item.complete || item.downloadRow?.status === "complete").length;
+    const progress = done === items.length && items.length > 0 ? 100 : total > 0 ? Math.min(99, Math.round((received / total) * 100)) : 0;
     const active = items.filter((item) => isActiveDownloadStatus(item.status)).length;
     const failed = items.filter((item) => ["failed", "paused"].includes(String(item.status ?? ""))).length;
     return { received, total, progress, done, active, failed, count: items.length };
@@ -2801,7 +2803,7 @@
           </div>
           <span class="tooltipHost" title={downloadProfileTooltip(profile)}>
             <button type="button" aria-label={downloadProfileTooltip(profile)} on:click={() => downloadProfile(profile)} disabled={!hasDownloadableSources || busy.has(`profile-${profile.id}`)}>
-              {hasDownloadableSources ? t("downloadFullProfile") : t("profileDownloaded")}
+              {profileIsFullyDownloaded(profile) ? t("profileDownloaded") : progress.active > 0 ? t("downloading") : t("downloadFullProfile")}
             </button>
           </span>
         </div>

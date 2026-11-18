@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { probeSource } from "./source-probe.mjs";
 import path from "node:path";
 import { loadCatalog } from "../app/backend/catalog.mjs";
 import { openSourceWithAdapter } from "../app/backend/adapters.mjs";
@@ -31,7 +32,7 @@ for (const source of catalog.sources) {
   const result = { sourceId: source.id, title: source.title, type: source.type, startedAt, probe: null, full: "not-run", open: "not-run", cleanup: "not-run", error: null };
   console.log(`source ${results.length + 1}/${catalog.sources.length}: ${source.id}`);
   try {
-    result.probe = await rangeProbe(source.url);
+    result.probe = await probeSource(source);
     const shouldFull = mode === "full" || (mode === "small" && Number(source.expected_size_bytes ?? 0) <= maxFullBytes);
     if (!shouldFull) {
       result.full = mode === "probe"
@@ -83,19 +84,6 @@ process.exit(0);
 
 async function writeReport() {
   await fs.writeFile(reportPath, JSON.stringify({ mode, root, maxFullBytes, diskBudgetBytes, only: only ? [...only] : null, from, generatedAt: new Date().toISOString(), results }, null, 2));
-}
-
-async function rangeProbe(url) {
-  const response = await fetch(url, { headers: { Range: "bytes=0-31" }, redirect: "follow" });
-  const body = new Uint8Array(await response.arrayBuffer());
-  if (!response.ok && response.status !== 206) throw new Error(`Probe HTTP ${response.status} ${response.statusText}`);
-  return {
-    status: response.status,
-    contentType: response.headers.get("content-type"),
-    contentLength: Number(response.headers.get("content-length") ?? 0),
-    contentRange: response.headers.get("content-range"),
-    signature: Buffer.from(body.slice(0, 8)).toString("hex")
-  };
 }
 
 async function resetRoot(dir) {

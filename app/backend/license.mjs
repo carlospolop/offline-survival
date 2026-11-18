@@ -7,6 +7,7 @@ const licenseRules = {
   "CC-BY-4.0": { redistribution: "allowed", commercial_use: "allowed", attribution_required: true, llm_ingestion_allowed: "unknown" },
   "CC-BY-NC-SA-3.0": { redistribution: "personal-only", commercial_use: "non-commercial-only", attribution_required: true, llm_ingestion_allowed: "restricted" },
   "CC-BY-NC-SA-3.0-IGO": { redistribution: "personal-only", commercial_use: "non-commercial-only", attribution_required: true, llm_ingestion_allowed: "restricted" },
+  "FAO-noncommercial": { redistribution: "personal-only", commercial_use: "non-commercial-only", attribution_required: true, llm_ingestion_allowed: "restricted" },
   "public-domain-us": { redistribution: "allowed", commercial_use: "allowed", attribution_required: false, llm_ingestion_allowed: "allowed" },
   "public-domain-derived": { redistribution: "allowed", commercial_use: "allowed", attribution_required: true, llm_ingestion_allowed: "allowed" },
   "Apache-2.0": { redistribution: "allowed", commercial_use: "allowed", attribution_required: true, llm_ingestion_allowed: "allowed" },

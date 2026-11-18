@@ -6,6 +6,10 @@ description: Small Spanish emergency archive for limited disks. Includes easy-re
 target_size_gb: [0.02, 0.05]
 disk_budget_gb: 1
 sources:
+  - guia-riesgo-volcanico-es
+  - guia-tsunamis-es
+  - epa-emergency-drinking-water-es
+  - fema-are-you-ready-es
   - vikidia-es-zim
   - who-basic-emergency-care-es
   - who-bec-quick-cards-es

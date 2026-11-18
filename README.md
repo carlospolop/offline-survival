@@ -106,6 +106,12 @@ The profiles are ordered from small to large:
 
 The sidebar recommends the largest profile that fits a conservative disk budget for the current machine.
 
+The November 2026 catalog contains 53 English and 34 Spanish sources. **Civilization
+Max Bilingual** includes all 87, with approximately **169 GB of downloads**. Allow
+250–300 GB of free space for the files, working space, and growth; optional AI
+models and full-text indexes require additional space. Sizes change as upstream
+archives are replaced. The app shows estimates from the current catalog.
+
 ## Search And Local AI
 
 Search works after sources are indexed. Local AI is optional.
@@ -148,6 +154,17 @@ For the smoothest mixed-OS package, extract a release ZIP first and, in the Shar
 The catalog is defined in [manifests/sources/catalog.yaml](manifests/sources/catalog.yaml). It stores source URLs, sizes, licenses, categories, and profiles. The repository stores the catalog and app code only.
 
 The repository must not contain downloaded ZIMs, PDFs, archives, model files, local SQLite state, or generated release bundles. Those are ignored by `.gitignore`.
+
+To check that every catalog source is present and matches its recorded checksum:
+
+```bash
+node --experimental-sqlite tools/library-check.mjs --root=/path/to/your/library --verify
+```
+
+The command reports missing or corrupt sources, exits nonzero if any check fails,
+and saves `logs/library-check.json` inside the library. See the
+[November 2026 source review](docs/linux-review-2026-11.md) for new guides, source
+availability notes, and optional accelerated downloads on Linux.
 
 ## Privacy And Safety
 
